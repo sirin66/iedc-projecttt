@@ -886,6 +886,7 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
     console.error("Firebase initialization failed, falling back to simulator:", error);
   }
 }
+sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
 const FirebaseService = {
   // Firebase Auth Operations
@@ -1277,8 +1278,7 @@ document.getElementById("auth-forgot-password-form").addEventListener("submit", 
 // Routing checker based on administrator approval status
 function checkApprovalAndRoute(profileData) {
   if (profileData.role === "admin" || profileData.email === "admin@rit.ac.in") {
-    navigateTo("admin");
-    renderAdminDashboard();
+    window.location.href = "admin.html";
   } else if (profileData.approved === true) {
     navigateTo("home");
     renderHomeEvents();
@@ -1288,6 +1288,46 @@ function checkApprovalAndRoute(profileData) {
     if (pendingNameElem) {
       pendingNameElem.textContent = profileData.name || "Student";
     }
+
+    const pendingTitle = document.querySelector("#screen-pending h1");
+    const pendingDesc = document.querySelector("#screen-pending p");
+    const pendingIconWrapper = document.querySelector(".pending-icon-wrapper");
+
+    if (profileData.status === 'rejected') {
+      if (pendingTitle) pendingTitle.textContent = "Access Denied";
+      if (pendingDesc) {
+        pendingDesc.innerHTML = `Sorry, <span style="color: var(--white-pure); font-weight: 700;">${profileData.name || "Student"}</span>.<br>Your account application has been rejected by an administrator.`;
+      }
+      if (pendingIconWrapper) {
+        pendingIconWrapper.style.borderColor = "var(--error)";
+        pendingIconWrapper.style.color = "var(--error)";
+        pendingIconWrapper.style.boxShadow = "0 0 20px rgba(232, 74, 74, 0.2)";
+        pendingIconWrapper.innerHTML = `
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        `;
+      }
+    } else {
+      if (pendingTitle) pendingTitle.textContent = "Approval Pending";
+      if (pendingDesc) {
+        pendingDesc.innerHTML = `Welcome, <span style="color: var(--white-pure); font-weight: 700;">${pendingNameElem ? pendingNameElem.textContent : "Student"}</span>!<br>Your registration has been received. Please wait for an administrator to approve your account.`;
+      }
+      if (pendingIconWrapper) {
+        pendingIconWrapper.style.borderColor = "var(--nova-yellow)";
+        pendingIconWrapper.style.color = "var(--nova-yellow)";
+        pendingIconWrapper.style.boxShadow = "0 0 20px rgba(200, 232, 74, 0.2)";
+        pendingIconWrapper.innerHTML = `
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        `;
+      }
+    }
+
     navigateTo("pending");
   }
 }
@@ -1306,7 +1346,20 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
   submitBtn.textContent = "Verifying...";
   
   try {
-    const credentials = await FirebaseService.auth.signInWithEmailAndPassword(email, password);
+    let credentials;
+    let isMockAdmin = false;
+
+    // Check for mock admin credentials fallback
+    if (email === "admin@rit.ac.in" && password === "admin123") {
+      isMockAdmin = true;
+      credentials = { user: { uid: "uid_admin123", email: "admin@rit.ac.in" } };
+      sessionStorage.setItem("useRealFirebase", "false");
+    }
+
+    if (!isMockAdmin) {
+      credentials = await FirebaseService.auth.signInWithEmailAndPassword(email, password);
+    }
+
     const docSnap = await FirebaseService.db.getStudentDoc(credentials.user.uid);
     
     if (docSnap.exists()) {
@@ -1326,7 +1379,31 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
       
       checkApprovalAndRoute(USER_PROFILE);
     } else {
-      throw new Error("auth/user-not-found");
+      if (email === "admin@rit.ac.in") {
+        USER_PROFILE = {
+          uid: credentials.user.uid,
+          name: "ADMINISTRATOR",
+          email: "admin@rit.ac.in",
+          id: "ADMIN-01",
+          registerNo: "ADMIN-01",
+          department: "Administration",
+          year: "N/A",
+          yearOfStudy: "N/A",
+          phone: "+91 00000 00000",
+          collegeName: "IEDC RIT Admin",
+          avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80",
+          approved: true,
+          role: "admin"
+        };
+        await FirebaseService.db.saveStudentDoc(credentials.user.uid, USER_PROFILE);
+        
+        sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+        updateUserProfileUI();
+        showToast("Welcome back Admin!", "var(--success)", "var(--success)");
+        checkApprovalAndRoute(USER_PROFILE);
+      } else {
+        throw new Error("auth/user-not-found");
+      }
     }
   } catch (error) {
     console.error("Login Error:", error);
@@ -1658,7 +1735,10 @@ async function handleSignOut() {
 // Register logout click event listeners
 document.getElementById("btn-logout").addEventListener("click", handleSignOut);
 document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
-document.getElementById("btn-admin-logout").addEventListener("click", handleSignOut);
+const btnAdminLogout = document.getElementById("btn-admin-logout");
+if (btnAdminLogout) {
+  btnAdminLogout.addEventListener("click", handleSignOut);
+}
 
 // Student Dashboard Tab switcher
 function switchDashboardTab(tabId) {
@@ -1839,9 +1919,12 @@ window.handleAdminAction = async function(uid, action) {
 };
 
 // Wire up search event listener
-document.getElementById("admin-search").addEventListener("input", () => {
-  renderAdminDashboard();
-});
+const adminSearchInput = document.getElementById("admin-search");
+if (adminSearchInput) {
+  adminSearchInput.addEventListener("input", () => {
+    renderAdminDashboard();
+  });
+}
 
 // Check Session & Gating on Startup
 async function initSession() {
