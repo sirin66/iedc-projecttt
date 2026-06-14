@@ -271,6 +271,92 @@
     }
     .btn-approve { background: var(--success); color: white; margin-right: 4px; }
     .btn-reject { background: rgba(234,67,53,0.1); border: 1px solid #EA4335; color: #EA4335; }
+
+    /* Event Studio Styles */
+    .event-studio-container {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    
+    .event-studio-container h2 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: var(--space-md);
+      color: var(--white-pure);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    
+    .form-group label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted-white);
+      font-weight: 700;
+    }
+    
+    .form-group input, 
+    .form-group select, 
+    .form-group textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--white-pure);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    .form-group input:focus, 
+    .form-group select:focus, 
+    .form-group textarea:focus {
+      border-color: var(--nova-yellow);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background: var(--nova-yellow);
+      color: #080810;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(200, 232, 74, 0.25);
+      transition: all 0.2s ease;
+      margin-top: var(--space-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-submit:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
@@ -323,8 +409,14 @@
         <span style="color: #E8614A;">IEDC RIT</span> Console
       </div>
       <nav class="admin-sidebar-nav">
-        <div class="admin-nav-item active">
+        <div class="admin-nav-item active" id="nav-tab-registrations" onclick="switchAdminWorkspaceTab('registrations')">
           Registrations Workspace
+        </div>
+        <div class="admin-nav-item" id="nav-tab-events" onclick="switchAdminWorkspaceTab('events')">
+          Event Studio
+        </div>
+        <div class="admin-nav-item" id="nav-tab-tournaments" onclick="switchAdminWorkspaceTab('tournaments')">
+          Tournament Management
         </div>
       </nav>
       <button class="admin-logout-btn" onclick="handleAdminSignOut()">
@@ -335,8 +427,8 @@
     <main class="admin-main-content">
       <header class="admin-topbar">
         <div>
-          <span class="admin-breadcrumb">Console / Dashboard</span>
-          <h1 class="admin-page-title">Active Platform Applications</h1>
+          <span class="admin-breadcrumb" id="admin-workspace-breadcrumb">Console / Dashboard</span>
+          <h1 class="admin-page-title" id="admin-workspace-title">Active Platform Applications</h1>
         </div>
         <div class="admin-user-profile">
           <span class="admin-user-name">Root Administrator</span>
@@ -346,60 +438,212 @@
         </div>
       </header>
 
-      <section class="admin-stats-grid">
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon" style="background: rgba(139,111,212,0.15); color: var(--soft-purple);">📊</div>
-          <div>
-            <span class="admin-stat-lbl">Total Registered</span>
-            <h2 class="admin-stat-num" id="stat-total">0</h2>
+      <!-- Registrations Workspace View -->
+      <div id="workspace-registrations" style="display: flex; flex-direction: column; gap: var(--space-xl); width: 100%;">
+        <section class="admin-stats-grid">
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon" style="background: rgba(139,111,212,0.15); color: var(--soft-purple);">📊</div>
+            <div>
+              <span class="admin-stat-lbl">Total Registered</span>
+              <h2 class="admin-stat-num" id="stat-total">0</h2>
+            </div>
           </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon" style="background: rgba(74,232,138,0.15); color: var(--success);">✅</div>
-          <div>
-            <span class="admin-stat-lbl">Approved Accounts</span>
-            <h2 class="admin-stat-num" id="stat-approved">0</h2>
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon" style="background: rgba(74,232,138,0.15); color: var(--success);">✅</div>
+            <div>
+              <span class="admin-stat-lbl">Approved Accounts</span>
+              <h2 class="admin-stat-num" id="stat-approved">0</h2>
+            </div>
           </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon" style="background: rgba(232,196,74,0.15); color: var(--warning);">⏳</div>
-          <div>
-            <span class="admin-stat-lbl">Pending Review</span>
-            <h2 class="admin-stat-num" id="stat-pending">0</h2>
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon" style="background: rgba(232,196,74,0.15); color: var(--warning);">⏳</div>
+            <div>
+              <span class="admin-stat-lbl">Pending Review</span>
+              <h2 class="admin-stat-num" id="stat-pending">0</h2>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="admin-data-section">
-        <div class="admin-data-header">
-          <span class="section-eyebrow">Student Submissions</span>
-          <div class="admin-search-box">
-            <input type="text" id="table-search" class="admin-search-input" placeholder="Filter profiles dynamically...">
+        <section class="admin-data-section">
+          <div class="admin-data-header">
+            <span class="section-eyebrow">Student Submissions</span>
+            <div class="admin-search-box">
+              <input type="text" id="table-search" class="admin-search-input" placeholder="Filter profiles dynamically...">
+            </div>
           </div>
-        </div>
 
-        <div class="admin-table-container">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Student Info</th>
-                <th>KTU ID / Reg No</th>
-                <th>Department & Year</th>
-                <th>College</th>
-                <th>Status</th>
-                <th style="text-align: right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="student-table-body">
-              <tr>
-                <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 32px;">
-                  Establishing communication link with secure database collection pipelines...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <div class="admin-table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Student Info</th>
+                  <th>KTU ID / Reg No</th>
+                  <th>Department & Year</th>
+                  <th>College</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="student-table-body">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 32px;">
+                    Establishing communication link with secure database collection pipelines...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Event Studio Workspace View -->
+      <div id="workspace-events" style="display: none; width: 100%;">
+        <section class="admin-data-section">
+          <div class="event-studio-container">
+            <h2>IEDC Event Studio</h2>
+            <form id="addEventForm" onsubmit="handleEventPublish(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventTitle">Event Title</label>
+                  <input type="text" id="eventTitle" placeholder="Eg: Generative AI Workshop" required>
+                </div>
+                <div class="form-group">
+                  <label for="eventType">Category</label>
+                  <select id="eventType" required>
+                    <option value="workshop">Workshop</option>
+                    <option value="hackathon">Hackathon</option>
+                    <option value="talk">Talk</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="speakerName">Speaker Name</label>
+                  <input type="text" id="speakerName" placeholder="Eg: Dr. John Doe" required>
+                </div>
+                <div class="form-group">
+                  <label for="speakerQual">Speaker Qualification</label>
+                  <input type="text" id="speakerQual" placeholder="Eg: AI Research Head at TechCorp" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="speakerLinkedin">Speaker LinkedIn Profile URL</label>
+                  <input type="url" id="speakerLinkedin" placeholder="https://linkedin.com/in/username">
+                </div>
+                <div class="form-group">
+                  <label for="eventUpi">Dedicated UPI ID for Payments</label>
+                  <input type="text" id="eventUpi" placeholder="Eg: merchant@upi" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventDate">Event Date</label>
+                  <input type="date" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                  <label for="eventTime">Event Start Time (24h)</label>
+                  <input type="time" id="eventTime" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventSeats">Total Available Seats</label>
+                  <input type="number" id="eventSeats" placeholder="Eg: 50" required min="1">
+                </div>
+                <div class="form-group">
+                  <label for="eventPrice">Ticket Price (₹ or Free)</label>
+                  <input type="text" id="eventPrice" placeholder="Eg: Free or ₹100" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventLocation">Venue Location</label>
+                  <input type="text" id="eventLocation" placeholder="Eg: RIT Seminar Hall" required>
+                </div>
+                <div class="form-group">
+                  <label for="eventPoster">Event Poster Image (JPG/PNG)</label>
+                  <input type="file" id="eventPoster" accept="image/*" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventHasTeam">Registration Type</label>
+                  <select id="eventHasTeam" onchange="toggleTeamSizeField('event')" required>
+                    <option value="false">Individual Entry</option>
+                    <option value="true">Team Entry</option>
+                  </select>
+                </div>
+                <div class="form-group" id="event-team-size-group" style="display: none;">
+                  <label for="eventMaxTeam">Maximum Team Size</label>
+                  <input type="number" id="eventMaxTeam" placeholder="Eg: 4" min="2" max="10">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="eventDescription">Detailed Description</label>
+                <textarea id="eventDescription" placeholder="Provide a detailed description of the event topics, schedule, and expectations..." rows="4" required></textarea>
+              </div>
+
+              <button type="submit" class="btn-submit">Publish Event</button>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tournament Management Workspace View -->
+      <div id="workspace-tournaments" style="display: none; width: 100%;">
+        <section class="admin-data-section">
+          <div class="event-studio-container">
+            <h2>Tournament Management</h2>
+            <form id="addTournamentForm" onsubmit="handleTournamentPublish(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentTitle">Tournament Name</label>
+                  <input type="text" id="tournamentTitle" placeholder="Eg: Valorant RIT Cup" required>
+                </div>
+                <div class="form-group">
+                  <label for="tournamentPrice">Registration Fee (₹ or Free)</label>
+                  <input type="text" id="tournamentPrice" placeholder="Eg: Free or ₹150" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentPrize">Prize Pool</label>
+                  <input type="text" id="tournamentPrize" placeholder="Eg: ₹5000" required>
+                </div>
+                <div class="form-group">
+                  <label for="tournamentPoster">Tournament Poster Image (JPG/PNG)</label>
+                  <input type="file" id="tournamentPoster" accept="image/*" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentHasTeam">Registration Type</label>
+                  <select id="tournamentHasTeam" onchange="toggleTeamSizeField('tournament')" required>
+                    <option value="false">Individual Entry</option>
+                    <option value="true">Group Entry</option>
+                  </select>
+                </div>
+                <div class="form-group" id="tournament-team-size-group" style="display: none;">
+                  <label for="tournamentMaxTeam">Maximum Group Size</label>
+                  <input type="number" id="tournamentMaxTeam" placeholder="Eg: 5" min="2" max="10">
+                </div>
+              </div>
+
+              <button type="submit" class="btn-submit">Publish Tournament</button>
+            </form>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
 
@@ -652,6 +896,278 @@
       const criteria = event.target.value.toLowerCase().trim();
       filterAndRenderTable(criteria);
     });
+
+    // Switch Workspace Drawer Tabs
+    window.switchAdminWorkspaceTab = function(tabId) {
+      const tabs = ["registrations", "events", "tournaments"];
+      tabs.forEach(t => {
+        const tabEl = document.getElementById(`nav-tab-${t}`);
+        const viewEl = document.getElementById(`workspace-${t}`);
+        if (t === tabId) {
+          if (tabEl) tabEl.classList.add("active");
+          if (viewEl) viewEl.style.display = t === "registrations" ? "flex" : "block";
+        } else {
+          if (tabEl) tabEl.classList.remove("active");
+          if (viewEl) viewEl.style.display = "none";
+        }
+      });
+
+      // Update workspace header breadcrumbs and titles
+      const breadcrumb = document.getElementById("admin-workspace-breadcrumb");
+      const title = document.getElementById("admin-workspace-title");
+      if (tabId === "registrations") {
+        if (breadcrumb) breadcrumb.textContent = "Console / Registrations";
+        if (title) title.textContent = "Active Platform Applications";
+      } else if (tabId === "events") {
+        if (breadcrumb) breadcrumb.textContent = "Console / Events";
+        if (title) title.textContent = "IEDC Event Studio";
+      } else {
+        if (breadcrumb) breadcrumb.textContent = "Console / Tournaments";
+        if (title) title.textContent = "Tournament Management";
+      }
+    };
+
+    // Toggle maximum team size field
+    window.toggleTeamSizeField = function(type) {
+      if (type === 'event') {
+        const hasTeam = document.getElementById("eventHasTeam").value === "true";
+        const teamGroup = document.getElementById("event-team-size-group");
+        const maxTeamInput = document.getElementById("eventMaxTeam");
+        if (hasTeam) {
+          teamGroup.style.display = "flex";
+          maxTeamInput.required = true;
+        } else {
+          teamGroup.style.display = "none";
+          maxTeamInput.required = false;
+          maxTeamInput.value = "";
+        }
+      } else {
+        const hasTeam = document.getElementById("tournamentHasTeam").value === "true";
+        const teamGroup = document.getElementById("tournament-team-size-group");
+        const maxTeamInput = document.getElementById("tournamentMaxTeam");
+        if (hasTeam) {
+          teamGroup.style.display = "flex";
+          maxTeamInput.required = true;
+        } else {
+          teamGroup.style.display = "none";
+          maxTeamInput.required = false;
+          maxTeamInput.value = "";
+        }
+      }
+    };
+
+    // Convert poster to Base64 and publish new event document to Firestore/Simulator
+    window.handleEventPublish = async function(event) {
+      event.preventDefault();
+      
+      const submitBtn = event.target.querySelector(".btn-submit");
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Publishing...";
+
+      try {
+        const title = document.getElementById("eventTitle").value.trim();
+        const type = document.getElementById("eventType").value;
+        const speakerName = document.getElementById("speakerName").value.trim();
+        const speakerQual = document.getElementById("speakerQual").value.trim();
+        const speakerLinkedin = document.getElementById("speakerLinkedin").value.trim();
+        const upi = document.getElementById("eventUpi").value.trim();
+        const dateInput = document.getElementById("eventDate").value;
+        const timeInput = document.getElementById("eventTime").value;
+        const seats = parseInt(document.getElementById("eventSeats").value);
+        const price = document.getElementById("eventPrice").value.trim();
+        const location = document.getElementById("eventLocation").value.trim();
+        const hasTeam = document.getElementById("eventHasTeam").value === "true";
+        const maxTeamSize = hasTeam ? parseInt(document.getElementById("eventMaxTeam").value) : 1;
+        const description = document.getElementById("eventDescription").value.trim();
+        
+        const posterFile = document.getElementById("eventPoster").files[0];
+        if (!posterFile) {
+          alert("Please upload an event poster image.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
+
+        const base64Poster = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (e) => reject(e);
+          reader.readAsDataURL(posterFile);
+        });
+
+        // Format dates into human readable values
+        const dateObj = new Date(dateInput);
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = dateObj.toLocaleDateString('en-US', options); 
+        const isoDate = `${dateInput}T${timeInput}:00`;
+
+        // Format 24h input time to 12h AM/PM string
+        const [hours24, minutes] = timeInput.split(":");
+        let hours12 = parseInt(hours24);
+        const ampm = hours12 >= 12 ? 'PM' : 'AM';
+        hours12 = hours12 % 12;
+        hours12 = hours12 ? hours12 : 12; 
+        const formattedTime = `${hours12 < 10 ? '0' + hours12 : hours12}:${minutes} ${ampm}`;
+
+        // Colors and labels mapping
+        let typeLabel = "Workshop";
+        let color = "#C8E84A";
+        if (type === "hackathon") {
+          typeLabel = "Hackathon";
+          color = "#8B6FD4";
+        } else if (type === "talk") {
+          typeLabel = "Talk";
+          color = "#E8614A";
+        }
+
+        // Generate user-friendly slug ID
+        const eventSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000);
+
+        const eventData = {
+          id: eventSlug,
+          eventId: eventSlug,
+          title,
+          type,
+          typeLabel,
+          date: formattedDate,
+          isoDate,
+          time: formattedTime,
+          seats,
+          price,
+          host: `${speakerName}, ${speakerQual}`,
+          speakerLinkedin,
+          location,
+          description,
+          color,
+          hasTeam,
+          maxTeamSize,
+          poster: base64Poster,
+          upi,
+          
+          event_title: title,
+          speaker_name: speakerName,
+          speaker_qualification: speakerQual,
+          linkedin_url: speakerLinkedin,
+          upi_id: upi,
+          poster_url: base64Poster,
+          created_at: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
+          timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+        };
+
+        if (useRealFirebase) {
+          await db.collection("events").doc(eventSlug).set(eventData);
+        }
+
+        let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+        mockEvents.push(eventData);
+        localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+
+        const directLink = `${window.location.origin}/register.html?id=${eventSlug}`;
+        
+        alert(`Event Published Successfully!\n\nDirect Registration Link:\n${directLink}`);
+        if (navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(directLink);
+          } catch (e) {
+            console.warn("Could not auto-copy to clipboard:", e);
+          }
+        }
+
+        document.getElementById("addEventForm").reset();
+        document.getElementById("event-team-size-group").style.display = "none";
+        switchAdminWorkspaceTab('registrations');
+      } catch (error) {
+        console.error("Publish failed:", error);
+        alert("Error publishing event. Please try again.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    };
+
+    // Convert poster to Base64 and publish new tournament document to Firestore/Simulator
+    window.handleTournamentPublish = async function(event) {
+      event.preventDefault();
+      
+      const submitBtn = event.target.querySelector(".btn-submit");
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Publishing...";
+
+      try {
+        const title = document.getElementById("tournamentTitle").value.trim();
+        const price = document.getElementById("tournamentPrice").value.trim();
+        const prize = document.getElementById("tournamentPrize").value.trim();
+        const hasTeam = document.getElementById("tournamentHasTeam").value === "true";
+        const maxTeamSize = hasTeam ? parseInt(document.getElementById("tournamentMaxTeam").value) : 1;
+        
+        const posterFile = document.getElementById("tournamentPoster").files[0];
+        if (!posterFile) {
+          alert("Please upload a tournament poster image.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
+
+        const base64Poster = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (e) => reject(e);
+          reader.readAsDataURL(posterFile);
+        });
+
+        const tournamentSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000);
+
+        const tournamentData = {
+          id: tournamentSlug,
+          eventId: tournamentSlug,
+          title,
+          event_title: title,
+          price,
+          reg_fee: price,
+          prize,
+          hasTeam,
+          maxTeamSize,
+          poster: base64Poster,
+          poster_url: base64Poster,
+          type: "tournament",
+          typeLabel: "Tournament",
+          color: hasTeam ? "#8B6FD4" : "#C8E84A",
+          created_at: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
+          timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+        };
+
+        if (useRealFirebase) {
+          await db.collection("tournaments").doc(tournamentSlug).set(tournamentData);
+        }
+
+        let mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+        mockTournaments.push(tournamentData);
+        localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTournaments));
+
+        const directLink = `${window.location.origin}/register.html?id=${tournamentSlug}`;
+        
+        alert(`Tournament Published Successfully!\n\nDirect Registration Link:\n${directLink}`);
+        if (navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(directLink);
+          } catch (e) {
+            console.warn("Could not auto-copy to clipboard:", e);
+          }
+        }
+
+        document.getElementById("addTournamentForm").reset();
+        document.getElementById("tournament-team-size-group").style.display = "none";
+        switchAdminWorkspaceTab('registrations');
+      } catch (error) {
+        console.error("Publish failed:", error);
+        alert("Error publishing tournament. Please try again.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    };
 
     // Verification check to secure admin panel
     function verifyAdminAccess() {
