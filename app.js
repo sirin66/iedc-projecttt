@@ -750,37 +750,14 @@ async function handleRegistrationCheckout() {
       amountLabel.textContent = `Amount Due: ₹${amount}`;
     }
 
-    const upiLink = `upi://pay?pa=M222YFJEV26ZI_2606161742@ybl&pn=IEDC_RIT&am=${amount}&cu=INR`;
+    // REPLACE THIS WITH YOUR ACTUAL UPI ID
+    const upiId = "YOUR_REAL_UPI_ID@okaxis";
+    const upiLink = `upi://pay?pa=${upiId}&pn=IEDC_RIT&am=${amount}&cu=INR`;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const mobileView = document.getElementById("waiting-mobile-view");
     const desktopView = document.getElementById("waiting-desktop-view");
     const upiMobileLink = document.getElementById("waiting-upi-mobile-link");
     const upiQrImage = document.getElementById("waiting-upi-qr-image");
-    const simulateBtn = document.getElementById("btn-simulate-approval");
-
-    // Configure simulator trigger
-    if (simulateBtn) {
-      simulateBtn.style.display = "block";
-      simulateBtn.onclick = async () => {
-        try {
-          if (useRealFirebase) {
-            const db = firebase.firestore();
-            await db.collection("registrations").doc(registrationId).update({ status: "Confirmed" });
-          } else {
-            let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-            const idx = mockRegs.findIndex(r => r.registrationId === registrationId);
-            if (idx !== -1) {
-              mockRegs[idx].status = "Confirmed";
-              localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
-            }
-          }
-          showToast("Simulation: SMS confirmation sent!", "var(--success)", "var(--success)");
-        } catch (error) {
-          console.error("Failed to simulate SMS approval:", error);
-          showToast("Simulation failed.", "var(--error)", "var(--error)");
-        }
-      };
-    }
 
     if (isMobile) {
       if (mobileView) mobileView.style.display = "flex";
