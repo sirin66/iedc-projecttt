@@ -1870,16 +1870,13 @@ document.getElementById("btn-logout").addEventListener("click", handleSignOut);
 document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
 
 // Webhook wait screen Back/Dashboard action binder
-const waitBackBtn = document.getElementById("btn-waiting-back");
-if (waitBackBtn) {
-  waitBackBtn.onclick = () => {
-    const waitOverlay = document.getElementById("waiting-verification-overlay");
-    if (waitOverlay) waitOverlay.style.display = "none";
-    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-    navigateTo("dashboard");
-    switchDashboardTab("events");
-  };
-}
+window.closeWaitingOverlayAndGoToWallet = function() {
+  const waitOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitOverlay) waitOverlay.style.display = "none";
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  navigateTo("dashboard");
+  switchDashboardTab("events");
+};
 
 /**
  * Standalone batch cleanup utility to remove duplicate or orphaned registrations.
