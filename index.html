@@ -697,7 +697,7 @@
             </div>
 
             <!-- Single-Page Checkout inputs embedded directly inside details view -->
-            <div id="detail-reg-fields" class="detail-reg-box">
+            <form id="detail-reg-form" class="detail-reg-box" onsubmit="event.preventDefault();">
               <span class="section-eyebrow" id="detail-reg-eyebrow">Confirm Your Registration</span>
               
               <div class="input-group">
@@ -721,7 +721,11 @@
                   + Add Team Member
                 </button>
               </div>
-            </div>
+
+              <div class="input-group" style="margin-top: var(--space-md);">
+                <button type="submit" id="modal-pay-btn" class="card-btn-register" style="width: 100%;">Register & Pay via UPI</button>
+              </div>
+            </form>
 
             <!-- Dynamic UPI Checkout Container -->
             <div id="detail-upi-checkout-container" style="display: none; flex-direction: column; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
@@ -760,6 +764,16 @@
                   Cancel & Go Back
                 </button>
               </div>
+            </div>
+
+            <!-- Ticket Success Container (Dynamic QR canvas target) -->
+            <div id="ticket-container" style="display: none; flex-direction: column; align-items: center; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
+              <span class="section-eyebrow" style="color: var(--success); font-weight: 700;">Enrollment Confirmed</span>
+              <div style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
+                <canvas id="ticket-qr-canvas" style="display: block; width: 180px; height: 180px;"></canvas>
+              </div>
+              <p class="body-desc" style="font-size: 12px; color: var(--muted-white); margin-top: 4px;">Present this Canvas QR code at the check-in gate.</p>
+              <button type="button" onclick="navigateTo('dashboard')" class="btn" style="background: var(--galactic-purple); color: var(--white-pure); width: 100%;">Open Ticket Wallet</button>
             </div>
 
           </div>

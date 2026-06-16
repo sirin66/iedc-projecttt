@@ -493,23 +493,49 @@ function openEventDetail(event) {
   // Start Detail Countdown ticking clock
   startDetailCountdown(event.isoDate);
 
+  // Reset payment checkout screen states
+  document.getElementById("detail-reg-form").style.display = "block";
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("ticket-container").style.display = "none";
+  
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  if (stickyCta) stickyCta.style.display = "block";
+
   // Gating registration buttons
   const regBtn = document.getElementById("detail-register-btn");
+  const modalPayBtn = document.getElementById("modal-pay-btn");
   const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === event.id);
 
   if (isAlreadyRegistered) {
     regBtn.textContent = "View Ticket Pass";
     regBtn.style.backgroundColor = "var(--galactic-purple)";
     regBtn.style.color = "var(--white-pure)";
+    if (modalPayBtn) {
+      modalPayBtn.textContent = "View Ticket Pass";
+      modalPayBtn.style.backgroundColor = "var(--galactic-purple)";
+      modalPayBtn.style.color = "var(--white-pure)";
+    }
   } else if (event.seats <= 0) {
     regBtn.textContent = "Sold Out";
     regBtn.disabled = true;
     regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+    if (modalPayBtn) {
+      modalPayBtn.textContent = "Sold Out";
+      modalPayBtn.disabled = true;
+      modalPayBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+    }
   } else {
-    regBtn.textContent = event.price && event.price !== "Free" ? `Pay & Register` : `Confirm Free Register`;
+    const btnText = event.price && event.price !== "Free" ? "Register & Pay via UPI" : "Confirm Free Register";
+    regBtn.textContent = btnText;
     regBtn.disabled = false;
     regBtn.style.backgroundColor = "var(--nova-yellow)";
     regBtn.style.color = "var(--void-black)";
+    if (modalPayBtn) {
+      modalPayBtn.textContent = btnText;
+      modalPayBtn.disabled = false;
+      modalPayBtn.style.backgroundColor = "var(--nova-yellow)";
+      modalPayBtn.style.color = "var(--void-black)";
+    }
   }
 
   navigateTo("detail");
@@ -574,6 +600,19 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
     showTicket(reg);
     return;
   }
+
+  // Trigger HTML5 validation and submit form
+  document.getElementById("detail-reg-form").requestSubmit();
+});
+
+// Bind form submit event
+document.getElementById("detail-reg-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  handleRegistrationCheckout();
+});
+
+function handleRegistrationCheckout() {
+  if (!selectedEvent) return;
 
   const phone = document.getElementById("detail-reg-phone").value.trim();
   if (!phone) {
@@ -651,8 +690,8 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
       document.getElementById("detail-upi-qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiLink)}&size=180x180`;
     }
 
-    // Shift screen Detail display sections state
-    document.getElementById("detail-reg-fields").style.display = "none";
+    // Shift screen Detail display sections state (hide form, show UPI QR container)
+    document.getElementById("detail-reg-form").style.display = "none";
     const stickyCta = document.querySelector(".sticky-cta-container");
     if (stickyCta) stickyCta.style.display = "none";
     
@@ -681,7 +720,7 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
     };
     completeUpiRegistration(registrationData);
   }
-});
+}
 
 // ==========================================
 // 07 — PAYMENT COMPLETION & TICKET Wallet
@@ -735,21 +774,19 @@ async function completeUpiRegistration(registrationData) {
 
   showToast("Registration Confirmed! Enjoy your event.", "var(--success)", "var(--success)");
 
-  // Hide checkout views and restore fields
+  // Hide checkout views and show success ticket block inside details modal
   document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("detail-reg-fields").style.display = "block";
+  document.getElementById("detail-reg-form").style.display = "none";
   const stickyCta = document.querySelector(".sticky-cta-container");
-  if (stickyCta) stickyCta.style.display = "block";
+  if (stickyCta) stickyCta.style.display = "none";
 
-  // Sync state and open pass
-  await syncRegistrations();
+  document.getElementById("ticket-container").style.display = "flex";
   
-  const regObj = USER_REGISTRATIONS.find(r => r.registrationId === registrationData.registrationId);
-  if (regObj) {
-    showTicket(regObj);
-  } else {
-    navigateTo("dashboard");
-  }
+  // Render canvas QR code on the spot
+  drawQRToCanvas(document.getElementById("ticket-qr-canvas"), registrationData.registrationId, selectedEvent.color || "#8B6FD4", 180);
+
+  // Sync state in background
+  await syncRegistrations();
 }
 
 // Bind confirm button
@@ -772,7 +809,7 @@ document.getElementById("detail-upi-cancel-btn").addEventListener("click", () =>
   pendingRegistration = null;
   
   document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("detail-reg-fields").style.display = "block";
+  document.getElementById("detail-reg-form").style.display = "block";
   const stickyCta = document.querySelector(".sticky-cta-container");
   if (stickyCta) stickyCta.style.display = "block";
 });
@@ -813,28 +850,29 @@ function showTicket(registration) {
   navigateTo("ticket");
 }
 
-function generateQRCode(text, brandColor) {
-  const canvas = document.getElementById("qr-canvas");
+function drawQRToCanvas(canvas, text, brandColor, size = 240) {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   
-  canvas.width = 240;
-  canvas.height = 240;
+  canvas.width = size;
+  canvas.height = size;
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, 240, 240);
+  ctx.fillRect(0, 0, size, size);
   ctx.fillStyle = "#080810";
 
+  const moduleSize = size / 30;
+
   function drawFinderPattern(x, y) {
-    ctx.fillRect(x, y, 60, 60);
+    ctx.fillRect(x, y, 60 * (size / 240), 60 * (size / 240));
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x + 10, y + 10, 40, 40);
+    ctx.fillRect(x + 10 * (size / 240), y + 10 * (size / 240), 40 * (size / 240), 40 * (size / 240));
     ctx.fillStyle = "#080810";
-    ctx.fillRect(x + 20, y + 20, 20, 20);
+    ctx.fillRect(x + 20 * (size / 240), y + 20 * (size / 240), 20 * (size / 240), 20 * (size / 240));
   }
 
-  drawFinderPattern(10, 10);
-  drawFinderPattern(170, 10);
-  drawFinderPattern(10, 170);
+  drawFinderPattern(10 * (size / 240), 10 * (size / 240));
+  drawFinderPattern(170 * (size / 240), 10 * (size / 240));
+  drawFinderPattern(10 * (size / 240), 170 * (size / 240));
 
   let seed = 0;
   for (let i = 0; i < text.length; i++) {
@@ -845,7 +883,6 @@ function generateQRCode(text, brandColor) {
     return x - Math.floor(x);
   }
 
-  const moduleSize = 8;
   for (let r = 0; r < 30; r++) {
     for (let c = 0; c < 30; c++) {
       if ((r < 8 && c < 8) || (r < 8 && c >= 22) || (r >= 22 && c < 8)) continue;
@@ -855,6 +892,11 @@ function generateQRCode(text, brandColor) {
       }
     }
   }
+}
+
+function generateQRCode(text, brandColor) {
+  const canvas = document.getElementById("qr-canvas");
+  drawQRToCanvas(canvas, text, brandColor, 240);
 }
 
 // Draw QR inside stubs card inside wallet
