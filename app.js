@@ -118,18 +118,6 @@ document.getElementById("setup-back-btn").addEventListener("click", () => naviga
 async function syncEvents() {
   let mergedEvents = [];
 
-  // Load from local storage simulator
-  try {
-    const mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-    const mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-
-    mockEvents.forEach(evt => mergedEvents.push(evt));
-    mockTournaments.forEach(tour => mergedEvents.push(tour));
-  } catch (err) {
-    console.error("Local mock storage load failed:", err);
-  }
-
-  // Load from real Firebase Firestore
   if (useRealFirebase) {
     try {
       const db = firebase.firestore();
@@ -137,99 +125,155 @@ async function syncEvents() {
       const eventsSnap = await db.collection("events").get();
       eventsSnap.forEach(doc => {
         const evt = doc.data();
-        const idx = mergedEvents.findIndex(item => item.id === evt.id);
-        if (idx === -1) mergedEvents.push(evt);
-        else mergedEvents[idx] = evt;
+        mergedEvents.push(evt);
       });
 
       const tournamentsSnap = await db.collection("tournaments").get();
       tournamentsSnap.forEach(doc => {
         const tour = doc.data();
-        const idx = mergedEvents.findIndex(item => item.id === tour.id);
-        if (idx === -1) mergedEvents.push(tour);
-        else mergedEvents[idx] = tour;
+        mergedEvents.push(tour);
       });
     } catch (err) {
       console.error("Firestore events fetch error:", err);
+    }
+  } else {
+    // Simulator Mode fallback
+    try {
+      const mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+      const mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+
+      mockEvents.forEach(evt => mergedEvents.push(evt));
+      mockTournaments.forEach(tour => mergedEvents.push(tour));
+    } catch (err) {
+      console.error("Local mock storage load failed:", err);
     }
   }
 
   EVENTS_DATA = mergedEvents;
 }
 
+let registrationsUnsubscribe = null;
+
 async function syncRegistrations() {
   const cachedUid = sessionStorage.getItem("loggedInUserUid");
   if (!cachedUid) return;
 
-  let mergedRegs = [];
-
-  // Load mock registrations
-  try {
-    const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-    mockRegs.forEach(reg => {
-      if (reg.studentUid === cachedUid) {
-        const match = EVENTS_DATA.find(e => e.id === reg.eventId);
-        mergedRegs.push({
-          id: reg.eventId,
-          registrationId: reg.registrationId,
-          ticketId: reg.registrationId,
-          title: reg.eventTitle || (match ? match.title : "Event"),
-          type: match ? match.type : "talk",
-          typeLabel: match ? match.typeLabel : "Talk",
-          date: match ? match.date : "TBD",
-          isoDate: match ? match.isoDate : new Date().toISOString(),
-          time: match ? match.time : "TBD",
-          location: match ? match.location : "TBD",
-          host: match ? match.host : "IEDC RIT",
-          color: match ? match.color : "#C8E84A",
-          status: reg.status || "Confirmed",
-          checkedIn: reg.checkedIn === true,
-          razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-          phone: reg.phone || ""
-        });
-      }
-    });
-  } catch (err) {
-    console.error("Mock registrations sync error:", err);
-  }
-
-  // Load real Firebase registrations
   if (useRealFirebase) {
-    try {
+    return new Promise((resolve) => {
+      if (registrationsUnsubscribe) {
+        registrationsUnsubscribe();
+      }
+      
       const db = firebase.firestore();
-      const regsSnap = await db.collection("registrations").where("studentUid", "==", cachedUid).get();
-      regsSnap.forEach(doc => {
-        const reg = doc.data();
-        const match = EVENTS_DATA.find(e => e.id === reg.eventId);
-        const regObj = {
-          id: reg.eventId,
-          registrationId: reg.registrationId,
-          ticketId: reg.registrationId,
-          title: reg.eventTitle || (match ? match.title : "Event"),
-          type: match ? match.type : "talk",
-          typeLabel: match ? match.typeLabel : "Talk",
-          date: match ? match.date : "TBD",
-          isoDate: match ? match.isoDate : new Date().toISOString(),
-          time: match ? match.time : "TBD",
-          location: match ? match.location : "TBD",
-          host: match ? match.host : "IEDC RIT",
-          color: match ? match.color : "#C8E84A",
-          status: reg.status || "Confirmed",
-          checkedIn: reg.checkedIn === true,
-          razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-          phone: reg.phone || ""
-        };
+      registrationsUnsubscribe = db.collection("registrations")
+        .where("studentUid", "==", cachedUid)
+        .onSnapshot((snap) => {
+          let firebaseRegs = [];
+          snap.forEach(doc => {
+            const reg = doc.data();
+            const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+            firebaseRegs.push({
+              id: reg.eventId,
+              registrationId: reg.registrationId,
+              ticketId: reg.registrationId,
+              title: reg.eventTitle || (match ? match.title : "Event"),
+              type: match ? match.type : "talk",
+              typeLabel: match ? match.typeLabel : "Talk",
+              date: match ? match.date : "TBD",
+              isoDate: match ? match.isoDate : new Date().toISOString(),
+              time: match ? match.time : "TBD",
+              location: match ? match.location : "TBD",
+              host: match ? match.host : "IEDC RIT",
+              color: match ? match.color : "#C8E84A",
+              status: reg.status || "Confirmed",
+              checkedIn: reg.checkedIn === true,
+              razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+              phone: reg.phone || ""
+            });
+          });
 
-        const idx = mergedRegs.findIndex(item => item.registrationId === regObj.registrationId);
-        if (idx === -1) mergedRegs.push(regObj);
-        else mergedRegs[idx] = regObj;
+          // Sync local mock registrations
+          let mockRegs = [];
+          try {
+            const local = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+            local.forEach(reg => {
+              if (reg.studentUid === cachedUid) {
+                const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+                mockRegs.push({
+                  id: reg.eventId,
+                  registrationId: reg.registrationId,
+                  ticketId: reg.registrationId,
+                  title: reg.eventTitle || (match ? match.title : "Event"),
+                  type: match ? match.type : "talk",
+                  typeLabel: match ? match.typeLabel : "Talk",
+                  date: match ? match.date : "TBD",
+                  isoDate: match ? match.isoDate : new Date().toISOString(),
+                  time: match ? match.time : "TBD",
+                  location: match ? match.location : "TBD",
+                  host: match ? match.host : "IEDC RIT",
+                  color: match ? match.color : "#C8E84A",
+                  status: reg.status || "Confirmed",
+                  checkedIn: reg.checkedIn === true,
+                  razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+                  phone: reg.phone || ""
+                });
+              }
+            });
+          } catch (e) {}
+
+          USER_REGISTRATIONS = [...firebaseRegs];
+          mockRegs.forEach(mr => {
+            if (!USER_REGISTRATIONS.some(r => r.registrationId === mr.registrationId)) {
+              USER_REGISTRATIONS.push(mr);
+            }
+          });
+
+          // Re-render dashboard in real-time
+          const activeScreen = document.querySelector(".screen.active");
+          if (activeScreen && activeScreen.id === "screen-dashboard") {
+            renderDashboard();
+          }
+          
+          resolve();
+        }, (err) => {
+          console.error("Registrations snapshot stream error:", err);
+          resolve();
+        });
+    });
+  } else {
+    // Simulator Mode fallback
+    let mergedRegs = [];
+    try {
+      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      mockRegs.forEach(reg => {
+        if (reg.studentUid === cachedUid) {
+          const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+          mergedRegs.push({
+            id: reg.eventId,
+            registrationId: reg.registrationId,
+            ticketId: reg.registrationId,
+            title: reg.eventTitle || (match ? match.title : "Event"),
+            type: match ? match.type : "talk",
+            typeLabel: match ? match.typeLabel : "Talk",
+            date: match ? match.date : "TBD",
+            isoDate: match ? match.isoDate : new Date().toISOString(),
+            time: match ? match.time : "TBD",
+            location: match ? match.location : "TBD",
+            host: match ? match.host : "IEDC RIT",
+            color: match ? match.color : "#C8E84A",
+            status: reg.status || "Confirmed",
+            checkedIn: reg.checkedIn === true,
+            razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+            phone: reg.phone || ""
+          });
+        }
       });
     } catch (err) {
-      console.error("Firestore registrations fetch error:", err);
+      console.error("Mock registrations sync error:", err);
     }
+    USER_REGISTRATIONS = mergedRegs;
+    return Promise.resolve();
   }
-
-  USER_REGISTRATIONS = mergedRegs;
 }
 
 // ==========================================
