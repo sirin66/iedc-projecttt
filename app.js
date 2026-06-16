@@ -1,152 +1,57 @@
 // ==========================================
-// 01 — APPLICATION STATE & MOCK DATA
+// 01 — APPLICATION STATE & CONFIGURATION
 // ==========================================
 
-const EVENTS_DATA = [
-  {
-    id: "evt-innovate-hack",
-    title: "InnovateRIT Hackathon",
-    type: "hackathon",
-    typeLabel: "Hackathon",
-    date: "24 June, 2026",
-    isoDate: "2026-06-24T09:00:00",
-    time: "09:00 AM",
-    seats: 12,
-    price: "Free",
-    host: "IEDC RIT Dev-Team",
-    location: "RIT Seminar Hall",
-    description: "The ultimate 24-hour builder challenge at RIT. Convene with designers, engineers, and creators to construct tangible solutions from scratch. Top teams win exciting cash rewards and mentorship incubation directly from IEDC RIT.",
-    color: "#8B6FD4", // Galactic Purple
-    hasTeam: true,
-    maxTeamSize: 4
-  },
-  {
-    id: "evt-aiml-bootcamp",
-    title: "AI/ML Hands-on Bootcamp",
-    type: "workshop",
-    typeLabel: "Workshop",
-    date: "18 June, 2026",
-    isoDate: "2026-06-18T10:00:00",
-    time: "10:00 AM",
-    seats: 4,
-    price: "₹150",
-    host: "Dr. Anjali Verma, AI Lead",
-    location: "Mechanical Seminar Hall",
-    description: "Dive deep into modern machine learning architectures. Build and deploy your first convolutional neural network using PyTorch in this interactive, code-first lab. Perfect for beginners and intermediate AI enthusiasts.",
-    color: "#C8E84A", // Nova Yellow
-    hasTeam: false
-  },
-  {
-    id: "evt-web3-talk",
-    title: "Future of Decent Web (Web3)",
-    type: "talk",
-    typeLabel: "Talk",
-    date: "28 June, 2026",
-    isoDate: "2026-06-28T14:00:00",
-    time: "02:00 PM",
-    seats: 45,
-    price: "Free",
-    host: "Nikhil Kamath, Founder Tech3",
-    location: "EC Seminar Hall",
-    description: "Unpack the future of decentralization, smart contract architectures, and scalable blockchain solutions. Discover the technical roadmaps of tomorrow's web standards.",
-    color: "#E8614A", // Coral Fire
-    hasTeam: false
-  },
-  {
-    id: "evt-ui-sprint",
-    title: "IEDC UI Design Sprint",
-    type: "hackathon",
-    typeLabel: "Hackathon",
-    date: "30 June, 2026",
-    isoDate: "2026-06-30T11:00:00",
-    time: "11:00 AM",
-    seats: 8,
-    price: "Free",
-    host: "Sirin Mathews, Lead Designer",
-    location: "Design Lab 1",
-    description: "A high-intensity 6-hour wireframe and layout battle. Design sleek, high-fidelity user experiences that wow developers. Colors, typography, and motion systems are your weapons.",
-    color: "#8B6FD4", // Galactic Purple
-    hasTeam: true,
-    maxTeamSize: 2
-  },
-  {
-    id: "evt-iot-edge",
-    title: "IoT Edge Node Dev",
-    type: "workshop",
-    typeLabel: "Workshop",
-    date: "05 July, 2026",
-    isoDate: "2026-07-05T09:30:00",
-    time: "09:30 AM",
-    seats: 2,
-    price: "₹200",
-    host: "Prof. Rajesh Nair, IoT Lab",
-    location: "FabLab RIT",
-    description: "Understand sensor telemetry, embedded system programming, and low-power communication standards. Program physical ESP32 boards and send data streams in real-time.",
-    color: "#C8E84A", // Nova Yellow
-    hasTeam: false
-  }
-];
-
-// User profile state
+let EVENTS_DATA = [];
+let USER_REGISTRATIONS = [];
 let USER_PROFILE = {
   name: "",
   email: "",
   id: "",
   collegeName: "",
-  avatar: ""
+  avatar: "",
+  phone: ""
 };
 
-// Registered state (defaults with 1 completed and 1 upcoming event)
-const USER_REGISTRATIONS = [
-  {
-    id: "evt-completed-ideation",
-    title: "AI-Powered Ideation Talk",
-    type: "talk",
-    typeLabel: "Talk",
-    date: "10 June, 2026",
-    isoDate: "2026-06-10T10:00:00",
-    time: "Completed",
-    location: "Main Auditorium",
-    host: "Prof. K. Kurian",
-    color: "#E8614A",
-    status: "completed",
-    certificateId: "CERT-IEDC-4892-RIT"
-  },
-  {
-    id: "evt-pre-react",
-    title: "React Native Masterclass",
-    type: "workshop",
-    typeLabel: "Workshop",
-    date: "15 June, 2026",
-    isoDate: "2026-06-15T09:00:00",
-    time: "09:00 AM",
-    location: "CS Seminar Hall",
-    host: "Nisha Joseph",
-    color: "#C8E84A",
-    status: "upcoming",
-    ticketId: "IEDC-77890-RIT",
-    seat: "Seat B12"
-  }
-];
-
-// Active state tracking
 let selectedEvent = null;
 let currentFilter = "all";
 let searchQuery = "";
-let teamCount = 0;
 let countdownInterval = null;
+let detailCountdownInterval = null;
+let teamMemberCount = 0;
+
+// Firebase initialization configuration block
+const firebaseConfig = {
+  apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+  authDomain: "iedc-ux.firebaseapp.com",
+  projectId: "iedc-ux",
+  storageBucket: "iedc-ux.firebasestorage.app",
+  messagingSenderId: "362260352304",
+  appId: "1:362260352304:web:27374dbb9b51182807ccf5",
+  measurementId: "G-2KH08MNGSX"
+};
+
+let useRealFirebase = false;
+if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    useRealFirebase = true;
+    console.log("Firebase initialized successfully inside client engine.");
+  } catch (error) {
+    console.error("Firebase initialization fallback error:", error);
+  }
+}
+sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
 // ==========================================
-// 02 — DOM ELEMENTS
+// 02 — DOM ELEMENTS REGISTRY
 // ==========================================
 
 const screens = {
   auth: document.getElementById("screen-auth"),
   pending: document.getElementById("screen-pending"),
-  admin: document.getElementById("screen-admin"),
   home: document.getElementById("screen-home"),
   detail: document.getElementById("screen-detail"),
-  registration: document.getElementById("screen-registration"),
   ticket: document.getElementById("screen-ticket"),
   dashboard: document.getElementById("screen-dashboard")
 };
@@ -160,28 +65,20 @@ const navItems = {
 // 03 — ROUTING & SCREEN TRANSITIONS
 // ==========================================
 
-function navigateTo(screenId) {
-  // Hide all screens
+async function navigateTo(screenId) {
   Object.values(screens).forEach(screen => {
     if (screen) screen.classList.remove("active");
   });
 
-  // Show target screen
   if (screens[screenId]) {
     screens[screenId].classList.add("active");
   }
 
-  // Manage visibility of the desktop presentation environment vs full-screen admin
   const presentationContainer = document.querySelector(".presentation-container");
-  if (screenId === "admin") {
-    if (presentationContainer) presentationContainer.style.display = "none";
-  } else {
-    if (presentationContainer) presentationContainer.style.display = "flex";
-  }
+  if (presentationContainer) presentationContainer.style.display = "flex";
 
-  // Manage bottom nav visibility and activation
   const bottomNav = document.querySelector(".bottom-nav");
-  if (screenId === "auth" || screenId === "pending" || screenId === "admin") {
+  if (screenId === "auth" || screenId === "pending") {
     if (bottomNav) bottomNav.style.display = "none";
   } else {
     if (bottomNav) bottomNav.style.display = "flex";
@@ -190,33 +87,153 @@ function navigateTo(screenId) {
   if (screenId === "home") {
     navItems.home.classList.add("active");
     navItems.dashboard.classList.remove("active");
+    await syncEvents();
+    renderHomeEvents();
   } else if (screenId === "dashboard") {
     navItems.home.classList.remove("active");
     navItems.dashboard.classList.add("active");
+    await syncEvents();
+    await syncRegistrations();
+    renderDashboard();
   } else {
-    // Other sub-screens hide active state of primary navigation tabs
     navItems.home.classList.remove("active");
     navItems.dashboard.classList.remove("active");
   }
-
-  // Refresh dynamic screen content if needed
-  if (screenId === "dashboard") {
-    renderDashboard();
-  }
 }
 
-// Navigation event listeners
 navItems.home.addEventListener("click", () => navigateTo("home"));
 navItems.dashboard.addEventListener("click", () => navigateTo("dashboard"));
 
-// Handle back buttons
-document.getElementById("detail-back-btn").addEventListener("click", () => navigateTo("home"));
-document.getElementById("reg-back-btn").addEventListener("click", () => navigateTo("detail"));
+document.getElementById("detail-back-btn").addEventListener("click", () => {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  navigateTo("home");
+});
 document.getElementById("ticket-back-btn").addEventListener("click", () => navigateTo("dashboard"));
 document.getElementById("setup-back-btn").addEventListener("click", () => navigateTo("home"));
 
 // ==========================================
-// 04 — HOME SCREEN RENDERING & FILTERING
+// 04 — DATABASE SYNCHRONIZATION (Firestore / Simulator)
+// ==========================================
+
+async function syncEvents() {
+  let mergedEvents = [];
+
+  // Load from local storage simulator
+  try {
+    const mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+    const mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+
+    mockEvents.forEach(evt => mergedEvents.push(evt));
+    mockTournaments.forEach(tour => mergedEvents.push(tour));
+  } catch (err) {
+    console.error("Local mock storage load failed:", err);
+  }
+
+  // Load from real Firebase Firestore
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      
+      const eventsSnap = await db.collection("events").get();
+      eventsSnap.forEach(doc => {
+        const evt = doc.data();
+        const idx = mergedEvents.findIndex(item => item.id === evt.id);
+        if (idx === -1) mergedEvents.push(evt);
+        else mergedEvents[idx] = evt;
+      });
+
+      const tournamentsSnap = await db.collection("tournaments").get();
+      tournamentsSnap.forEach(doc => {
+        const tour = doc.data();
+        const idx = mergedEvents.findIndex(item => item.id === tour.id);
+        if (idx === -1) mergedEvents.push(tour);
+        else mergedEvents[idx] = tour;
+      });
+    } catch (err) {
+      console.error("Firestore events fetch error:", err);
+    }
+  }
+
+  EVENTS_DATA = mergedEvents;
+}
+
+async function syncRegistrations() {
+  const cachedUid = sessionStorage.getItem("loggedInUserUid");
+  if (!cachedUid) return;
+
+  let mergedRegs = [];
+
+  // Load mock registrations
+  try {
+    const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    mockRegs.forEach(reg => {
+      if (reg.studentUid === cachedUid) {
+        const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+        mergedRegs.push({
+          id: reg.eventId,
+          registrationId: reg.registrationId,
+          ticketId: reg.registrationId,
+          title: reg.eventTitle || (match ? match.title : "Event"),
+          type: match ? match.type : "talk",
+          typeLabel: match ? match.typeLabel : "Talk",
+          date: match ? match.date : "TBD",
+          isoDate: match ? match.isoDate : new Date().toISOString(),
+          time: match ? match.time : "TBD",
+          location: match ? match.location : "TBD",
+          host: match ? match.host : "IEDC RIT",
+          color: match ? match.color : "#C8E84A",
+          status: reg.status || "Confirmed",
+          checkedIn: reg.checkedIn === true,
+          razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+          phone: reg.phone || ""
+        });
+      }
+    });
+  } catch (err) {
+    console.error("Mock registrations sync error:", err);
+  }
+
+  // Load real Firebase registrations
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      const regsSnap = await db.collection("registrations").where("studentUid", "==", cachedUid).get();
+      regsSnap.forEach(doc => {
+        const reg = doc.data();
+        const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+        const regObj = {
+          id: reg.eventId,
+          registrationId: reg.registrationId,
+          ticketId: reg.registrationId,
+          title: reg.eventTitle || (match ? match.title : "Event"),
+          type: match ? match.type : "talk",
+          typeLabel: match ? match.typeLabel : "Talk",
+          date: match ? match.date : "TBD",
+          isoDate: match ? match.isoDate : new Date().toISOString(),
+          time: match ? match.time : "TBD",
+          location: match ? match.location : "TBD",
+          host: match ? match.host : "IEDC RIT",
+          color: match ? match.color : "#C8E84A",
+          status: reg.status || "Confirmed",
+          checkedIn: reg.checkedIn === true,
+          razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+          phone: reg.phone || ""
+        };
+
+        const idx = mergedRegs.findIndex(item => item.registrationId === regObj.registrationId);
+        if (idx === -1) mergedRegs.push(regObj);
+        else mergedRegs[idx] = regObj;
+      });
+    } catch (err) {
+      console.error("Firestore registrations fetch error:", err);
+    }
+  }
+
+  USER_REGISTRATIONS = mergedRegs;
+}
+
+// ==========================================
+// 05 — HOME SCREEN RENDERING & FILTERING
 // ==========================================
 
 function renderHomeEvents() {
@@ -226,7 +243,7 @@ function renderHomeEvents() {
   listContainer.innerHTML = "";
   featuredContainer.innerHTML = "";
 
-  // Filter events
+  // Filter query logic
   let filtered = EVENTS_DATA.filter(evt => {
     const matchesCategory = currentFilter === "all" || evt.type === currentFilter;
     const matchesSearch = evt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -238,24 +255,29 @@ function renderHomeEvents() {
   if (filtered.length === 0) {
     listContainer.innerHTML = `
       <div style="padding: var(--space-xl) 0; text-align: left; color: var(--muted-white);">
-        <p class="body-desc">No events found matching your filter.</p>
+        <p class="body-desc">No events found matching your queries.</p>
       </div>
     `;
     return;
   }
 
-  // Pick first event as Featured if no filter is active, otherwise render all in list
+  // First spotlight card
   let featuredEvent = null;
   if (currentFilter === "all" && searchQuery === "") {
     featuredEvent = filtered[0];
     filtered = filtered.slice(1);
   }
 
-  // Render featured card
   if (featuredEvent) {
     const featCard = document.createElement("div");
     featCard.className = "card-featured";
     featCard.style.setProperty("--event-color", featuredEvent.color);
+    if (featuredEvent.poster || featuredEvent.poster_url) {
+      const pUrl = featuredEvent.poster || featuredEvent.poster_url;
+      featCard.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.25), rgba(8, 8, 16, 0.9)), url(${pUrl})`;
+      featCard.style.backgroundSize = "cover";
+      featCard.style.backgroundPosition = "center";
+    }
     featCard.innerHTML = `
       <div class="card-featured-circle"></div>
       <div class="card-featured-content">
@@ -270,20 +292,19 @@ function renderHomeEvents() {
     `;
     featCard.addEventListener("click", () => openEventDetail(featuredEvent));
     featuredContainer.appendChild(featCard);
-  } else {
-    // If filtering, hide the featured event block or label
-    featuredContainer.innerHTML = `
-      <div style="font-size:12px; color: var(--muted-white); margin-bottom: var(--space-sm);">
-        Showing filtered results
-      </div>
-    `;
   }
 
-  // Render list of upcoming events
+  // Grid lists
   filtered.forEach(evt => {
     const card = document.createElement("div");
     card.className = "card-event";
     card.style.setProperty("--event-color", evt.color);
+    if (evt.poster || evt.poster_url) {
+      const pUrl = evt.poster || evt.poster_url;
+      card.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.65), rgba(8, 8, 16, 0.96)), url(${pUrl})`;
+      card.style.backgroundSize = "cover";
+      card.style.backgroundPosition = "center";
+    }
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <span class="chip chip-${evt.type}">${evt.typeLabel}</span>
@@ -292,11 +313,8 @@ function renderHomeEvents() {
       <h3 class="h3-title" style="margin-top: var(--space-xs); line-height:1.2;">${evt.title}</h3>
       <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-top: auto;">
         <span style="display:flex; align-items:center; gap:4px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          ${evt.date}
+          📅 ${evt.date}
         </span>
-        <span>•</span>
-        <span>${evt.seats} seats left</span>
       </div>
     `;
     card.addEventListener("click", () => openEventDetail(evt));
@@ -304,17 +322,16 @@ function renderHomeEvents() {
   });
 }
 
-// Setup Search & Category Filters
-const searchInput = document.getElementById("search-input");
-searchInput.addEventListener("input", (e) => {
+// Search queries binding
+document.getElementById("search-input").addEventListener("input", (e) => {
   searchQuery = e.target.value;
   renderHomeEvents();
 });
 
-const categoryPills = document.querySelectorAll(".chip-category");
-categoryPills.forEach(pill => {
+// Category pills clicks
+document.querySelectorAll(".chip-category").forEach(pill => {
   pill.addEventListener("click", () => {
-    categoryPills.forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".chip-category").forEach(p => p.classList.remove("active"));
     pill.classList.add("active");
     currentFilter = pill.getAttribute("data-category");
     renderHomeEvents();
@@ -322,66 +339,166 @@ categoryPills.forEach(pill => {
 });
 
 // ==========================================
-// 05 — EVENT DETAIL VIEW
+// 06 — SINGLE-PAGE CHECKOUT DETAILS OVERLAY
 // ==========================================
 
 function openEventDetail(event) {
   selectedEvent = event;
 
-  // Set hero section styles
+  // Background and titles
   const hero = document.getElementById("detail-hero");
   hero.style.setProperty("--event-color", event.color);
+  if (event.poster || event.poster_url) {
+    const pUrl = event.poster || event.poster_url;
+    hero.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.3), var(--void-black)), url(${pUrl})`;
+    hero.style.backgroundSize = "cover";
+    hero.style.backgroundPosition = "center";
+  } else {
+    hero.style.backgroundImage = "";
+  }
   
-  // Set elements
   document.getElementById("detail-title").textContent = event.title;
-  document.getElementById("detail-description").textContent = event.description;
-  document.getElementById("detail-host").textContent = event.host;
+  document.getElementById("detail-description").textContent = event.description || "No description available.";
   
   // Feature grid values
-  document.getElementById("detail-feat-date").textContent = event.date.split(",")[0];
-  document.getElementById("detail-feat-time").textContent = event.time;
-  document.getElementById("detail-feat-seats").textContent = `${event.seats} Seats`;
-  document.getElementById("detail-feat-price").textContent = event.price;
+  document.getElementById("detail-feat-date").textContent = event.date || "TBD";
+  document.getElementById("detail-feat-time").textContent = event.time || "TBD";
+  document.getElementById("detail-feat-seats").textContent = event.seats !== undefined ? `${event.seats} Seats` : "Unlimited";
+  document.getElementById("detail-feat-price").textContent = event.price || "Free";
 
-  // Render Type Tag in Hero
+  // Category tags
   const chipContainer = document.getElementById("detail-type-chip-container");
   chipContainer.innerHTML = `<span class="chip chip-${event.type}">${event.typeLabel}</span>`;
 
-  // Render specific meta row inside Hero
+  // Venue location details
   const metaRow = document.getElementById("detail-meta-row");
-  metaRow.innerHTML = `
-    <span class="chip" style="background: rgba(255,255,255,0.15); border:none; text-transform:none; font-weight:500;">
-      📍 ${event.location}
-    </span>
-  `;
+  metaRow.innerHTML = `<span class="chip" style="background: rgba(255,255,255,0.15); border:none; text-transform:none; font-weight:500;">📍 ${event.location || 'Online'}</span>`;
 
-  // Register button setup
+  // Speaker Profile values
+  const hostParts = (event.host || "Organized by IEDC RIT").split(", ");
+  document.getElementById("detail-host").textContent = hostParts[0] || "IEDC Speaker";
+  document.getElementById("detail-host-qual").textContent = hostParts.slice(1).join(", ") || "IEDC Guest Host";
+  
+  const linkedin = document.getElementById("detail-host-linkedin");
+  if (event.speakerLinkedin) {
+    linkedin.href = event.speakerLinkedin;
+    linkedin.style.display = "flex";
+  } else {
+    linkedin.style.display = "none";
+  }
+
+  // Online vs Offline Dynamic Adapters
+  const isOnline = event.mode === "online" || event.location.toLowerCase().includes("http");
+  const mapLink = document.getElementById("detail-location-map-link");
+  const meetDiv = document.getElementById("detail-location-meeting");
+  const meetLink = document.getElementById("detail-meeting-link");
+  const locationText = document.getElementById("detail-location-text");
+
+  locationText.textContent = isOnline ? "Virtual / Digital Room" : event.location;
+
+  if (isOnline) {
+    mapLink.style.display = "none";
+    meetDiv.style.display = "flex";
+    meetLink.href = event.location.startsWith("http") ? event.location : "https://meet.google.com";
+  } else {
+    mapLink.style.display = "inline-block";
+    mapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
+    meetDiv.style.display = "none";
+  }
+
+  // Pre-fill user registration details
+  document.getElementById("detail-reg-name").value = USER_PROFILE.name || "";
+  document.getElementById("detail-reg-ktuid").value = USER_PROFILE.id || "";
+  document.getElementById("detail-reg-phone").value = USER_PROFILE.phone || "";
+
+  // Team slots dynamically
+  const teamSection = document.getElementById("detail-team-section");
+  const slotsContainer = document.getElementById("detail-team-slots-container");
+  slotsContainer.innerHTML = "";
+  teamMemberCount = 0;
+
+  if (event.hasTeam) {
+    teamSection.style.display = "flex";
+    addDetailTeamSlot();
+  } else {
+    teamSection.style.display = "none";
+  }
+
+  // Start Detail Countdown ticking clock
+  startDetailCountdown(event.isoDate);
+
+  // Gating registration buttons
   const regBtn = document.getElementById("detail-register-btn");
   const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === event.id);
 
   if (isAlreadyRegistered) {
-    regBtn.textContent = "View Ticket";
+    regBtn.textContent = "View Ticket Pass";
     regBtn.style.backgroundColor = "var(--galactic-purple)";
     regBtn.style.color = "var(--white-pure)";
-    regBtn.style.boxShadow = "none";
   } else if (event.seats <= 0) {
     regBtn.textContent = "Sold Out";
     regBtn.disabled = true;
     regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-    regBtn.style.color = "var(--muted-white)";
-    regBtn.style.boxShadow = "none";
   } else {
-    regBtn.textContent = "Register Now";
+    regBtn.textContent = event.price && event.price !== "Free" ? `Pay & Register` : `Confirm Free Register`;
     regBtn.disabled = false;
     regBtn.style.backgroundColor = "var(--nova-yellow)";
     regBtn.style.color = "var(--void-black)";
-    regBtn.style.boxShadow = "0 8px 24px rgba(200,232,74,0.3)";
   }
 
   navigateTo("detail");
 }
 
-// Register action button click
+function startDetailCountdown(isoDate) {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  const timerSpan = document.getElementById("detail-countdown-timer");
+
+  const target = isoDate ? new Date(isoDate).getTime() : new Date("2026-06-25T09:00:00").getTime();
+
+  function update() {
+    const diff = target - new Date().getTime();
+    if (diff <= 0) {
+      timerSpan.textContent = "Live Now / Ended";
+      clearInterval(detailCountdownInterval);
+    } else {
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      timerSpan.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s left`;
+    }
+  }
+
+  update();
+  detailCountdownInterval = setInterval(update, 1000);
+}
+
+function addDetailTeamSlot() {
+  if (!selectedEvent || teamMemberCount >= selectedEvent.maxTeamSize - 1) return;
+
+  teamMemberCount++;
+  const container = document.getElementById("detail-team-slots-container");
+  const div = document.createElement("div");
+  div.className = "team-member-input-row";
+  div.id = `detail-member-row-${teamMemberCount}`;
+  div.innerHTML = `
+    <input type="text" class="input-field detail-team-member-name" placeholder="Member #${teamMemberCount} Name" required style="flex:1;">
+    <button type="button" class="btn-remove-member" onclick="removeDetailTeamSlot(${teamMemberCount})">&times;</button>
+  `;
+  container.appendChild(div);
+}
+
+window.removeDetailTeamSlot = function(id) {
+  const row = document.getElementById(`detail-member-row-${id}`);
+  if (row) {
+    row.remove();
+    teamMemberCount--;
+  }
+};
+
+document.getElementById("detail-btn-add-member").addEventListener("click", addDetailTeamSlot);
+
+// Hooking Register & Pay Click Event
 document.getElementById("detail-register-btn").addEventListener("click", () => {
   if (!selectedEvent) return;
 
@@ -389,152 +506,146 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
   if (isAlreadyRegistered) {
     const reg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
     showTicket(reg);
+    return;
+  }
+
+  const phone = document.getElementById("detail-reg-phone").value.trim();
+  if (!phone) {
+    showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
+    return;
+  }
+
+  // Parse amount fee
+  const priceVal = selectedEvent.price || "Free";
+  const amountMatch = String(priceVal).match(/\d+/);
+  const amount = amountMatch ? parseInt(amountMatch[0]) : 0;
+
+  if (amount > 0) {
+    // In-App Razorpay Checkout execution
+    const options = {
+      key: "rzp_test_dummy",
+      amount: amount * 100, // in paisa
+      currency: "INR",
+      name: "IEDC RIT Event Platform",
+      description: selectedEvent.title,
+      handler: function (response) {
+        handleSuccessfulPayment(response.razorpay_payment_id, phone);
+      },
+      prefill: {
+        name: USER_PROFILE.name,
+        email: USER_PROFILE.email,
+        contact: phone
+      },
+      theme: {
+        color: "#8B6FD4"
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
   } else {
-    openRegistrationForm();
+    // Free checkout bypass
+    const dummyPaymentId = `pay_free_${Math.floor(Math.random()*900000+100000)}`;
+    handleSuccessfulPayment(dummyPaymentId, phone);
   }
 });
 
 // ==========================================
-// 06 — REGISTRATION FLOW
+// 07 — PAYMENT COMPLETION & TICKET Wallet
 // ==========================================
 
-function openRegistrationForm() {
-  if (!selectedEvent) return;
+async function handleSuccessfulPayment(paymentId, phone) {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
-  document.getElementById("reg-event-title").textContent = selectedEvent.title;
-  
-  // Clear forms
-  document.getElementById("reg-phone").value = "";
-  document.getElementById("reg-terms").checked = false;
-  
-  const teamSection = document.getElementById("reg-team-section");
-  const slotsContainer = document.getElementById("team-slots-container");
-  slotsContainer.innerHTML = "";
-  teamCount = 0;
-
-  // Manage team slot visibility
-  if (selectedEvent.hasTeam) {
-    teamSection.style.display = "flex";
-    addTeamSlot(); // Start with 1 empty slot
-  } else {
-    teamSection.style.display = "none";
-  }
-
-  navigateTo("registration");
-}
-
-function addTeamSlot() {
-  if (!selectedEvent || teamCount >= selectedEvent.maxTeamSize - 1) {
-    showToast("Maximum team size reached!", "var(--warning)", "var(--warning)");
-    return;
-  }
-
-  teamCount++;
-  const slotsContainer = document.getElementById("team-slots-container");
-  const slotDiv = document.createElement("div");
-  slotDiv.className = "team-slot";
-  slotDiv.id = `team-slot-${teamCount}`;
-  slotDiv.innerHTML = `
-    <input type="text" class="input-field" placeholder="Member #${teamCount} Full Name" required style="flex:1;">
-    <button type="button" class="team-slot-remove" onclick="removeTeamSlot(${teamCount})">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-    </button>
-  `;
-  slotsContainer.appendChild(slotDiv);
-}
-
-function removeTeamSlot(id) {
-  const slot = document.getElementById(`team-slot-${id}`);
-  if (slot) {
-    slot.remove();
-    teamCount--;
-  }
-}
-
-document.getElementById("btn-add-member").addEventListener("click", addTeamSlot);
-
-// Handle Registration Submit
-document.getElementById("registration-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  if (!selectedEvent) return;
-
-  const phone = document.getElementById("reg-phone").value;
-  const terms = document.getElementById("reg-terms").checked;
-
-  if (!phone || !terms) {
-    showToast("Please fill all required fields", "var(--error)", "var(--error)");
-    return;
-  }
-
-  // Decrement local seats count
-  selectedEvent.seats = Math.max(0, selectedEvent.seats - 1);
-
-  // Generate a random ticket seat
-  const seatNum = `Seat A${Math.floor(Math.random() * 80) + 1}`;
-  const customTicketId = `IEDC-${Math.floor(Math.random() * 90000) + 10000}-RIT`;
-
-  // Create new registration record
-  const newReg = {
-    id: selectedEvent.id,
-    title: selectedEvent.title,
-    type: selectedEvent.type,
-    typeLabel: selectedEvent.typeLabel,
-    date: selectedEvent.date,
-    isoDate: selectedEvent.isoDate,
-    time: selectedEvent.time,
-    location: selectedEvent.location,
-    host: selectedEvent.host,
-    color: selectedEvent.color,
-    status: "upcoming",
-    ticketId: customTicketId,
-    seat: seatNum
-  };
-
-  USER_REGISTRATIONS.push(newReg);
-
-  // Trigger celebration micro-animation (confetti)
+  // Confetti celebrations
   triggerConfetti();
 
-  // Show Toast
-  showToast("Registered successfully!", "var(--success)", "var(--success)");
+  // Save registration ledger to Firestore / Simulator
+  const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+  const registrationData = {
+    registrationId,
+    eventId: selectedEvent.id,
+    eventTitle: selectedEvent.title,
+    studentName: USER_PROFILE.name,
+    studentEmail: USER_PROFILE.email,
+    registerNo: USER_PROFILE.id,
+    phone,
+    razorpayPaymentId: paymentId,
+    checkedIn: false,
+    status: "Confirmed",
+    createdAt: new Date().toISOString(),
+    studentUid: sessionStorage.getItem("loggedInUserUid"),
+    timestamp: new Date().toISOString()
+  };
 
-  // Redirect to ticket after short delay
-  setTimeout(() => {
-    showTicket(newReg);
-  }, 1000);
-});
+  // Mock registrations write
+  try {
+    let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    mockRegs.push(registrationData);
+    localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
 
-// ==========================================
-// 07 — QR TICKET DRAW & DISPLAY
-// ==========================================
+    // Decrement seats locally
+    let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+    let evIdx = mockEvents.findIndex(e => e.id === selectedEvent.id);
+    if (evIdx !== -1) {
+      mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
+      localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+    }
+    
+    let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+    let tourIdx = mockTours.findIndex(t => t.id === selectedEvent.id);
+    if (tourIdx !== -1) {
+      mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
+      localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
+    }
+  } catch (e) {
+    console.error("Local mock registration write failed:", e);
+  }
+
+  // Firestore write
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      await db.collection("registrations").doc(registrationId).set(registrationData);
+      
+      const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
+      await db.collection(targetCol).doc(selectedEvent.id).update({
+        seats: firebase.firestore.FieldValue.increment(-1)
+      });
+    } catch (err) {
+      console.error("Firestore registration ledger write failed:", err);
+    }
+  }
+
+  showToast("Registration Confirmed! Enjoy your event.", "var(--success)", "var(--success)");
+
+  // Sync state and open pass
+  await syncRegistrations();
+  
+  const regObj = USER_REGISTRATIONS.find(r => r.registrationId === registrationId);
+  if (regObj) {
+    showTicket(regObj);
+  } else {
+    navigateTo("dashboard");
+  }
+}
 
 function showTicket(registration) {
-  // Set values
   document.getElementById("ticket-event-name").textContent = registration.title;
   document.getElementById("ticket-date").textContent = registration.date;
   document.getElementById("ticket-loc").textContent = registration.location;
-  const seatElem = document.getElementById("ticket-seat");
-  if (seatElem) {
-    seatElem.textContent = registration.seat || "General Gate";
-  }
   document.getElementById("ticket-id-text").textContent = `TICKET ID: ${registration.ticketId}`;
   
-  // Set type badge styling
   const typeTag = document.getElementById("ticket-type-tag");
   typeTag.textContent = registration.typeLabel;
   typeTag.className = `ticket-event-type chip chip-${registration.type}`;
 
-  // Generate QR mockup on Canvas
   generateQRCode(registration.ticketId, registration.color);
 
-  // Action button clicks
   document.getElementById("btn-ticket-download").onclick = () => {
-    showToast("Ticket saved to device!", "var(--success)", "var(--success)");
+    showToast("Ticket downloaded successfully!", "var(--success)", "var(--success)");
   };
-
   document.getElementById("btn-ticket-share").onclick = () => {
-    showToast("Share link copied to clipboard!", "var(--galactic-purple)", "var(--galactic-purple)");
+    showToast("Ticket share links compiled!", "var(--galactic-purple)", "var(--galactic-purple)");
   };
 
   navigateTo("ticket");
@@ -542,61 +653,85 @@ function showTicket(registration) {
 
 function generateQRCode(text, brandColor) {
   const canvas = document.getElementById("qr-canvas");
+  if (!canvas) return;
   const ctx = canvas.getContext("2d");
   
-  // High density sizing
-  canvas.width = 280;
-  canvas.height = 280;
-  
+  canvas.width = 240;
+  canvas.height = 240;
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, 280, 280);
-
-  // Set draw colors (use deep space or brand color for dark parts of QR)
+  ctx.fillRect(0, 0, 240, 240);
   ctx.fillStyle = "#080810";
 
-  // Standard QR layout has 3 large corner finding patterns: top-left, top-right, bottom-left
-  // Draw finder pattern helper
   function drawFinderPattern(x, y) {
-    ctx.fillRect(x, y, 70, 70);
+    ctx.fillRect(x, y, 60, 60);
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x + 10, y + 10, 50, 50);
+    ctx.fillRect(x + 10, y + 10, 40, 40);
     ctx.fillStyle = "#080810";
-    ctx.fillRect(x + 20, y + 20, 30, 30);
+    ctx.fillRect(x + 20, y + 20, 20, 20);
   }
 
-  // Draw 3 corner finders
   drawFinderPattern(10, 10);
-  drawFinderPattern(200, 10);
-  drawFinderPattern(10, 200);
+  drawFinderPattern(170, 10);
+  drawFinderPattern(10, 170);
 
-  // Draw small alignment pattern in bottom right
-  ctx.fillRect(210, 210, 20, 20);
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(215, 215, 10, 10);
-  ctx.fillStyle = "#080810";
-  ctx.fillRect(218, 218, 4, 4);
-
-  // Seeded random logic using ticketId string
   let seed = 0;
   for (let i = 0; i < text.length; i++) {
     seed += text.charCodeAt(i);
   }
-  
   function seededRandom() {
     let x = Math.sin(seed++) * 10000;
     return x - Math.floor(x);
   }
 
-  // Fill in the rest of the canvas with pixel matrix
-  const moduleSize = 10;
-  for (let r = 0; r < 28; r++) {
-    for (let c = 0; c < 28; c++) {
-      // Skip corner finder zones
-      if ((r < 8 && c < 8) || (r < 8 && c >= 20) || (r >= 20 && c < 8)) {
-        continue;
+  const moduleSize = 8;
+  for (let r = 0; r < 30; r++) {
+    for (let c = 0; c < 30; c++) {
+      if ((r < 8 && c < 8) || (r < 8 && c >= 22) || (r >= 22 && c < 8)) continue;
+      if (seededRandom() > 0.45) {
+        ctx.fillStyle = seededRandom() > 0.90 ? brandColor : "#080810";
+        ctx.fillRect(c * moduleSize, r * moduleSize, moduleSize, moduleSize);
       }
-      
-      // Seeded random fill
+    }
+  }
+}
+
+// Draw QR inside stubs card inside wallet
+function drawTicketQRCode(canvasId, text, brandColor) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  
+  canvas.width = 72;
+  canvas.height = 72;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, 72, 72);
+  ctx.fillStyle = "#080810";
+
+  function drawFinderPattern(x, y) {
+    ctx.fillRect(x, y, 18, 18);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(x + 3, y + 3, 12, 12);
+    ctx.fillStyle = "#080810";
+    ctx.fillRect(x + 6, y + 6, 6, 6);
+  }
+
+  drawFinderPattern(2, 2);
+  drawFinderPattern(52, 2);
+  drawFinderPattern(2, 52);
+
+  let seed = 0;
+  for (let i = 0; i < text.length; i++) {
+    seed += text.charCodeAt(i);
+  }
+  function seededRandom() {
+    let x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  }
+
+  const moduleSize = 3;
+  for (let r = 0; r < 24; r++) {
+    for (let c = 0; c < 24; c++) {
+      if ((r < 8 && c < 8) || (r < 8 && c >= 16) || (r >= 16 && c < 8)) continue;
       if (seededRandom() > 0.45) {
         ctx.fillStyle = seededRandom() > 0.90 ? brandColor : "#080810";
         ctx.fillRect(c * moduleSize, r * moduleSize, moduleSize, moduleSize);
@@ -606,15 +741,14 @@ function generateQRCode(text, brandColor) {
 }
 
 // ==========================================
-// 08 — DASHBOARD / MY EVENTS SCREEN
+// 08 — STUDENT DASHBOARD & TICKET WALLET
 // ==========================================
 
 function renderDashboard() {
-  // Set Current Date in Header
   const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
   document.getElementById("dashboard-current-date").textContent = new Date().toLocaleDateString('en-US', options);
 
-  // 1. Render Profile Sub-tab Content
+  // Profile details
   document.getElementById("db-profile-avatar").src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
   document.getElementById("db-profile-name").textContent = USER_PROFILE.name || "Student";
   document.getElementById("db-profile-id").textContent = USER_PROFILE.id || "N/A";
@@ -624,131 +758,70 @@ function renderDashboard() {
   document.getElementById("db-profile-phone").textContent = USER_PROFILE.phone || "N/A";
   document.getElementById("db-profile-college").textContent = USER_PROFILE.collegeName || "N/A";
 
-  // 2. Render Events Sub-tab Content
+  // Wallet stubs card shelf (Flipkart / BookMyShow styles)
   const listContainer = document.getElementById("dashboard-list-container");
   listContainer.innerHTML = "";
 
-  // Count stats
-  const completedCount = USER_REGISTRATIONS.filter(r => r.status === "completed").length;
-  const upcomingCount = USER_REGISTRATIONS.filter(r => r.status === "upcoming").length;
+  const completedCount = USER_REGISTRATIONS.filter(r => r.checkedIn === true).length;
+  const upcomingCount = USER_REGISTRATIONS.filter(r => r.checkedIn !== true).length;
   
   document.getElementById("stat-attended").textContent = completedCount;
   document.getElementById("stat-upcoming").textContent = upcomingCount;
-  document.getElementById("stat-certs").textContent = completedCount; // One cert per attended event
+  document.getElementById("stat-certs").textContent = completedCount;
 
   if (USER_REGISTRATIONS.length === 0) {
     listContainer.innerHTML = `
       <div style="padding: var(--space-xl) 0; text-align: left; color: var(--muted-white);">
-        <p class="body-desc">You are not registered for any events yet.</p>
+        <p class="body-desc">Wallet is empty. You haven't booked any active event passes.</p>
       </div>
     `;
   } else {
-    // Sort: upcoming first, then completed
-    const sortedRegs = [...USER_REGISTRATIONS].sort((a, b) => {
-      if (a.status === "upcoming" && b.status === "completed") return -1;
-      if (a.status === "completed" && b.status === "upcoming") return 1;
-      return 0;
-    });
-
-    // Render cards
-    sortedRegs.forEach(reg => {
+    USER_REGISTRATIONS.forEach(reg => {
       const card = document.createElement("div");
-      card.className = "card-event";
-      card.style.setProperty("--event-color", reg.color);
+      card.className = "ticket-wallet-card";
+      card.style.setProperty("--ticket-color", reg.color);
       
-      if (reg.status === "upcoming") {
-        // Render upcoming card layout with Live Countdown timer and ticket link
-        card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <span class="chip chip-${reg.type}">${reg.typeLabel}</span>
-            <div class="countdown-badge" id="countdown-${reg.id}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span class="timer-digits">Calculating...</span>
-            </div>
-          </div>
-          <h3 class="h3-title" style="margin-top: var(--space-xs); line-height: 1.2;">${reg.title}</h3>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm);">
-            <span style="font-size: 11px; color: var(--muted-white);">${reg.date} • ${reg.time}</span>
-            <span class="caption-meta" style="color: var(--nova-yellow); cursor: pointer; text-decoration: underline;">View Ticket</span>
-          </div>
-        `;
-        // Click card details opens QR ticket directly
-        card.onclick = () => showTicket(reg);
-      } else {
-        // Completed event layout with Certificate download badge
-        card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <span class="chip chip-${reg.type}">${reg.typeLabel}</span>
-            <span class="chip" style="background: rgba(255,255,255,0.06); color: var(--muted-white);">Completed</span>
-          </div>
-          <h3 class="h3-title" style="margin-top: var(--space-xs); line-height: 1.2;">${reg.title}</h3>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm); flex-wrap: wrap; gap: var(--space-sm);">
-            <span style="font-size: 11px; color: var(--muted-white);">${reg.date}</span>
-            <div class="certificate-badge" data-event-name="${reg.title}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Get Certificate
-            </div>
-          </div>
-        `;
-        
-        // Stop event propagation on the cert badge so clicking it downloads rather than opening details
-        const certBadge = card.querySelector(".certificate-badge");
-        certBadge.onclick = (e) => {
-          e.stopPropagation();
-          showToast(`Certificate saved for ${reg.title}!`, "var(--success)", "var(--success)");
-        };
-      }
-      listContainer.appendChild(card);
-    });
+      const isChecked = reg.checkedIn === true;
+      const statusBadgeClass = isChecked ? "badge-approved" : "badge-pending";
+      const statusText = isChecked ? "Checked In" : "Active Pass";
 
-    // Start the ticking dashboard countdown clock
-    startDashboardCountdown();
+      card.innerHTML = `
+        <div class="ticket-wallet-header">
+          <span class="chip chip-${reg.type}" style="font-size:10px !important;">${reg.typeLabel}</span>
+          <span class="badge-status ${statusBadgeClass}">${statusText}</span>
+        </div>
+        <div class="ticket-wallet-body">
+          <div class="ticket-wallet-info">
+            <h3 style="font-size: 15px !important; font-weight: 800; line-height:1.2; margin-bottom: 2px;">${reg.title}</h3>
+            <span style="font-size:12px; color:var(--muted-white);">${reg.date} • ${reg.time}</span>
+            <span style="font-size:11px; color:var(--soft-purple); font-weight:700;">📍 ${reg.location}</span>
+          </div>
+          <div class="ticket-wallet-qr">
+            <canvas id="qr-canvas-${reg.ticketId}"></canvas>
+          </div>
+        </div>
+        <div class="ticket-wallet-perf"></div>
+        <div class="ticket-wallet-footer">
+          <span style="font-family:monospace; color:var(--muted-white); font-size: 11px;">ID: ${reg.ticketId}</span>
+          <span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>
+        </div>
+      `;
+      listContainer.appendChild(card);
+      
+      // Draw live canvas QR code inside card
+      drawTicketQRCode(`qr-canvas-${reg.ticketId}`, reg.ticketId, reg.color);
+    });
   }
 
-  // 3. Render Notifications Sub-tab Content
   renderNotifications();
 }
 
-function startDashboardCountdown() {
-  if (countdownInterval) clearInterval(countdownInterval);
-
-  function updateCountdowns() {
-    const upcomingRegs = USER_REGISTRATIONS.filter(r => r.status === "upcoming");
-    
-    upcomingRegs.forEach(reg => {
-      const badge = document.getElementById(`countdown-${reg.id}`);
-      if (!badge) return;
-
-      const timerTextSpan = badge.querySelector(".timer-digits");
-      
-      // Fallback target date if ISO is missing
-      const targetTime = reg.isoDate ? new Date(reg.isoDate).getTime() : new Date("2026-06-24T09:00:00").getTime();
-      const now = new Date().getTime();
-      const difference = targetTime - now;
-
-      if (difference <= 0) {
-        timerTextSpan.textContent = "Live Now";
-        badge.style.backgroundColor = "rgba(74, 232, 138, 0.15)";
-        badge.style.borderColor = "rgba(74, 232, 138, 0.25)";
-        badge.style.color = "var(--success)";
-      } else {
-        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-        if (days > 0) {
-          timerTextSpan.textContent = `${days}d ${hours}h ${minutes}m`;
-        } else {
-          timerTextSpan.textContent = `${hours}h ${minutes}m ${seconds}s`;
-        }
-      }
-    });
+window.viewPassDetails = function(ticketId) {
+  const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
+  if (reg) {
+    showTicket(reg);
   }
-
-  updateCountdowns();
-  countdownInterval = setInterval(updateCountdowns, 1000);
-}
+};
 
 // ==========================================
 // 09 — MOTION SYSTEMS & CONFETTI CELEBRATION
@@ -802,13 +875,9 @@ function triggerConfetti() {
       p.tiltAngle += p.tiltAngleIncremental;
       p.tilt = Math.sin(p.tiltAngle) * 12;
 
-      // Keep animation going if particle has not fully fallen
-      if (p.y < canvas.height) {
-        active = true;
-      }
+      if (p.y < canvas.height) active = true;
     });
 
-    // Animate for max 3 seconds or until all fall off screen
     if (active && Date.now() - start < 3000) {
       animationFrame = requestAnimationFrame(drawConfetti);
     } else {
@@ -820,15 +889,10 @@ function triggerConfetti() {
   drawConfetti();
 }
 
-// ==========================================
-// 10 — TOAST ALERT MANAGER
-// ==========================================
-
 function showToast(message, borderColor = "var(--galactic-purple)", iconColor = "var(--galactic-purple)") {
   const toast = document.getElementById("app-toast");
   const textSpan = document.getElementById("toast-text");
   
-  // Set properties
   textSpan.textContent = message;
   toast.style.setProperty("--border-color", borderColor);
   toast.style.setProperty("--icon-color", iconColor);
@@ -840,18 +904,13 @@ function showToast(message, borderColor = "var(--galactic-purple)", iconColor = 
   }, 2500);
 }
 
-// ==========================================
-// 11 — INITIALIZATION
-// ==========================================
-
-// Render current system time in top status bar
+// Update status bar time
 function updateStatusBarTime() {
   const timeText = document.getElementById("status-time");
   const now = new Date();
   let hr = now.getHours();
   let min = now.getMinutes();
   
-  // Pad with leading zero
   hr = hr < 10 ? '0' + hr : hr;
   min = min < 10 ? '0' + min : min;
   
@@ -861,42 +920,16 @@ setInterval(updateStatusBarTime, 60000);
 updateStatusBarTime();
 
 // ==========================================
-// 12 — FIREBASE SERVICE INTEGRATION
+// 10 — FIREBASE SIMULATOR & SEEDING MODULES
 // ==========================================
-// REPLACE WITH YOUR ACTUAL FIREBASE CONFIGURATION:
-const firebaseConfig = {
-  apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
-  authDomain: "iedc-ux.firebaseapp.com",
-  projectId: "iedc-ux",
-  storageBucket: "iedc-ux.firebasestorage.app",
-  messagingSenderId: "362260352304",
-  appId: "1:362260352304:web:27374dbb9b51182807ccf5",
-  measurementId: "G-2KH08MNGSX"
-};
-
-let useRealFirebase = false;
-
-// Check if configuration has been customized by developer
-if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
-  try {
-    firebase.initializeApp(firebaseConfig);
-    useRealFirebase = true;
-    console.log("Firebase initialized successfully using customized credentials.");
-  } catch (error) {
-    console.error("Firebase initialization failed, falling back to simulator:", error);
-  }
-}
-sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
 const FirebaseService = {
-  // Firebase Auth Operations
   auth: {
     createUserWithEmailAndPassword: async (email, password, profileData) => {
       if (useRealFirebase) {
         const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
         const uid = userCredential.user.uid;
         
-        // Save student details in Firestore during registration
         await firebase.firestore().collection("students").doc(uid).set({
           uid,
           ...profileData,
@@ -905,7 +938,6 @@ const FirebaseService = {
         
         return { user: { uid, email } };
       } else {
-        // Simulator Fallback
         await new Promise(resolve => setTimeout(resolve, 500));
         let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         if (users[email.toLowerCase()]) {
@@ -933,7 +965,6 @@ const FirebaseService = {
         const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
         return { user: { uid: userCredential.user.uid, email: userCredential.user.email } };
       } else {
-        // Simulator Fallback
         await new Promise(resolve => setTimeout(resolve, 400));
         let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         const user = users[email.toLowerCase()];
@@ -954,7 +985,6 @@ const FirebaseService = {
       if (useRealFirebase) {
         await firebase.auth().sendPasswordResetEmail(email);
       } else {
-        // Simulator Fallback
         await new Promise(resolve => setTimeout(resolve, 300));
         let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         if (!users[email.toLowerCase()]) {
@@ -976,13 +1006,11 @@ const FirebaseService = {
           }
         };
       } else {
-        // Simulator Fallback
         await new Promise(resolve => setTimeout(resolve, 500));
-        const mockGoogleEmail = "google.student@rit.ac.in";
         return {
           user: {
             uid: "uid_google123",
-            email: mockGoogleEmail,
+            email: "google.student@rit.ac.in",
             displayName: "GOOGLE TEST STUDENT"
           }
         };
@@ -990,7 +1018,6 @@ const FirebaseService = {
     }
   },
   
-  // Firestore Database Operations
   db: {
     getStudentDoc: async (uid) => {
       if (useRealFirebase) {
@@ -1000,7 +1027,6 @@ const FirebaseService = {
           data: () => doc.data()
         };
       } else {
-        // Simulator Fallback
         await new Promise(resolve => setTimeout(resolve, 200));
         let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         for (const email in users) {
@@ -1016,7 +1042,6 @@ const FirebaseService = {
       if (useRealFirebase) {
         await firebase.firestore().collection("students").doc(uid).set(data, { merge: true });
       } else {
-        // Simulator Fallback
         await new Promise(resolve => setTimeout(resolve, 200));
         let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         for (const email in users) {
@@ -1028,54 +1053,10 @@ const FirebaseService = {
         }
         throw new Error("firestore/document-not-found");
       }
-    },
-
-    getAllStudents: async () => {
-      if (useRealFirebase) {
-        const snapshot = await firebase.firestore().collection("students").get();
-        const list = [];
-        snapshot.forEach(doc => {
-          list.push({ uid: doc.id, ...doc.data() });
-        });
-        return list;
-      } else {
-        // Simulator Fallback
-        await new Promise(resolve => setTimeout(resolve, 300));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        const list = [];
-        for (const email in users) {
-          if (users[email].profileData && users[email].profileData.role !== "admin") {
-            list.push({ uid: users[email].uid, ...users[email].profileData });
-          }
-        }
-        return list;
-      }
-    },
-
-    deleteStudentDoc: async (uid) => {
-      if (useRealFirebase) {
-        await firebase.firestore().collection("students").doc(uid).delete();
-      } else {
-        // Simulator Fallback
-        await new Promise(resolve => setTimeout(resolve, 200));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        let targetEmail = null;
-        for (const email in users) {
-          if (users[email].uid === uid) {
-            targetEmail = email;
-            break;
-          }
-        }
-        if (targetEmail) {
-          delete users[targetEmail];
-          localStorage.setItem("firebase_mock_users", JSON.stringify(users));
-        }
-      }
     }
   }
 };
 
-// Seed default user for testing
 function seedMockDatabase() {
   let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
   
@@ -1125,74 +1106,136 @@ function seedMockDatabase() {
   }
 
   localStorage.setItem("firebase_mock_users", JSON.stringify(users));
+
+  // Seed initial events and tournaments in localStorage
+  let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+  if (mockEvents.length === 0) {
+    mockEvents = [
+      {
+        id: "gen-ai-bootcamp-01",
+        eventId: "gen-ai-bootcamp-01",
+        title: "Generative AI Bootcamp",
+        type: "workshop",
+        typeLabel: "Workshop",
+        date: "24 June, 2026",
+        isoDate: "2026-06-24T10:00:00",
+        time: "10:00 AM",
+        seats: 25,
+        price: "₹150",
+        host: "Dr. Elizabeth George, AI Research lead at TechCorp",
+        speakerLinkedin: "https://linkedin.com",
+        location: "RIT CSE Seminar Hall",
+        mode: "offline",
+        description: "Hands-on engineering bootcamp on training, fine-tuning, and evaluating LLMs. Build complete systems.",
+        color: "#C8E84A",
+        hasTeam: false,
+        maxTeamSize: 1,
+        poster: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80",
+        upi: "iedcrit@okaxis"
+      },
+      {
+        id: "founder-stories-talk-02",
+        eventId: "founder-stories-talk-02",
+        title: "Scaling Fintech: Founder Stories",
+        type: "talk",
+        typeLabel: "Talk",
+        date: "25 June, 2026",
+        isoDate: "2026-06-25T14:30:00",
+        time: "02:30 PM",
+        seats: 120,
+        price: "Free",
+        host: "Arun Joy, CEO at FinNovate",
+        speakerLinkedin: "https://linkedin.com",
+        location: "https://meet.google.com/abc-def-ghi",
+        mode: "online",
+        description: "Learn what it takes to build, validate, scale and raise capital for a fintech venture in India.",
+        color: "#E8614A",
+        hasTeam: false,
+        maxTeamSize: 1,
+        poster: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80",
+        upi: "iedcrit@okaxis"
+      }
+    ];
+    localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+  }
+
+  let mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+  if (mockTournaments.length === 0) {
+    mockTournaments = [
+      {
+        id: "fifa-tournament-03",
+        eventId: "fifa-tournament-03",
+        title: "FIFA 2026 Arena",
+        type: "tournament",
+        typeLabel: "Tournament",
+        date: "26 June, 2026",
+        isoDate: "2026-06-26T09:00:00",
+        time: "09:00 AM",
+        seats: 64,
+        price: "₹50",
+        host: "RIT Sports Club, Organizing Committee",
+        speakerLinkedin: "https://linkedin.com",
+        location: "RIT Indoor Stadium",
+        mode: "offline",
+        description: "Standard single elimination FIFA 26 gaming bracket. Cash awards for top 3 champions.",
+        color: "#8B6FD4",
+        hasTeam: false,
+        maxTeamSize: 1,
+        poster: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=600&q=80",
+        upi: "iedcrit@okaxis"
+      }
+    ];
+    localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTournaments));
+  }
 }
 seedMockDatabase();
 
 // ==========================================
-// 13 — INTERACTION LOGIC & EVENT HANDLERS
+// 11 — INTERACTION LOGIC & EVENT BINDINGS
 // ==========================================
 
-// Hook up profile trigger click
 document.getElementById("profile-avatar-trigger").addEventListener("click", () => {
-  openProfileSetup(true); // Is editing
+  openProfileSetup(true);
 });
 
-// Hook up custom avatar upload click trigger
 document.getElementById("btn-upload-avatar").addEventListener("click", () => {
   document.getElementById("setup-avatar-upload").click();
 });
 
-// Listen to avatar file upload
 document.getElementById("setup-avatar-upload").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  // Verify file format is JPG/JPEG
-  const fileType = file.type;
-  const fileName = file.name.toLowerCase();
-  const isValidJpg = fileType === "image/jpeg" || fileType === "image/jpg" || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
-
-  if (!isValidJpg) {
-    showToast("Please select a JPG/JPEG format image.", "var(--error)", "var(--error)");
-    this.value = ""; // Clear input
+  const type = file.type;
+  if (type !== "image/jpeg" && type !== "image/jpg") {
+    showToast("Avatar image must be in JPG/JPEG format.", "var(--error)", "var(--error)");
+    this.value = "";
     return;
   }
 
-  // Convert to Base64 using FileReader
   const reader = new FileReader();
   reader.onload = function(event) {
-    const base64Url = event.target.result;
-    
-    // Update preview img src
-    const previewImg = document.getElementById("custom-avatar-preview");
-    previewImg.src = base64Url;
-
-    // Update radio input value
+    const url = event.target.result;
+    document.getElementById("custom-avatar-preview").src = url;
     const radio = document.getElementById("radio-custom-avatar");
-    radio.value = base64Url;
+    radio.value = url;
     radio.checked = true;
-
-    // Show the custom avatar selection option card
     document.getElementById("custom-avatar-label").style.display = "block";
-    showToast("Picture loaded as custom avatar!", "var(--success)", "var(--success)");
+    showToast("Custom avatar picture loaded!", "var(--success)", "var(--success)");
   };
   reader.readAsDataURL(file);
 });
 
-// Automatically force lowercase characters in the email fields in real-time
 document.getElementById("setup-email").addEventListener("input", function() {
   this.value = this.value.toLowerCase();
 });
 document.getElementById("login-email").addEventListener("input", function() {
   this.value = this.value.toLowerCase();
 });
-
-// Automatically force uppercase characters in the name field in real-time
 document.getElementById("setup-name").addEventListener("input", function() {
   this.value = this.value.toUpperCase();
 });
 
-// Auth Switch Tab toggler
 function switchAuthTab(mode) {
   const loginTab = document.getElementById("auth-tab-login");
   const registerTab = document.getElementById("auth-tab-register");
@@ -1202,9 +1245,8 @@ function switchAuthTab(mode) {
   const title = document.getElementById("setup-title");
   const subtitle = document.getElementById("setup-subtitle");
 
-  // Always hide forgot form when switching tabs
   if (forgotForm) forgotForm.style.display = "none";
-  if (tabsContainer) tabsContainer.style.display = "flex";
+  document.getElementById("auth-tabs-container").style.display = "flex";
 
   if (mode === "login") {
     loginTab.classList.add("active");
@@ -1223,125 +1265,67 @@ function switchAuthTab(mode) {
   }
 }
 
-const tabsContainer = document.getElementById("auth-tabs-container");
-if (tabsContainer) {
-  document.getElementById("auth-tab-login").addEventListener("click", () => switchAuthTab("login"));
-  document.getElementById("auth-tab-register").addEventListener("click", () => switchAuthTab("register"));
-}
+document.getElementById("auth-tab-login").addEventListener("click", () => switchAuthTab("login"));
+document.getElementById("auth-tab-register").addEventListener("click", () => switchAuthTab("register"));
 
-// Forgot Password Navigation State Toggles
-function switchLoginToForgot() {
+document.getElementById("btn-forgot-password").addEventListener("click", () => {
   document.getElementById("auth-tabs-container").style.display = "none";
   document.getElementById("auth-login-form").style.display = "none";
   document.getElementById("auth-forgot-password-form").style.display = "block";
   document.getElementById("setup-title").textContent = "Reset Password";
   document.getElementById("setup-subtitle").textContent = "Enter your email to receive a password reset link.";
-}
+});
 
-function switchForgotToLogin() {
+document.getElementById("btn-forgot-back").addEventListener("click", () => {
   document.getElementById("auth-forgot-password-form").style.display = "none";
   document.getElementById("auth-tabs-container").style.display = "flex";
   document.getElementById("auth-login-form").style.display = "block";
   document.getElementById("setup-title").textContent = "Welcome Back";
   document.getElementById("setup-subtitle").textContent = "Sign in to discover and register for events.";
-}
+});
 
-document.getElementById("btn-forgot-password").addEventListener("click", switchLoginToForgot);
-document.getElementById("btn-forgot-back").addEventListener("click", switchForgotToLogin);
-
-// Forgot Password Form Submit
 document.getElementById("auth-forgot-password-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("forgot-email").value.trim().toLowerCase();
   
   const submitBtn = e.target.querySelector("button[type='submit']");
-  const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = "Sending...";
   
   try {
     await FirebaseService.auth.sendPasswordResetEmail(email);
     showToast("Password reset email sent!", "var(--success)", "var(--success)");
-    
-    // Clear field and return to login
     document.getElementById("forgot-email").value = "";
-    switchForgotToLogin();
+    document.getElementById("btn-forgot-back").click();
   } catch (error) {
-    console.error("Password reset error:", error);
     showToast("Error sending reset email.", "var(--error)", "var(--error)");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
+    submitBtn.textContent = "Send Reset Link";
   }
 });
 
-// Routing checker based on administrator approval status
 function checkApprovalAndRoute(profileData) {
   if (profileData.role === "admin" || profileData.email === "admin@rit.ac.in") {
     window.location.href = "admin.html";
   } else if (profileData.approved === true) {
     navigateTo("home");
-    renderHomeEvents();
-    renderDashboard();
+    // Show promotional banner popup widget on homepage load!
+    if (typeof showAdOverlay !== "undefined") {
+      setTimeout(showAdOverlay, 1500);
+    }
   } else {
-    const pendingNameElem = document.getElementById("pending-student-name");
-    if (pendingNameElem) {
-      pendingNameElem.textContent = profileData.name || "Student";
-    }
-
-    const pendingTitle = document.querySelector("#screen-pending h1");
-    const pendingDesc = document.querySelector("#screen-pending p");
-    const pendingIconWrapper = document.querySelector(".pending-icon-wrapper");
-
-    if (profileData.status === 'rejected') {
-      if (pendingTitle) pendingTitle.textContent = "Access Denied";
-      if (pendingDesc) {
-        pendingDesc.innerHTML = `Sorry, <span style="color: var(--white-pure); font-weight: 700;">${profileData.name || "Student"}</span>.<br>Your account application has been rejected by an administrator.`;
-      }
-      if (pendingIconWrapper) {
-        pendingIconWrapper.style.borderColor = "var(--error)";
-        pendingIconWrapper.style.color = "var(--error)";
-        pendingIconWrapper.style.boxShadow = "0 0 20px rgba(232, 74, 74, 0.2)";
-        pendingIconWrapper.innerHTML = `
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
-        `;
-      }
-    } else {
-      if (pendingTitle) pendingTitle.textContent = "Approval Pending";
-      if (pendingDesc) {
-        pendingDesc.innerHTML = `Welcome, <span style="color: var(--white-pure); font-weight: 700;">${pendingNameElem ? pendingNameElem.textContent : "Student"}</span>!<br>Your registration has been received. Please wait for an administrator to approve your account.`;
-      }
-      if (pendingIconWrapper) {
-        pendingIconWrapper.style.borderColor = "var(--nova-yellow)";
-        pendingIconWrapper.style.color = "var(--nova-yellow)";
-        pendingIconWrapper.style.boxShadow = "0 0 20px rgba(200, 232, 74, 0.2)";
-        pendingIconWrapper.innerHTML = `
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        `;
-      }
-    }
-
+    document.getElementById("pending-student-name").textContent = profileData.name || "Student";
     navigateTo("pending");
   }
 }
 
-// Login Form Submit
 document.getElementById("auth-login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  
   const email = document.getElementById("login-email").value.trim().toLowerCase();
   const password = document.getElementById("login-password").value;
   
-  // Show loading state
   const submitBtn = e.target.querySelector("button[type='submit']");
-  const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = "Verifying...";
   
@@ -1349,11 +1333,9 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
     let credentials;
     let isMockAdmin = false;
 
-    // Check for mock admin credentials fallback
     if (email === "admin@rit.ac.in" && password === "admin123") {
       isMockAdmin = true;
       credentials = { user: { uid: "uid_admin123", email: "admin@rit.ac.in" } };
-      sessionStorage.setItem("useRealFirebase", "false");
     }
 
     if (!isMockAdmin) {
@@ -1361,22 +1343,10 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
     }
 
     const docSnap = await FirebaseService.db.getStudentDoc(credentials.user.uid);
-    
     if (docSnap.exists()) {
       USER_PROFILE = docSnap.data();
-      
-      // Save session state
       sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
-      
-      // Update UI templates
       updateUserProfileUI();
-      
-      if (USER_PROFILE.approved === true) {
-        showToast("Welcome back!", "var(--success)", "var(--success)");
-      } else {
-        showToast("Account pending approval.", "var(--warning)", "var(--warning)");
-      }
-      
       checkApprovalAndRoute(USER_PROFILE);
     } else {
       if (email === "admin@rit.ac.in") {
@@ -1396,33 +1366,22 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
           role: "admin"
         };
         await FirebaseService.db.saveStudentDoc(credentials.user.uid, USER_PROFILE);
-        
         sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
         updateUserProfileUI();
-        showToast("Welcome back Admin!", "var(--success)", "var(--success)");
         checkApprovalAndRoute(USER_PROFILE);
       } else {
         throw new Error("auth/user-not-found");
       }
     }
   } catch (error) {
-    console.error("Login Error:", error);
-    showToast("Invalid email or password", "var(--error)", "var(--error)");
+    showToast("Invalid credentials. Try again.", "var(--error)", "var(--error)");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
+    submitBtn.textContent = "Login & Enter";
   }
 });
 
-// Google Sign-In handler
-async function handleGoogleSignIn() {
-  const button = document.getElementById("btn-google-auth");
-  const originalContent = button.innerHTML;
-  button.disabled = true;
-  button.innerHTML = `
-    <span style="font-size:12px;">Connecting...</span>
-  `;
-
+document.getElementById("btn-google-auth").addEventListener("click", async () => {
   try {
     const credentials = await FirebaseService.auth.signInWithGoogle();
     const uid = credentials.user.uid;
@@ -1430,54 +1389,25 @@ async function handleGoogleSignIn() {
 
     if (docSnap.exists()) {
       USER_PROFILE = docSnap.data();
-      
-      // Save session state
       sessionStorage.setItem("loggedInUserUid", uid);
-      
-      // Update UI templates
       updateUserProfileUI();
-      
-      if (USER_PROFILE.approved === true) {
-        showToast("Welcome back!", "var(--success)", "var(--success)");
-      } else {
-        showToast("Account pending approval.", "var(--warning)", "var(--warning)");
-      }
-      
       checkApprovalAndRoute(USER_PROFILE);
     } else {
-      // First-time Google Sign In: route to registration/setup profile but pre-fill details!
-      const name = credentials.user.displayName || "";
-      const email = credentials.user.email || "";
-
-      // Save temp session state so submission updates this UID
       sessionStorage.setItem("loggedInUserUid", uid);
-
-      // Transition to registration view
       switchAuthTab("register");
 
-      // Pre-fill Name & Email
-      document.getElementById("setup-name").value = name.toUpperCase();
-      document.getElementById("setup-email").value = email.toLowerCase();
-
-      // Pre-fill password placeholders to pass client-side validation
+      document.getElementById("setup-name").value = (credentials.user.displayName || "").toUpperCase();
+      document.getElementById("setup-email").value = (credentials.user.email || "").toLowerCase();
       document.getElementById("setup-password").value = "GOOGLE_AUTH_USER";
       document.getElementById("setup-confirm-password").value = "GOOGLE_AUTH_USER";
 
-      showToast("Google Authenticated! Complete your details.", "var(--galactic-purple)", "var(--galactic-purple)");
+      showToast("Authenticated! Setup profile details.", "var(--galactic-purple)", "var(--galactic-purple)");
     }
-  } catch (error) {
-    console.error("Google Auth Error:", error);
-    showToast("Google Authentication failed", "var(--error)", "var(--error)");
-  } finally {
-    button.disabled = false;
-    button.innerHTML = originalContent;
+  } catch (e) {
+    showToast("Google Authentication failed.", "var(--error)", "var(--error)");
   }
-}
+});
 
-// Bind Google Auth click listener
-document.getElementById("btn-google-auth").addEventListener("click", handleGoogleSignIn);
-
-// Profile setup / registration form submission
 document.getElementById("profile-setup-form").addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -1490,11 +1420,9 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
   const yearOfStudy = document.getElementById("setup-year").value;
   const phone = document.getElementById("setup-phone").value.trim();
   const college = document.getElementById("setup-college").value.trim();
-  
-  // Find selected avatar value
-  const radios = document.getElementsByName("setup-avatar");
+
   let avatar = "";
-  radios.forEach(radio => {
+  document.getElementsByName("setup-avatar").forEach(radio => {
     if (radio.checked) avatar = radio.value;
   });
 
@@ -1505,31 +1433,24 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
     return;
   }
 
-  if (!name || !email || !id || !department || !yearOfStudy || !phone || !college) {
-    showToast("Please fill in all profile fields.", "var(--error)", "var(--error)");
-    return;
-  }
-
-  // Show loading state
   const submitBtn = document.getElementById("btn-setup-submit");
-  const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = isUpdating ? "Saving..." : "Registering...";
+  submitBtn.textContent = "Processing...";
 
   try {
     const profileData = {
       name,
       email,
       password,
-      registerNo: id,  // For registerNo requirements
+      registerNo: id,
       id,
       department,
-      year: yearOfStudy, // For year requirements
+      year: yearOfStudy,
       yearOfStudy,
       phone,
       collegeName: college,
       avatar,
-      approved: (isUpdating && typeof USER_PROFILE !== "undefined" && USER_PROFILE.approved === true) ? USER_PROFILE.approved : false,
+      approved: isUpdating ? (USER_PROFILE.approved === true) : false,
       createdAt: new Date().toISOString()
     };
 
@@ -1540,41 +1461,28 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
       updateUserProfileUI();
       
       if (USER_PROFILE.approved === true) {
-        showToast("Profile updated!", "var(--success)", "var(--success)");
+        showToast("Profile settings saved!", "var(--success)", "var(--success)");
         navigateTo("home");
       } else {
-        showToast("Profile created! Waiting for admin approval.", "var(--warning)", "var(--warning)");
+        showToast("Profile registered. Pending review.", "var(--warning)", "var(--warning)");
         checkApprovalAndRoute(USER_PROFILE);
       }
     } else {
-      if (!password) {
-        showToast("Password is required for registration.", "var(--error)", "var(--error)");
-        return;
-      }
       const credentials = await FirebaseService.auth.createUserWithEmailAndPassword(email, password, profileData);
       USER_PROFILE = { ...profileData, uid: credentials.user.uid };
-      
-      // Save session state
       sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
-      
       updateUserProfileUI();
-      showToast("Registration submitted! Waiting for approval.", "var(--warning)", "var(--warning)");
+      showToast("Profile submitted for approval.", "var(--warning)", "var(--warning)");
       checkApprovalAndRoute(USER_PROFILE);
     }
-  } catch (error) {
-    console.error("Auth System Error:", error);
-    if (error.message === "auth/email-already-in-use") {
-      showToast("Email already registered.", "var(--error)", "var(--error)");
-    } else {
-      showToast("Error processing request.", "var(--error)", "var(--error)");
-    }
+  } catch (err) {
+    showToast("Error processing registration.", "var(--error)", "var(--error)");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
+    submitBtn.textContent = "Register & Enter";
   }
 });
 
-// Update User Profile details across multiple UI elements
 function updateUserProfileUI() {
   const name = USER_PROFILE.name;
   const email = USER_PROFILE.email;
@@ -1582,45 +1490,18 @@ function updateUserProfileUI() {
   const college = USER_PROFILE.collegeName;
   const avatar = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 
-  // Update profile avatar image references in HTML (excluding choice list options)
   document.querySelectorAll(".avatar-img").forEach(img => {
     if (!img.closest(".avatar-option")) {
       img.src = avatar;
     }
   });
 
-  // Update credentials on other screens
-  const regInfoText = document.getElementById("reg-student-info");
-  if (regInfoText) {
-    regInfoText.textContent = `${name} (${email})`;
-  }
-  const regCollegeText = document.getElementById("reg-student-college");
-  if (regCollegeText) {
-    regCollegeText.textContent = college;
-  }
-
-  const regIdInput = document.querySelector("#registration-form input[disabled]");
-  if (regIdInput) {
-    regIdInput.value = id;
-  }
-
   const greetings = document.querySelector(".dashboard-greeting");
   if (greetings) {
     greetings.textContent = `Hey ${name.split(" ")[0]} 👋`;
   }
-  
-  // Update Attendee name and College inside ticket
-  const ticketAttendee = document.getElementById("ticket-attendee");
-  if (ticketAttendee) {
-    ticketAttendee.textContent = name;
-  }
-  const ticketCollege = document.getElementById("ticket-college");
-  if (ticketCollege) {
-    ticketCollege.textContent = college;
-  }
 }
 
-// Open profile/auth screen settings
 function openProfileSetup(isEditing = false) {
   const title = document.getElementById("setup-title");
   const subtitle = document.getElementById("setup-subtitle");
@@ -1629,9 +1510,6 @@ function openProfileSetup(isEditing = false) {
   const tabsContainer = document.getElementById("auth-tabs-container");
   const loginForm = document.getElementById("auth-login-form");
   const registerForm = document.getElementById("profile-setup-form");
-  const forgotForm = document.getElementById("auth-forgot-password-form");
-
-  if (forgotForm) forgotForm.style.display = "none";
 
   if (isEditing) {
     tabsContainer.style.display = "none";
@@ -1646,101 +1524,32 @@ function openProfileSetup(isEditing = false) {
     document.getElementById("setup-name").value = USER_PROFILE.name || "";
     document.getElementById("setup-email").value = USER_PROFILE.email || "";
     document.getElementById("setup-password").value = USER_PROFILE.password || "";
+    document.getElementById("setup-confirm-password").value = USER_PROFILE.password || "";
     document.getElementById("setup-id").value = USER_PROFILE.id || "";
     document.getElementById("setup-department").value = USER_PROFILE.department || "";
     document.getElementById("setup-year").value = USER_PROFILE.yearOfStudy || "";
     document.getElementById("setup-phone").value = USER_PROFILE.phone || "";
     document.getElementById("setup-college").value = USER_PROFILE.collegeName || "";
-
-    const defaultAvatars = [
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80",
-      "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80",
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-    ];
-
-    if (USER_PROFILE.avatar && !defaultAvatars.includes(USER_PROFILE.avatar)) {
-      const customLabel = document.getElementById("custom-avatar-label");
-      const customPreview = document.getElementById("custom-avatar-preview");
-      const customRadio = document.getElementById("radio-custom-avatar");
-
-      customPreview.src = USER_PROFILE.avatar;
-      customRadio.value = USER_PROFILE.avatar;
-      customRadio.checked = true;
-      customLabel.style.display = "block";
-    } else {
-      const radios = document.getElementsByName("setup-avatar");
-      radios.forEach(radio => {
-        if (radio.value === USER_PROFILE.avatar) {
-          radio.checked = true;
-        }
-      });
-    }
   } else {
     tabsContainer.style.display = "flex";
     backBtn.style.display = "none";
     switchAuthTab("login");
-
-    document.getElementById("setup-name").value = "";
-    document.getElementById("setup-email").value = "";
-    document.getElementById("setup-password").value = "";
-    document.getElementById("setup-id").value = "";
-    document.getElementById("setup-department").value = "";
-    document.getElementById("setup-year").value = "";
-    document.getElementById("setup-phone").value = "";
-    document.getElementById("setup-college").value = "";
-    document.getElementById("custom-avatar-label").style.display = "none";
   }
 
   navigateTo("auth");
 }
 
-// Unified sign-out and session clearance
 async function handleSignOut() {
-  try {
-    await FirebaseService.auth.signOut();
-  } catch (e) {
-    console.error("SignOut error:", e);
-  }
+  await FirebaseService.auth.signOut();
   sessionStorage.removeItem("loggedInUserUid");
-  USER_PROFILE = {
-    name: "",
-    email: "",
-    id: "",
-    password: "",
-    department: "",
-    yearOfStudy: "",
-    phone: "",
-    collegeName: "",
-    avatar: "",
-    approved: false
-  };
-  
-  // Reset fields in form
-  document.getElementById("login-email").value = "";
-  document.getElementById("login-password").value = "";
-  document.getElementById("forgot-email").value = "";
-  document.getElementById("setup-name").value = "";
-  document.getElementById("setup-email").value = "";
-  document.getElementById("setup-password").value = "";
-  document.getElementById("setup-id").value = "";
-  document.getElementById("setup-department").value = "";
-  document.getElementById("setup-year").value = "";
-  document.getElementById("setup-phone").value = "";
-  document.getElementById("setup-college").value = "";
-  
-  openProfileSetup(false);
+  USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
+  navigateTo("auth");
 }
 
-// Register logout click event listeners
 document.getElementById("btn-logout").addEventListener("click", handleSignOut);
 document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
-const btnAdminLogout = document.getElementById("btn-admin-logout");
-if (btnAdminLogout) {
-  btnAdminLogout.addEventListener("click", handleSignOut);
-}
 
-// Student Dashboard Tab switcher
+// Dashboard tabs navigation
 function switchDashboardTab(tabId) {
   const tabs = ["profile", "events", "notifications"];
   tabs.forEach(t => {
@@ -1755,32 +1564,14 @@ function switchDashboardTab(tabId) {
     }
   });
 }
-
-// Bind sub-tabs click event listeners
 document.getElementById("db-tab-profile").addEventListener("click", () => switchDashboardTab("profile"));
 document.getElementById("db-tab-events").addEventListener("click", () => switchDashboardTab("events"));
 document.getElementById("db-tab-notifications").addEventListener("click", () => switchDashboardTab("notifications"));
 
-// Mock Notifications Data
 const NOTIFICATIONS_DATA = [
-  {
-    id: "notif-1",
-    title: "Welcome to IEDC RIT Gateway!",
-    body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.",
-    time: "Just Now"
-  },
-  {
-    id: "notif-2",
-    title: "InnovateRIT Hackathon Registration Open",
-    body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.",
-    time: "2 Hours Ago"
-  },
-  {
-    id: "notif-3",
-    title: "AI/ML Bootcamp Registration Fee",
-    body: "Please make sure to complete payment for AI/ML Hands-on Bootcamp (₹150) at the IEDC front desk to secure your seat.",
-    time: "1 Day Ago"
-  }
+  { id: "1", title: "Welcome to IEDC RIT Gateway!", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", time: "Just Now" },
+  { id: "2", title: "InnovateRIT Hackathon Registration Open", body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", time: "2 Hours Ago" },
+  { id: "3", title: "AI/ML Bootcamp Registration Fee", body: "Please make sure to complete payment for AI/ML Hands-on Bootcamp (₹150) to secure your seat.", time: "1 Day Ago" }
 ];
 
 function renderNotifications() {
@@ -1799,134 +1590,7 @@ function renderNotifications() {
   });
 }
 
-// ==========================================
-// 14 — ADMIN DASHBOARD CONTROLS
-// ==========================================
-async function renderAdminDashboard() {
-  const listContainer = document.getElementById("admin-student-list");
-  if (!listContainer) return;
-  listContainer.innerHTML = "";
-
-  try {
-    const students = await FirebaseService.db.getAllStudents();
-    
-    // Calculate stats
-    const totalCount = students.length;
-    const approvedCount = students.filter(s => s.approved === true).length;
-    const pendingCount = students.filter(s => s.approved !== true).length;
-
-    document.getElementById("admin-stat-total").textContent = totalCount;
-    document.getElementById("admin-stat-approved").textContent = approvedCount;
-    document.getElementById("admin-stat-pending").textContent = pendingCount;
-
-    const searchValue = document.getElementById("admin-search").value.trim().toLowerCase();
-
-    // Filter
-    const filtered = students.filter(student => {
-      const name = (student.name || "").toLowerCase();
-      const email = (student.email || "").toLowerCase();
-      const regNo = (student.registerNo || "").toLowerCase();
-      const dept = (student.department || "").toLowerCase();
-      const yr = (student.year || "").toLowerCase();
-      return name.includes(searchValue) || 
-             email.includes(searchValue) || 
-             regNo.includes(searchValue) || 
-             dept.includes(searchValue) || 
-             yr.includes(searchValue);
-    });
-
-    if (filtered.length === 0) {
-      listContainer.innerHTML = `
-        <tr>
-          <td colspan="7" style="padding: var(--space-xl); text-align: center; color: var(--muted-white);">
-            No registered students found.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    filtered.forEach(student => {
-      const row = document.createElement("tr");
-      
-      const isApproved = student.approved === true;
-      const statusBadge = isApproved 
-        ? `<span class="badge-status badge-approved">Approved</span>`
-        : `<span class="badge-status badge-pending">Pending</span>`;
-
-      const actionButtons = isApproved
-        ? `<button class="admin-table-btn admin-table-btn-reject" onclick="handleAdminAction('${student.uid}', 'reject')">Reject</button>
-           <button class="admin-table-btn admin-table-btn-delete" onclick="handleAdminAction('${student.uid}', 'delete')">Delete</button>`
-        : `<button class="admin-table-btn admin-table-btn-approve" onclick="handleAdminAction('${student.uid}', 'approve')">Approve</button>
-           <button class="admin-table-btn admin-table-btn-delete" onclick="handleAdminAction('${student.uid}', 'delete')">Delete</button>`;
-
-      const avatarSrc = student.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
-
-      row.innerHTML = `
-        <td>
-          <div class="admin-table-student-info">
-            <img class="admin-table-student-avatar" src="${avatarSrc}" alt="${student.name}">
-            <div class="admin-table-student-meta">
-              <span class="admin-table-student-name">${student.name}</span>
-              <span class="admin-table-student-email">${student.email}</span>
-            </div>
-          </div>
-        </td>
-        <td style="font-family: var(--font-mono); font-weight: 700; color: var(--white-pure);">${student.registerNo || student.id || "N/A"}</td>
-        <td>
-          <div style="font-weight: 600;">${student.department || "N/A"}</div>
-          <div style="font-size: 11px; color: var(--muted-white);">${student.year || student.yearOfStudy || "N/A"}</div>
-        </td>
-        <td>${student.phone || "N/A"}</td>
-        <td>${student.collegeName || "N/A"}</td>
-        <td>${statusBadge}</td>
-        <td>
-          <div class="admin-table-actions">
-            ${actionButtons}
-          </div>
-        </td>
-      `;
-      listContainer.appendChild(row);
-    });
-  } catch (error) {
-    console.error("Error loading admin dashboard:", error);
-    showToast("Error loading student list", "var(--error)", "var(--error)");
-  }
-}
-
-// Admin action handler
-window.handleAdminAction = async function(uid, action) {
-  try {
-    if (action === "approve") {
-      await FirebaseService.db.saveStudentDoc(uid, { approved: true });
-      showToast("Student approved!", "var(--success)", "var(--success)");
-    } else if (action === "reject") {
-      await FirebaseService.db.saveStudentDoc(uid, { approved: false });
-      showToast("Student rejected!", "var(--warning)", "var(--warning)");
-    } else if (action === "delete") {
-      if (confirm("Are you sure you want to delete this student permanently?")) {
-        await FirebaseService.db.deleteStudentDoc(uid);
-        showToast("Student record deleted!", "var(--success)", "var(--success)");
-      } else {
-        return;
-      }
-    }
-    renderAdminDashboard();
-  } catch (error) {
-    console.error("Admin action failed:", error);
-    showToast("Action failed", "var(--error)", "var(--error)");
-  }
-};
-
-// Wire up search event listener
-const adminSearchInput = document.getElementById("admin-search");
-if (adminSearchInput) {
-  adminSearchInput.addEventListener("input", () => {
-    renderAdminDashboard();
-  });
-}
-
-// Check Session & Gating on Startup
+// Session Initializer Gating check
 async function initSession() {
   const cachedUid = sessionStorage.getItem("loggedInUserUid");
   if (cachedUid) {
@@ -1941,7 +1605,6 @@ async function initSession() {
         openProfileSetup(false);
       }
     } catch (e) {
-      console.error("Session init error:", e);
       openProfileSetup(false);
     }
   } else {
