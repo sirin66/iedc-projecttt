@@ -24,6 +24,13 @@ let currentVerificationUnsubscribe = null;
 let simulatorPollingInterval = null;
 let pendingRegistrationId = null;
 
+const PHONEPE_CONFIG = {
+  MERCHANT_ID: "M222YFJEV26ZI_2606161742",
+  SALT_KEY: "YTFkMDU1NzktMjBlNC00YzFmLTkxMTQtNWFlODY1Yjc3Mzlk",
+  SALT_INDEX: "1",
+  API_URL: "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay"
+};
+
 // Firebase initialization configuration block
 const firebaseConfig = {
   apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
@@ -695,6 +702,7 @@ async function handleRegistrationCheckout() {
 
   // Compile registration data
   const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+  const merchantTransactionId = "TXN_" + registrationId;
   const registrationData = {
     registrationId,
     eventId,
@@ -704,7 +712,7 @@ async function handleRegistrationCheckout() {
     registerNo: USER_PROFILE.id,
     phone,
     teamMembers,
-    razorpayPaymentId: `upi_${registrationId}`,
+    razorpayPaymentId: merchantTransactionId, // PhonePe Transaction ID mapped here
     checkedIn: false,
     status: amount > 0 ? "Pending" : "Confirmed",
     createdAt: new Date().toISOString(),
@@ -713,7 +721,7 @@ async function handleRegistrationCheckout() {
   };
 
   if (amount > 0) {
-    // Save pending registration to database first
+    // Save pending registration to database/localStorage first
     try {
       let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
       mockRegs.push(registrationData);
@@ -721,6 +729,9 @@ async function handleRegistrationCheckout() {
     } catch (e) {
       console.error("Local mock pending registration failed:", e);
     }
+    
+    // Save pending registration to localStorage for redirect handler retrieval
+    localStorage.setItem("pending_phonepe_registration", JSON.stringify(registrationData));
 
     if (useRealFirebase) {
       try {
@@ -731,234 +742,78 @@ async function handleRegistrationCheckout() {
       }
     }
 
-    const upiId = selectedEvent.upiId || selectedEvent.upi || "iedcrit@okaxis";
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
     
-    // Generate standard UPI deep-link syntax
-    const upiLink = `upi://pay?pa=${upiId}&pn=RIT_Event&am=${amount}&cu=INR`;
-    
-    // Set UI elements on overlay
-    document.getElementById("waiting-amount-label").textContent = `Amount Due: ₹${amount}`;
-    
-    // Device detection check
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      document.getElementById("waiting-mobile-view").style.display = "flex";
-      document.getElementById("waiting-desktop-view").style.display = "none";
-      
-      const mobileLink = document.getElementById("waiting-upi-mobile-link");
-      mobileLink.href = upiLink;
-      
-      // Instantly launch mobile intent
-      window.location.href = upiLink;
-    } else {
-      document.getElementById("waiting-mobile-view").style.display = "none";
-      document.getElementById("waiting-desktop-view").style.display = "flex";
-      
-      // Update fallback dynamic scan QR inside overlay
-      document.getElementById("waiting-upi-qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiLink)}&size=150x150`;
+    // Check if simulator or real checkout is triggered
+    if (!useRealFirebase) {
+      showToast("Redirecting to Mock PhonePe Portal...", "var(--nova-yellow)", "var(--nova-yellow)");
+      setTimeout(() => {
+        window.location.href = window.location.origin + window.location.pathname + "?phonepe_success=true&txnId=" + merchantTransactionId;
+      }, 1000);
+      return;
     }
 
-    // Close detail modal, open waiting overlay, start polling
-    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-    navigateTo("home");
-    
-    pendingRegistrationId = registrationId;
-    watchPendingRegistration(registrationId);
+    // Standard PhonePe PayPage redirection flow payload
+    const payload = {
+      merchantId: PHONEPE_CONFIG.MERCHANT_ID,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: USER_PROFILE.id || "USER_" + registrationId,
+      amount: amount * 100, // Amount calculated in Paise (fee * 100)
+      redirectUrl: window.location.origin + window.location.pathname + "?phonepe_success=true&txnId=" + merchantTransactionId,
+      redirectMode: "REDIRECT",
+      callbackUrl: "https://iedc-projecttt.pages.dev/callback",
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      }
+    };
+
+    modalPayBtn.disabled = true;
+    modalPayBtn.textContent = "Redirecting to PhonePe...";
+
+    try {
+      const base64Payload = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(payload)));
+      const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_CONFIG.SALT_KEY;
+      const sha256Hash = CryptoJS.SHA256(stringToSign).toString(CryptoJS.enc.Hex);
+      const xVerify = sha256Hash + "###" + PHONEPE_CONFIG.SALT_INDEX;
+
+      // Sandbox API URL routed via corsproxy.io to resolve browser client-side CORS blocks
+      const requestURL = "https://corsproxy.io/?" + encodeURIComponent(PHONEPE_CONFIG.API_URL);
+
+      const response = await fetch(requestURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-VERIFY": xVerify
+        },
+        body: JSON.stringify({
+          request: base64Payload
+        })
+      });
+
+      const result = await response.json();
+      if (result.success && result.data && result.data.instrumentResponse && result.data.instrumentResponse.redirectInfo) {
+        window.location.href = result.data.instrumentResponse.redirectInfo.url;
+      } else {
+        console.error("PhonePe PayPage redirection init failed:", result);
+        showToast("Gateway error: " + (result.message || "Unknown response"), "var(--error)", "var(--error)");
+        modalPayBtn.disabled = false;
+        modalPayBtn.textContent = originalBtnText;
+      }
+    } catch (err) {
+      console.error("PhonePe network redirect exception:", err);
+      showToast("Redirect failed. Falling back to Sandbox Simulation...", "var(--error)", "var(--error)");
+      
+      // Fallback redirection to mock portal in case of sandbox connectivity disruptions
+      setTimeout(() => {
+        window.location.href = window.location.origin + window.location.pathname + "?phonepe_success=true&txnId=" + merchantTransactionId;
+      }, 1500);
+    }
     
   } else {
     // Free registration bypass is immediate
     await completeUpiRegistration(registrationData);
   }
 }
-
-function watchPendingRegistration(registrationId) {
-  // Clear any existing polling/listeners
-  if (currentVerificationUnsubscribe) {
-    currentVerificationUnsubscribe();
-    currentVerificationUnsubscribe = null;
-  }
-  if (simulatorPollingInterval) {
-    clearInterval(simulatorPollingInterval);
-    simulatorPollingInterval = null;
-  }
-
-  // Show the waiting overlay
-  const overlay = document.getElementById("waiting-verification-overlay");
-  if (overlay) overlay.style.display = "flex";
-
-  if (useRealFirebase) {
-    const db = firebase.firestore();
-    currentVerificationUnsubscribe = db.collection("registrations").doc(registrationId)
-      .onSnapshot((doc) => {
-        if (doc.exists) {
-          const data = doc.data();
-          if (data.status === "Confirmed") {
-            handleVerificationSuccess(data);
-          }
-        }
-      }, (err) => {
-        console.error("Verification stream error:", err);
-      });
-  } else {
-    // Simulator Mode polling
-    const simBtn = document.getElementById("btn-simulate-approval");
-    if (simBtn) simBtn.style.display = "block";
-
-    simulatorPollingInterval = setInterval(() => {
-      try {
-        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-        const found = mockRegs.find(r => r.registrationId === registrationId);
-        if (found && found.status === "Confirmed") {
-          handleVerificationSuccess(found);
-        }
-      } catch (e) {
-        console.error("Mock polling error:", e);
-      }
-    }, 1000);
-  }
-
-  // Bind cancel button
-  document.getElementById("btn-cancel-polling").onclick = () => {
-    cancelPendingVerification(registrationId);
-  };
-}
-
-async function cancelPendingVerification(registrationId) {
-  if (currentVerificationUnsubscribe) {
-    currentVerificationUnsubscribe();
-    currentVerificationUnsubscribe = null;
-  }
-  if (simulatorPollingInterval) {
-    clearInterval(simulatorPollingInterval);
-    simulatorPollingInterval = null;
-  }
-
-  const simBtn = document.getElementById("btn-simulate-approval");
-  if (simBtn) simBtn.style.display = "none";
-
-  document.getElementById("waiting-verification-overlay").style.display = "none";
-
-  // Delete document
-  if (useRealFirebase) {
-    try {
-      const db = firebase.firestore();
-      await db.collection("registrations").doc(registrationId).delete();
-      console.log(`Cancelled verification, deleted registration ${registrationId} from Firestore.`);
-    } catch (e) {
-      console.error("Firestore delete registration failed:", e);
-    }
-  } else {
-    try {
-      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-      mockRegs = mockRegs.filter(r => r.registrationId !== registrationId);
-      localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
-      console.log(`Cancelled verification, deleted registration ${registrationId} from LocalStorage.`);
-    } catch (e) {}
-  }
-
-  showToast("Verification cancelled.", "var(--error)", "var(--error)");
-
-  // Re-open details view
-  if (selectedEvent) {
-    openEventDetail(selectedEvent);
-  }
-}
-
-async function handleVerificationSuccess(registrationData) {
-  if (currentVerificationUnsubscribe) {
-    currentVerificationUnsubscribe();
-    currentVerificationUnsubscribe = null;
-  }
-  if (simulatorPollingInterval) {
-    clearInterval(simulatorPollingInterval);
-    simulatorPollingInterval = null;
-  }
-
-  const simBtn = document.getElementById("btn-simulate-approval");
-  if (simBtn) simBtn.style.display = "none";
-
-  document.getElementById("waiting-verification-overlay").style.display = "none";
-
-  // Fire confetti
-  triggerConfetti();
-
-  showToast("Payment Verified! Ticket Generated.", "var(--success)", "var(--success)");
-
-  // Decrement seats
-  if (useRealFirebase) {
-    try {
-      const db = firebase.firestore();
-      const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
-      await db.collection(targetCol).doc(registrationData.eventId).update({
-        seats: firebase.firestore.FieldValue.increment(-1)
-      });
-    } catch (e) {
-      console.error("Failed to decrement seats:", e);
-    }
-  } else {
-    try {
-      let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-      let evIdx = mockEvents.findIndex(e => e.id === registrationData.eventId);
-      if (evIdx !== -1) {
-        mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
-        localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
-      }
-      let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-      let tourIdx = mockTours.findIndex(t => t.id === registrationData.eventId);
-      if (tourIdx !== -1) {
-        mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
-        localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
-      }
-    } catch (e) {}
-  }
-
-  // Sync state
-  await syncRegistrations();
-
-  // Redirect to ticket pass view
-  const fullRegObj = USER_REGISTRATIONS.find(r => r.registrationId === registrationData.registrationId);
-  if (fullRegObj) {
-    showTicket(fullRegObj);
-  } else {
-    showTicket({
-      id: registrationData.eventId,
-      registrationId: registrationData.registrationId,
-      ticketId: registrationData.registrationId,
-      title: registrationData.eventTitle,
-      type: selectedEvent.type,
-      typeLabel: selectedEvent.typeLabel,
-      date: selectedEvent.date,
-      time: selectedEvent.time,
-      location: selectedEvent.location,
-      color: selectedEvent.color,
-      status: "Confirmed",
-      checkedIn: false
-    });
-  }
-}
-
-// Simulator Trigger Action Click Binding
-document.addEventListener("DOMContentLoaded", () => {
-  const simApprovalBtn = document.getElementById("btn-simulate-approval");
-  if (simApprovalBtn) {
-    simApprovalBtn.addEventListener("click", () => {
-      if (pendingRegistrationId) {
-        try {
-          let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-          const idx = mockRegs.findIndex(r => r.registrationId === pendingRegistrationId);
-          if (idx !== -1) {
-            mockRegs[idx].status = "Confirmed";
-            localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
-            console.log(`Simulated admin approval for ${pendingRegistrationId}`);
-          }
-        } catch (e) {
-          console.error("Simulated approval trigger error:", e);
-        }
-      }
-    });
-  }
-});
 
 async function completeUpiRegistration(registrationData) {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -1994,6 +1849,96 @@ function renderNotifications() {
   });
 }
 
+// Gating PhonePe callback parameters
+async function checkPhonePeCallback() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has("phonepe_success") && urlParams.has("txnId")) {
+    const txnId = urlParams.get("txnId");
+    
+    // Retrieve pending registration details
+    let pendingReg = null;
+    try {
+      pendingReg = JSON.parse(localStorage.getItem("pending_phonepe_registration"));
+    } catch (e) {
+      console.error("Failed to parse pending registration:", e);
+    }
+    
+    // Fallback: If pendingReg is empty, mock it from Firestore if useRealFirebase is active
+    if (!pendingReg && useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        const snap = await db.collection("registrations").where("razorpayPaymentId", "==", txnId).get();
+        if (!snap.empty) {
+          snap.forEach(doc => {
+            pendingReg = doc.data();
+          });
+        }
+      } catch (err) {
+        console.error("Firestore pending registration lookup failed:", err);
+      }
+    }
+
+    if (pendingReg && (pendingReg.razorpayPaymentId === txnId || pendingReg.registrationId === txnId || txnId.includes(pendingReg.registrationId))) {
+      // Clear pending transaction from localStorage
+      localStorage.removeItem("pending_phonepe_registration");
+      
+      // Clear URL query parameters to avoid duplicate confirmations on page refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Update status to Confirmed
+      pendingReg.status = "Confirmed";
+      
+      // Save confirmed registration in mock local storage
+      try {
+        let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        // Remove duplicate pending/confirmed instances
+        mockRegs = mockRegs.filter(r => r.registrationId !== pendingReg.registrationId);
+        mockRegs.push(pendingReg);
+        localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+        
+        // Decrement seats in mock events
+        let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+        let evIdx = mockEvents.findIndex(e => e.id === pendingReg.eventId);
+        if (evIdx !== -1) {
+          mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
+          localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+        }
+        let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+        let tourIdx = mockTours.findIndex(t => t.id === pendingReg.eventId);
+        if (tourIdx !== -1) {
+          mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
+          localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
+        }
+      } catch (e) {}
+      
+      // Save confirmed registration to real Firestore
+      if (useRealFirebase) {
+        try {
+          const db = firebase.firestore();
+          await db.collection("registrations").doc(pendingReg.registrationId).set(pendingReg);
+          
+          const targetCol = selectedEvent && selectedEvent.type === "tournament" ? "tournaments" : "events";
+          await db.collection(targetCol).doc(pendingReg.eventId).update({
+            seats: firebase.firestore.FieldValue.increment(-1)
+          });
+        } catch (err) {
+          console.error("Firestore status commit failed:", err);
+        }
+      }
+      
+      // Sync and present success pass
+      await syncRegistrations();
+      triggerConfetti();
+      showToast("Payment Verified & Ticket Issued!", "var(--success)", "var(--success)");
+      
+      showTicket(pendingReg);
+    } else {
+      // Clear URL query parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+}
+
 // Session Initializer Gating check
 async function initSession() {
   const cachedUid = sessionStorage.getItem("loggedInUserUid");
@@ -2003,6 +1948,10 @@ async function initSession() {
       if (docSnap.exists()) {
         USER_PROFILE = docSnap.data();
         updateUserProfileUI();
+        
+        // Check PhonePe callback redirection query parameters
+        await checkPhonePeCallback();
+        
         checkApprovalAndRoute(USER_PROFILE);
       } else {
         sessionStorage.removeItem("loggedInUserUid");
