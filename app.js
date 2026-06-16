@@ -19,6 +19,8 @@ let searchQuery = "";
 let countdownInterval = null;
 let detailCountdownInterval = null;
 let teamMemberCount = 0;
+let pendingRegistration = null;
+let paymentPending = false;
 
 // Firebase initialization configuration block
 const firebaseConfig = {
@@ -579,37 +581,105 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
     return;
   }
 
+  // Parse team members names if present
+  const teamInputs = document.querySelectorAll(".detail-team-member-name");
+  const teamMembers = [];
+  teamInputs.forEach(input => {
+    if (input.value.trim()) teamMembers.push(input.value.trim());
+  });
+
   // Parse amount fee
-  const priceVal = selectedEvent.price || "Free";
-  const amountMatch = String(priceVal).match(/\d+/);
-  const amount = amountMatch ? parseInt(amountMatch[0]) : 0;
+  let amount = 0;
+  if (selectedEvent.fee !== undefined) {
+    amount = parseInt(selectedEvent.fee);
+  } else if (selectedEvent.reg_fee !== undefined) {
+    amount = parseInt(selectedEvent.reg_fee);
+  } else {
+    const priceVal = selectedEvent.price || "Free";
+    const amountMatch = String(priceVal).match(/\d+/);
+    amount = amountMatch ? parseInt(amountMatch[0]) : 0;
+  }
 
   if (amount > 0) {
-    // In-App Razorpay Checkout execution
-    const options = {
-      key: "rzp_test_dummy",
-      amount: amount * 100, // in paisa
-      currency: "INR",
-      name: "IEDC RIT Event Platform",
-      description: selectedEvent.title,
-      handler: function (response) {
-        handleSuccessfulPayment(response.razorpay_payment_id, phone);
-      },
-      prefill: {
-        name: USER_PROFILE.name,
-        email: USER_PROFILE.email,
-        contact: phone
-      },
-      theme: {
-        color: "#8B6FD4"
-      }
+    // Paid checkout via Dynamic UPI QR or Intent redirection
+    const upiId = selectedEvent.upiId || selectedEvent.upi || "iedcrit@okaxis";
+    const eventId = selectedEvent.id || selectedEvent.eventId;
+    
+    // Generate standard UPI deep-link syntax
+    const upiLink = `upi://pay?pa=${upiId}&pn=RIT_Event&am=${amount}&cu=INR&tn=Registration_${eventId}`;
+    
+    // Build pending registration record
+    const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+    pendingRegistration = {
+      registrationId,
+      eventId,
+      eventTitle: selectedEvent.title,
+      studentName: USER_PROFILE.name,
+      studentEmail: USER_PROFILE.email,
+      registerNo: USER_PROFILE.id,
+      phone,
+      teamMembers,
+      razorpayPaymentId: `upi_${registrationId}`, // Reference code
+      checkedIn: false,
+      status: "Confirmed",
+      createdAt: new Date().toISOString(),
+      studentUid: sessionStorage.getItem("loggedInUserUid"),
+      timestamp: new Date().toISOString()
     };
-    const rzp = new Razorpay(options);
-    rzp.open();
+    paymentPending = true;
+
+    // Set UI elements
+    document.getElementById("detail-upi-amount-label").textContent = `₹${amount}`;
+    
+    // Device detection check
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      document.getElementById("upi-mobile-view").style.display = "flex";
+      document.getElementById("upi-desktop-view").style.display = "none";
+      
+      const mobileLink = document.getElementById("detail-upi-mobile-link");
+      mobileLink.href = upiLink;
+      
+      // Instantly fire mobile app redirect intent
+      window.location.href = upiLink;
+    } else {
+      document.getElementById("upi-mobile-view").style.display = "none";
+      document.getElementById("upi-desktop-view").style.display = "flex";
+      
+      // Update fallback dynamic scan QR
+      document.getElementById("detail-upi-qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiLink)}&size=180x180`;
+    }
+
+    // Shift screen Detail display sections state
+    document.getElementById("detail-reg-fields").style.display = "none";
+    const stickyCta = document.querySelector(".sticky-cta-container");
+    if (stickyCta) stickyCta.style.display = "none";
+    
+    document.getElementById("detail-upi-checkout-container").style.display = "flex";
+    document.getElementById("detail-upi-checkout-container").scrollIntoView({ behavior: 'smooth' });
+    
   } else {
     // Free checkout bypass
-    const dummyPaymentId = `pay_free_${Math.floor(Math.random()*900000+100000)}`;
-    handleSuccessfulPayment(dummyPaymentId, phone);
+    const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+    const eventId = selectedEvent.id || selectedEvent.eventId;
+    const registrationData = {
+      registrationId,
+      eventId,
+      eventTitle: selectedEvent.title,
+      studentName: USER_PROFILE.name,
+      studentEmail: USER_PROFILE.email,
+      registerNo: USER_PROFILE.id,
+      phone,
+      teamMembers,
+      razorpayPaymentId: "FREE",
+      checkedIn: false,
+      status: "Confirmed",
+      createdAt: new Date().toISOString(),
+      studentUid: sessionStorage.getItem("loggedInUserUid"),
+      timestamp: new Date().toISOString()
+    };
+    completeUpiRegistration(registrationData);
   }
 });
 
@@ -617,30 +687,13 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
 // 07 — PAYMENT COMPLETION & TICKET Wallet
 // ==========================================
 
-async function handleSuccessfulPayment(paymentId, phone) {
+async function completeUpiRegistration(registrationData) {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
   // Confetti celebrations
   triggerConfetti();
 
   // Save registration ledger to Firestore / Simulator
-  const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
-  const registrationData = {
-    registrationId,
-    eventId: selectedEvent.id,
-    eventTitle: selectedEvent.title,
-    studentName: USER_PROFILE.name,
-    studentEmail: USER_PROFILE.email,
-    registerNo: USER_PROFILE.id,
-    phone,
-    razorpayPaymentId: paymentId,
-    checkedIn: false,
-    status: "Confirmed",
-    createdAt: new Date().toISOString(),
-    studentUid: sessionStorage.getItem("loggedInUserUid"),
-    timestamp: new Date().toISOString()
-  };
-
   // Mock registrations write
   try {
     let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
@@ -649,14 +702,14 @@ async function handleSuccessfulPayment(paymentId, phone) {
 
     // Decrement seats locally
     let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-    let evIdx = mockEvents.findIndex(e => e.id === selectedEvent.id);
+    let evIdx = mockEvents.findIndex(e => e.id === registrationData.eventId);
     if (evIdx !== -1) {
       mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
       localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
     }
     
     let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-    let tourIdx = mockTours.findIndex(t => t.id === selectedEvent.id);
+    let tourIdx = mockTours.findIndex(t => t.id === registrationData.eventId);
     if (tourIdx !== -1) {
       mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
       localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
@@ -669,10 +722,10 @@ async function handleSuccessfulPayment(paymentId, phone) {
   if (useRealFirebase) {
     try {
       const db = firebase.firestore();
-      await db.collection("registrations").doc(registrationId).set(registrationData);
+      await db.collection("registrations").doc(registrationData.registrationId).set(registrationData);
       
       const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
-      await db.collection(targetCol).doc(selectedEvent.id).update({
+      await db.collection(targetCol).doc(registrationData.eventId).update({
         seats: firebase.firestore.FieldValue.increment(-1)
       });
     } catch (err) {
@@ -682,16 +735,61 @@ async function handleSuccessfulPayment(paymentId, phone) {
 
   showToast("Registration Confirmed! Enjoy your event.", "var(--success)", "var(--success)");
 
+  // Hide checkout views and restore fields
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("detail-reg-fields").style.display = "block";
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  if (stickyCta) stickyCta.style.display = "block";
+
   // Sync state and open pass
   await syncRegistrations();
   
-  const regObj = USER_REGISTRATIONS.find(r => r.registrationId === registrationId);
+  const regObj = USER_REGISTRATIONS.find(r => r.registrationId === registrationData.registrationId);
   if (regObj) {
     showTicket(regObj);
   } else {
     navigateTo("dashboard");
   }
 }
+
+// Bind confirm button
+document.getElementById("detail-upi-confirm-btn").addEventListener("click", async () => {
+  if (paymentPending && pendingRegistration) {
+    console.log("Manual UPI checkout payment confirmation trigger fired.");
+    const regData = { ...pendingRegistration };
+    
+    // Clear state
+    paymentPending = false;
+    pendingRegistration = null;
+    
+    await completeUpiRegistration(regData);
+  }
+});
+
+// Bind cancel button
+document.getElementById("detail-upi-cancel-btn").addEventListener("click", () => {
+  paymentPending = false;
+  pendingRegistration = null;
+  
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("detail-reg-fields").style.display = "block";
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  if (stickyCta) stickyCta.style.display = "block";
+});
+
+// Listen for browser visibility return
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && paymentPending && pendingRegistration) {
+    console.log("Visibility state change returned. Auto-confirming registration pipeline...");
+    const regData = { ...pendingRegistration };
+    
+    // Clear state
+    paymentPending = false;
+    pendingRegistration = null;
+    
+    await completeUpiRegistration(regData);
+  }
+});
 
 function showTicket(registration) {
   document.getElementById("ticket-event-name").textContent = registration.title;

@@ -732,8 +732,8 @@
                   <input type="url" id="speakerLinkedin" placeholder="https://linkedin.com/in/username">
                 </div>
                 <div class="form-group">
-                  <label for="eventUpi">Dedicated UPI ID for Payments</label>
-                  <input type="text" id="eventUpi" placeholder="Eg: merchant@upi" required>
+                  <label for="eventUpiId">Dedicated UPI ID for Payments</label>
+                  <input type="text" id="eventUpiId" placeholder="Eg: merchant@upi" required>
                 </div>
               </div>
 
@@ -754,8 +754,8 @@
                   <input type="number" id="eventSeats" placeholder="Eg: 50" required min="1">
                 </div>
                 <div class="form-group">
-                  <label for="eventPrice">Ticket Price (₹ or Free)</label>
-                  <input type="text" id="eventPrice" placeholder="Eg: Free or ₹150" required>
+                  <label for="eventFee">Registration Fee (INR)</label>
+                  <input type="number" id="eventFee" placeholder="Eg: 150 (Type 0 for Free)" required min="0">
                 </div>
               </div>
 
@@ -824,15 +824,15 @@
                   <input type="text" id="tournamentTitle" placeholder="Eg: Valorant RIT Cup" required>
                 </div>
                 <div class="form-group">
-                  <label for="tournamentPrice">Registration Fee (INR)</label>
-                  <input type="number" id="tournamentPrice" placeholder="Eg: 150 (Type 0 for Free)" required min="0">
+                  <label for="tournamentFee">Registration Fee (INR)</label>
+                  <input type="number" id="tournamentFee" placeholder="Eg: 150 (Type 0 for Free)" required min="0">
                 </div>
               </div>
 
               <div class="form-grid">
                 <div class="form-group">
-                  <label for="tournamentUpi">Dedicated UPI ID</label>
-                  <input type="text" id="tournamentUpi" placeholder="Eg: iedcrit@okaxis" required>
+                  <label for="tournamentUpiId">Dedicated UPI ID</label>
+                  <input type="text" id="tournamentUpiId" placeholder="Eg: iedcrit@okaxis" required>
                 </div>
                 <div class="form-group">
                   <label for="tournamentPoster">Image URL</label>
@@ -1425,11 +1425,11 @@
         const speakerName = document.getElementById("speakerName").value.trim();
         const speakerQual = document.getElementById("speakerQual").value.trim();
         const speakerLinkedin = document.getElementById("speakerLinkedin").value.trim();
-        const upi = document.getElementById("eventUpi").value.trim();
+        const upiId = document.getElementById("eventUpiId").value.trim();
         const dateInput = document.getElementById("eventDate").value;
         const timeInput = document.getElementById("eventTime").value;
         const seats = parseInt(document.getElementById("eventSeats").value);
-        const price = document.getElementById("eventPrice").value.trim();
+        const fee = parseInt(document.getElementById("eventFee").value);
         const location = document.getElementById("eventLocation").value.trim();
         const mode = document.getElementById("eventMode").value;
         const poster = document.getElementById("eventPoster").value.trim();
@@ -1473,7 +1473,9 @@
           isoDate,
           time: formattedTime,
           seats,
-          price,
+          fee,
+          upiId,
+          price: fee === 0 ? "Free" : `₹${fee}`,
           host: `${speakerName}, ${speakerQual}`,
           speakerLinkedin,
           location,
@@ -1527,7 +1529,7 @@
       document.getElementById("speakerQual").value = parts.slice(1).join(", ") || "";
       
       document.getElementById("speakerLinkedin").value = match.speakerLinkedin || "";
-      document.getElementById("eventUpi").value = match.upi || "";
+      document.getElementById("eventUpiId").value = match.upiId || match.upi || "";
       
       // Try setting date and time back to inputs
       if (match.isoDate) {
@@ -1537,7 +1539,7 @@
       }
       
       document.getElementById("eventSeats").value = match.seats || 50;
-      document.getElementById("eventPrice").value = match.price || "Free";
+      document.getElementById("eventFee").value = match.fee !== undefined ? match.fee : (match.reg_fee !== undefined ? match.reg_fee : (match.price && String(match.price).match(/\d+/) ? parseInt(String(match.price).match(/\d+/)[0]) : 0));
       document.getElementById("eventLocation").value = match.location || "";
       document.getElementById("eventMode").value = match.mode || "offline";
       document.getElementById("eventPoster").value = match.poster || "";
@@ -1634,8 +1636,8 @@
       try {
         const editId = document.getElementById("editTournamentId").value;
         const title = document.getElementById("tournamentTitle").value.trim();
-        const price = parseInt(document.getElementById("tournamentPrice").value);
-        const upi = document.getElementById("tournamentUpi").value.trim();
+        const fee = parseInt(document.getElementById("tournamentFee").value);
+        const upiId = document.getElementById("tournamentUpiId").value.trim();
         const poster = document.getElementById("tournamentPoster").value.trim();
         const maxTeamSize = parseInt(document.getElementById("tournamentMaxTeam").value);
         const mode = document.getElementById("tournamentMode").value;
@@ -1647,9 +1649,9 @@
           id: tournamentSlug,
           eventId: tournamentSlug,
           title,
-          price: price === 0 ? "Free" : `₹${price}`,
-          reg_fee: price,
-          upi,
+          price: fee === 0 ? "Free" : `₹${fee}`,
+          fee,
+          upiId,
           poster,
           poster_url: poster,
           hasTeam: maxTeamSize > 1,
@@ -1694,10 +1696,9 @@
       document.getElementById("editTournamentId").value = match.id;
       document.getElementById("tournamentTitle").value = match.title;
       
-      const priceVal = String(match.price).match(/\d+/);
-      document.getElementById("tournamentPrice").value = priceVal ? parseInt(priceVal[0]) : 0;
+      document.getElementById("tournamentFee").value = match.fee !== undefined ? match.fee : (match.reg_fee !== undefined ? match.reg_fee : 0);
       
-      document.getElementById("tournamentUpi").value = match.upi || "";
+      document.getElementById("tournamentUpiId").value = match.upiId || match.upi || "";
       document.getElementById("tournamentPoster").value = match.poster || "";
       document.getElementById("tournamentMaxTeam").value = String(match.maxTeamSize || 1);
       document.getElementById("tournamentMode").value = match.mode || "offline";
