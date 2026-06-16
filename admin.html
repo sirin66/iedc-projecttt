@@ -1486,7 +1486,7 @@
           maxTeamSize,
           poster,
           poster_url: poster,
-          upi,
+          upi: upiId,
           timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
         };
 
@@ -1652,6 +1652,7 @@
           price: fee === 0 ? "Free" : `₹${fee}`,
           fee,
           upiId,
+          upi: upiId,
           poster,
           poster_url: poster,
           hasTeam: maxTeamSize > 1,
