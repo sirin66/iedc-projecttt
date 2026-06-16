@@ -750,9 +750,9 @@ async function handleRegistrationCheckout() {
       amountLabel.textContent = `Amount Due: ₹${amount}`;
     }
 
-    // REPLACE THIS WITH YOUR ACTUAL UPI ID
-    const upiId = "YOUR_REAL_UPI_ID@okaxis";
-    const upiLink = `upi://pay?pa=${upiId}&pn=IEDC_RIT&am=${amount}&cu=INR`;
+    // Dynamically fetch UPI ID from selected event, falling back to default if missing
+    const upiId = selectedEvent.upiId || selectedEvent.upi || "iedcrit@okaxis";
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(selectedEvent.title)}&am=${amount}&cu=INR`;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const mobileView = document.getElementById("waiting-mobile-view");
     const desktopView = document.getElementById("waiting-desktop-view");
