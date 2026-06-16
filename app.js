@@ -203,41 +203,7 @@ async function syncRegistrations() {
             });
           });
 
-          // Sync local mock registrations
-          let mockRegs = [];
-          try {
-            const local = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-            local.forEach(reg => {
-              if (reg.studentUid === cachedUid) {
-                const match = EVENTS_DATA.find(e => e.id === reg.eventId);
-                mockRegs.push({
-                  id: reg.eventId,
-                  registrationId: reg.registrationId,
-                  ticketId: reg.registrationId,
-                  title: reg.eventTitle || (match ? match.title : "Event"),
-                  type: match ? match.type : "talk",
-                  typeLabel: match ? match.typeLabel : "Talk",
-                  date: match ? match.date : "TBD",
-                  isoDate: match ? match.isoDate : new Date().toISOString(),
-                  time: match ? match.time : "TBD",
-                  location: match ? match.location : "TBD",
-                  host: match ? match.host : "IEDC RIT",
-                  color: match ? match.color : "#C8E84A",
-                  status: reg.status || "Confirmed",
-                  checkedIn: reg.checkedIn === true,
-                  razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-                  phone: reg.phone || ""
-                });
-              }
-            });
-          } catch (e) {}
-
           USER_REGISTRATIONS = [...firebaseRegs];
-          mockRegs.forEach(mr => {
-            if (!USER_REGISTRATIONS.some(r => r.registrationId === mr.registrationId)) {
-              USER_REGISTRATIONS.push(mr);
-            }
-          });
 
           // Re-render dashboard in real-time
           const activeScreen = document.querySelector(".screen.active");
