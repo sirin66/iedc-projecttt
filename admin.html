@@ -1508,7 +1508,7 @@
         resetEventFormState();
       } catch (error) {
         console.error("Event save failed:", error);
-        alert("Error saving event. Please try again.");
+        alert("Error saving event: " + error.message);
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
@@ -1682,7 +1682,7 @@
         resetTournamentFormState();
       } catch (error) {
         console.error("Tournament save failed:", error);
-        alert("Error saving tournament.");
+        alert("Error saving tournament: " + error.message);
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
