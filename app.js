@@ -746,10 +746,14 @@ async function handleRegistrationCheckout() {
     
     // Check if simulator or real checkout is triggered
     if (!useRealFirebase) {
-      showToast("Redirecting to Mock PhonePe Portal...", "var(--nova-yellow)", "var(--nova-yellow)");
+      showToast("Launching Mock Simulator Checkout Dialog...", "var(--nova-yellow)", "var(--nova-yellow)");
       setTimeout(() => {
-        window.location.href = window.location.origin + window.location.pathname + "?phonepe_success=true&txnId=" + merchantTransactionId;
-      }, 1000);
+        if (confirm("Simulator Mode: Would you like to simulate a successful payment? (Click OK for Success, Cancel to Fail payment)")) {
+          window.location.href = window.location.origin + window.location.pathname + "?phonepe_success=true&txnId=" + merchantTransactionId;
+        } else {
+          window.location.href = window.location.origin + window.location.pathname + "?phonepe_success=false&txnId=" + merchantTransactionId;
+        }
+      }, 500);
       return;
     }
 
@@ -801,12 +805,15 @@ async function handleRegistrationCheckout() {
       }
     } catch (err) {
       console.error("PhonePe network redirect exception:", err);
-      showToast("Redirect failed. Falling back to Sandbox Simulation...", "var(--error)", "var(--error)");
       
-      // Fallback redirection to mock portal in case of sandbox connectivity disruptions
-      setTimeout(() => {
+      // Prompt user whether to mock confirm instead of instantly confirming on network failure
+      if (confirm("PhonePe pre-prod endpoint is unreachable or blocked by CORS. Would you like to simulate a successful payment? (Click OK for Success, Cancel to abort checkout)")) {
         window.location.href = window.location.origin + window.location.pathname + "?phonepe_success=true&txnId=" + merchantTransactionId;
-      }, 1500);
+      } else {
+        modalPayBtn.disabled = false;
+        modalPayBtn.textContent = originalBtnText;
+        showToast("Payment initialization failed.", "var(--error)", "var(--error)");
+      }
     }
     
   } else {
@@ -1854,6 +1861,36 @@ async function checkPhonePeCallback() {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has("phonepe_success") && urlParams.has("txnId")) {
     const txnId = urlParams.get("txnId");
+    const successVal = urlParams.get("phonepe_success");
+
+    if (successVal === "false") {
+      // Clear pending transaction from localStorage
+      localStorage.removeItem("pending_phonepe_registration");
+      
+      // Clean query params
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Clean pending record in mock local storage
+      try {
+        let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        mockRegs = mockRegs.filter(r => r.razorpayPaymentId !== txnId && r.registrationId !== txnId);
+        localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+      } catch (e) {}
+
+      // Clean pending record from Firestore
+      if (useRealFirebase) {
+        try {
+          const db = firebase.firestore();
+          const snap = await db.collection("registrations").where("razorpayPaymentId", "==", txnId).get();
+          snap.forEach(async doc => {
+            await db.collection("registrations").doc(doc.id).delete();
+          });
+        } catch (e) {}
+      }
+
+      showToast("Payment Failed or Cancelled.", "var(--error)", "var(--error)");
+      return;
+    }
     
     // Retrieve pending registration details
     let pendingReg = null;
