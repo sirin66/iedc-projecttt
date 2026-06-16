@@ -280,18 +280,28 @@ function renderHomeEvents() {
     }
     featCard.innerHTML = `
       <div class="card-featured-circle"></div>
-      <div class="card-featured-content">
+      <div class="card-featured-content" style="width: 100%;">
         <span class="chip chip-${featuredEvent.type}" style="margin-bottom: var(--space-sm);">${featuredEvent.typeLabel}</span>
         <h2 class="h3-title" style="margin-bottom: var(--space-xs); line-height: 1.2;">${featuredEvent.title}</h2>
-        <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white);">
+        <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-bottom: 12px;">
           <span>${featuredEvent.date}</span>
           <span>•</span>
           <span>${featuredEvent.time}</span>
         </div>
+        <button class="card-btn-register" id="btn-register-${featuredEvent.id}">Register Now</button>
       </div>
     `;
-    featCard.addEventListener("click", () => openEventDetail(featuredEvent));
+    featCard.addEventListener("click", (e) => {
+      if (e.target.classList.contains("card-btn-register")) return;
+      openEventDetail(featuredEvent);
+    });
     featuredContainer.appendChild(featCard);
+
+    // Bind glassmorphic button click explicitly
+    featCard.querySelector(`#btn-register-${featuredEvent.id}`).addEventListener("click", (e) => {
+      e.stopPropagation();
+      openEventDetail(featuredEvent);
+    });
   }
 
   // Grid lists
@@ -311,14 +321,24 @@ function renderHomeEvents() {
         <span class="caption-meta" style="color: var(--nova-yellow);">${evt.price}</span>
       </div>
       <h3 class="h3-title" style="margin-top: var(--space-xs); line-height:1.2;">${evt.title}</h3>
-      <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-top: auto;">
+      <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-top: auto; margin-bottom: 8px;">
         <span style="display:flex; align-items:center; gap:4px;">
           📅 ${evt.date}
         </span>
       </div>
+      <button class="card-btn-register" id="btn-register-${evt.id}">Register Now</button>
     `;
-    card.addEventListener("click", () => openEventDetail(evt));
+    card.addEventListener("click", (e) => {
+      if (e.target.classList.contains("card-btn-register")) return;
+      openEventDetail(evt);
+    });
     listContainer.appendChild(card);
+
+    // Bind glassmorphic button click explicitly
+    card.querySelector(`#btn-register-${evt.id}`).addEventListener("click", (e) => {
+      e.stopPropagation();
+      openEventDetail(evt);
+    });
   });
 }
 
