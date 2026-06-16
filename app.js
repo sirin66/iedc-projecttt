@@ -21,6 +21,7 @@ let detailCountdownInterval = null;
 let teamMemberCount = 0;
 let pendingRegistration = null;
 let paymentPending = false;
+let paymentTimeoutId = null;
 
 // Firebase initialization configuration block
 const firebaseConfig = {
@@ -611,7 +612,7 @@ document.getElementById("detail-reg-form").addEventListener("submit", (e) => {
   handleRegistrationCheckout();
 });
 
-function handleRegistrationCheckout() {
+async function handleRegistrationCheckout() {
   if (!selectedEvent) return;
 
   const phone = document.getElementById("detail-reg-phone").value.trim();
@@ -619,6 +620,58 @@ function handleRegistrationCheckout() {
     showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
     return;
   }
+  
+  const ktuid = USER_PROFILE.id || "";
+  const eventId = selectedEvent.id || selectedEvent.eventId;
+
+  // Set checkout processing status
+  const modalPayBtn = document.getElementById("modal-pay-btn");
+  const originalBtnText = modalPayBtn.textContent;
+  modalPayBtn.disabled = true;
+  modalPayBtn.textContent = "Checking details...";
+
+  // 1. Strict Duplicate Registration Check (Before Payment)
+  let hasDuplicate = false;
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      const snap = await db.collection("registrations").where("eventId", "==", eventId).get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.phone === phone || d.registerNo === ktuid) {
+          hasDuplicate = true;
+        }
+      });
+    } catch (err) {
+      console.error("Duplicate checking query error:", err);
+    }
+  } else {
+    // Simulator check
+    try {
+      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      hasDuplicate = mockRegs.some(r => r.eventId === eventId && (r.phone === phone || r.registerNo === ktuid));
+    } catch (e) {
+      console.error("Local mock duplicate search error:", e);
+    }
+  }
+
+  if (hasDuplicate) {
+    // Restore button
+    modalPayBtn.disabled = false;
+    modalPayBtn.textContent = originalBtnText;
+
+    // Close the detail modal
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+    navigateTo("home");
+
+    // Trigger glassmorphic conflict alert
+    showCustomAlert("Conflict", "Conflict: You are already registered for this event!");
+    return;
+  }
+
+  // Restore button text for future opens
+  modalPayBtn.disabled = false;
+  modalPayBtn.textContent = originalBtnText;
 
   // Parse team members names if present
   const teamInputs = document.querySelectorAll(".detail-team-member-name");
@@ -639,32 +692,32 @@ function handleRegistrationCheckout() {
     amount = amountMatch ? parseInt(amountMatch[0]) : 0;
   }
 
+  // Compile registration data
+  const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+  const registrationData = {
+    registrationId,
+    eventId,
+    eventTitle: selectedEvent.title,
+    studentName: USER_PROFILE.name,
+    studentEmail: USER_PROFILE.email,
+    registerNo: USER_PROFILE.id,
+    phone,
+    teamMembers,
+    razorpayPaymentId: `upi_${registrationId}`,
+    checkedIn: false,
+    status: "Confirmed",
+    createdAt: new Date().toISOString(),
+    studentUid: sessionStorage.getItem("loggedInUserUid"),
+    timestamp: new Date().toISOString()
+  };
+
   if (amount > 0) {
-    // Paid checkout via Dynamic UPI QR or Intent redirection
     const upiId = selectedEvent.upiId || selectedEvent.upi || "iedcrit@okaxis";
-    const eventId = selectedEvent.id || selectedEvent.eventId;
     
     // Generate standard UPI deep-link syntax
-    const upiLink = `upi://pay?pa=${upiId}&pn=RIT_Event&am=${amount}&cu=INR&tn=Registration_${eventId}`;
+    const upiLink = `upi://pay?pa=${upiId}&pn=RIT_Event&am=${amount}&cu=INR`;
     
-    // Build pending registration record
-    const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
-    pendingRegistration = {
-      registrationId,
-      eventId,
-      eventTitle: selectedEvent.title,
-      studentName: USER_PROFILE.name,
-      studentEmail: USER_PROFILE.email,
-      registerNo: USER_PROFILE.id,
-      phone,
-      teamMembers,
-      razorpayPaymentId: `upi_${registrationId}`, // Reference code
-      checkedIn: false,
-      status: "Confirmed",
-      createdAt: new Date().toISOString(),
-      studentUid: sessionStorage.getItem("loggedInUserUid"),
-      timestamp: new Date().toISOString()
-    };
+    pendingRegistration = registrationData;
     paymentPending = true;
 
     // Set UI elements
@@ -680,7 +733,7 @@ function handleRegistrationCheckout() {
       const mobileLink = document.getElementById("detail-upi-mobile-link");
       mobileLink.href = upiLink;
       
-      // Instantly fire mobile app redirect intent
+      // Instantly launch mobile intent
       window.location.href = upiLink;
     } else {
       document.getElementById("upi-mobile-view").style.display = "none";
@@ -697,30 +750,60 @@ function handleRegistrationCheckout() {
     
     document.getElementById("detail-upi-checkout-container").style.display = "flex";
     document.getElementById("detail-upi-checkout-container").scrollIntoView({ behavior: 'smooth' });
+
+    // Set up timer visual confirmation feedback on confirm button
+    const confirmBtn = document.getElementById("detail-upi-confirm-btn");
+    const originalConfirmText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+
+    let countdownSeconds = 3;
+    confirmBtn.textContent = `Auto-confirming in ${countdownSeconds}s...`;
+
+    const statusInterval = setInterval(() => {
+      countdownSeconds--;
+      if (countdownSeconds > 0) {
+        confirmBtn.textContent = `Auto-confirming in ${countdownSeconds}s...`;
+      } else {
+        clearInterval(statusInterval);
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalConfirmText;
+      }
+    }, 1000);
+
+    // Automation Hack: 3-second background confirmation timer
+    if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
+    paymentTimeoutId = setTimeout(async () => {
+      clearInterval(statusInterval);
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalConfirmText;
+
+      if (paymentPending && pendingRegistration) {
+        const regData = { ...pendingRegistration };
+        paymentPending = false;
+        pendingRegistration = null;
+        await completeUpiRegistration(regData);
+      }
+    }, 3000);
     
   } else {
-    // Free checkout bypass
-    const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
-    const eventId = selectedEvent.id || selectedEvent.eventId;
-    const registrationData = {
-      registrationId,
-      eventId,
-      eventTitle: selectedEvent.title,
-      studentName: USER_PROFILE.name,
-      studentEmail: USER_PROFILE.email,
-      registerNo: USER_PROFILE.id,
-      phone,
-      teamMembers,
-      razorpayPaymentId: "FREE",
-      checkedIn: false,
-      status: "Confirmed",
-      createdAt: new Date().toISOString(),
-      studentUid: sessionStorage.getItem("loggedInUserUid"),
-      timestamp: new Date().toISOString()
-    };
+    // Free registration bypass is immediate
     completeUpiRegistration(registrationData);
   }
 }
+
+window.closeCustomAlert = function() {
+  const overlay = document.getElementById("custom-alert-overlay");
+  if (overlay) overlay.style.display = "none";
+};
+
+window.showCustomAlert = function(title, message) {
+  const overlay = document.getElementById("custom-alert-overlay");
+  const titleEl = document.getElementById("custom-alert-title");
+  const msgEl = document.getElementById("custom-alert-message");
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  if (overlay) overlay.style.display = "flex";
+};
 
 // ==========================================
 // 07 — PAYMENT COMPLETION & TICKET Wallet
@@ -798,6 +881,7 @@ document.getElementById("detail-upi-confirm-btn").addEventListener("click", asyn
     // Clear state
     paymentPending = false;
     pendingRegistration = null;
+    if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
     
     await completeUpiRegistration(regData);
   }
@@ -807,6 +891,7 @@ document.getElementById("detail-upi-confirm-btn").addEventListener("click", asyn
 document.getElementById("detail-upi-cancel-btn").addEventListener("click", () => {
   paymentPending = false;
   pendingRegistration = null;
+  if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
   
   document.getElementById("detail-upi-checkout-container").style.display = "none";
   document.getElementById("detail-reg-form").style.display = "block";
@@ -823,6 +908,7 @@ document.addEventListener("visibilitychange", async () => {
     // Clear state
     paymentPending = false;
     pendingRegistration = null;
+    if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
     
     await completeUpiRegistration(regData);
   }
