@@ -20,8 +20,9 @@ let countdownInterval = null;
 let detailCountdownInterval = null;
 let teamMemberCount = 0;
 let pendingRegistration = null;
-let paymentPending = false;
-let paymentTimeoutId = null;
+let currentVerificationUnsubscribe = null;
+let simulatorPollingInterval = null;
+let pendingRegistrationId = null;
 
 // Firebase initialization configuration block
 const firebaseConfig = {
@@ -705,109 +706,259 @@ async function handleRegistrationCheckout() {
     teamMembers,
     razorpayPaymentId: `upi_${registrationId}`,
     checkedIn: false,
-    status: "Confirmed",
+    status: amount > 0 ? "Pending" : "Confirmed",
     createdAt: new Date().toISOString(),
     studentUid: sessionStorage.getItem("loggedInUserUid"),
     timestamp: new Date().toISOString()
   };
 
   if (amount > 0) {
+    // Save pending registration to database first
+    try {
+      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      mockRegs.push(registrationData);
+      localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+    } catch (e) {
+      console.error("Local mock pending registration failed:", e);
+    }
+
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        await db.collection("registrations").doc(registrationId).set(registrationData);
+      } catch (err) {
+        console.error("Firestore pending registration failed:", err);
+      }
+    }
+
     const upiId = selectedEvent.upiId || selectedEvent.upi || "iedcrit@okaxis";
     
     // Generate standard UPI deep-link syntax
     const upiLink = `upi://pay?pa=${upiId}&pn=RIT_Event&am=${amount}&cu=INR`;
     
-    pendingRegistration = registrationData;
-    paymentPending = true;
-
-    // Set UI elements
-    document.getElementById("detail-upi-amount-label").textContent = `₹${amount}`;
+    // Set UI elements on overlay
+    document.getElementById("waiting-amount-label").textContent = `Amount Due: ₹${amount}`;
     
     // Device detection check
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (isMobile) {
-      document.getElementById("upi-mobile-view").style.display = "flex";
-      document.getElementById("upi-desktop-view").style.display = "none";
+      document.getElementById("waiting-mobile-view").style.display = "flex";
+      document.getElementById("waiting-desktop-view").style.display = "none";
       
-      const mobileLink = document.getElementById("detail-upi-mobile-link");
+      const mobileLink = document.getElementById("waiting-upi-mobile-link");
       mobileLink.href = upiLink;
       
       // Instantly launch mobile intent
       window.location.href = upiLink;
     } else {
-      document.getElementById("upi-mobile-view").style.display = "none";
-      document.getElementById("upi-desktop-view").style.display = "flex";
+      document.getElementById("waiting-mobile-view").style.display = "none";
+      document.getElementById("waiting-desktop-view").style.display = "flex";
       
-      // Update fallback dynamic scan QR
-      document.getElementById("detail-upi-qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiLink)}&size=180x180`;
+      // Update fallback dynamic scan QR inside overlay
+      document.getElementById("waiting-upi-qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiLink)}&size=150x150`;
     }
 
-    // Shift screen Detail display sections state (hide form, show UPI QR container)
-    document.getElementById("detail-reg-form").style.display = "none";
-    const stickyCta = document.querySelector(".sticky-cta-container");
-    if (stickyCta) stickyCta.style.display = "none";
+    // Close detail modal, open waiting overlay, start polling
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+    navigateTo("home");
     
-    document.getElementById("detail-upi-checkout-container").style.display = "flex";
-    document.getElementById("detail-upi-checkout-container").scrollIntoView({ behavior: 'smooth' });
-
-    // Set up timer visual confirmation feedback on confirm button
-    const confirmBtn = document.getElementById("detail-upi-confirm-btn");
-    const originalConfirmText = confirmBtn.textContent;
-    confirmBtn.disabled = true;
-
-    let countdownSeconds = 3;
-    confirmBtn.textContent = `Auto-confirming in ${countdownSeconds}s...`;
-
-    const statusInterval = setInterval(() => {
-      countdownSeconds--;
-      if (countdownSeconds > 0) {
-        confirmBtn.textContent = `Auto-confirming in ${countdownSeconds}s...`;
-      } else {
-        clearInterval(statusInterval);
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = originalConfirmText;
-      }
-    }, 1000);
-
-    // Automation Hack: 3-second background confirmation timer
-    if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
-    paymentTimeoutId = setTimeout(async () => {
-      clearInterval(statusInterval);
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = originalConfirmText;
-
-      if (paymentPending && pendingRegistration) {
-        const regData = { ...pendingRegistration };
-        paymentPending = false;
-        pendingRegistration = null;
-        await completeUpiRegistration(regData);
-      }
-    }, 3000);
+    pendingRegistrationId = registrationId;
+    watchPendingRegistration(registrationId);
     
   } else {
     // Free registration bypass is immediate
-    completeUpiRegistration(registrationData);
+    await completeUpiRegistration(registrationData);
   }
 }
 
-window.closeCustomAlert = function() {
-  const overlay = document.getElementById("custom-alert-overlay");
-  if (overlay) overlay.style.display = "none";
-};
+function watchPendingRegistration(registrationId) {
+  // Clear any existing polling/listeners
+  if (currentVerificationUnsubscribe) {
+    currentVerificationUnsubscribe();
+    currentVerificationUnsubscribe = null;
+  }
+  if (simulatorPollingInterval) {
+    clearInterval(simulatorPollingInterval);
+    simulatorPollingInterval = null;
+  }
 
-window.showCustomAlert = function(title, message) {
-  const overlay = document.getElementById("custom-alert-overlay");
-  const titleEl = document.getElementById("custom-alert-title");
-  const msgEl = document.getElementById("custom-alert-message");
-  if (titleEl) titleEl.textContent = title;
-  if (msgEl) msgEl.textContent = message;
+  // Show the waiting overlay
+  const overlay = document.getElementById("waiting-verification-overlay");
   if (overlay) overlay.style.display = "flex";
-};
 
-// ==========================================
-// 07 — PAYMENT COMPLETION & TICKET Wallet
-// ==========================================
+  if (useRealFirebase) {
+    const db = firebase.firestore();
+    currentVerificationUnsubscribe = db.collection("registrations").doc(registrationId)
+      .onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.status === "Confirmed") {
+            handleVerificationSuccess(data);
+          }
+        }
+      }, (err) => {
+        console.error("Verification stream error:", err);
+      });
+  } else {
+    // Simulator Mode polling
+    const simBtn = document.getElementById("btn-simulate-approval");
+    if (simBtn) simBtn.style.display = "block";
+
+    simulatorPollingInterval = setInterval(() => {
+      try {
+        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        const found = mockRegs.find(r => r.registrationId === registrationId);
+        if (found && found.status === "Confirmed") {
+          handleVerificationSuccess(found);
+        }
+      } catch (e) {
+        console.error("Mock polling error:", e);
+      }
+    }, 1000);
+  }
+
+  // Bind cancel button
+  document.getElementById("btn-cancel-polling").onclick = () => {
+    cancelPendingVerification(registrationId);
+  };
+}
+
+async function cancelPendingVerification(registrationId) {
+  if (currentVerificationUnsubscribe) {
+    currentVerificationUnsubscribe();
+    currentVerificationUnsubscribe = null;
+  }
+  if (simulatorPollingInterval) {
+    clearInterval(simulatorPollingInterval);
+    simulatorPollingInterval = null;
+  }
+
+  const simBtn = document.getElementById("btn-simulate-approval");
+  if (simBtn) simBtn.style.display = "none";
+
+  document.getElementById("waiting-verification-overlay").style.display = "none";
+
+  // Delete document
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      await db.collection("registrations").doc(registrationId).delete();
+      console.log(`Cancelled verification, deleted registration ${registrationId} from Firestore.`);
+    } catch (e) {
+      console.error("Firestore delete registration failed:", e);
+    }
+  } else {
+    try {
+      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      mockRegs = mockRegs.filter(r => r.registrationId !== registrationId);
+      localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+      console.log(`Cancelled verification, deleted registration ${registrationId} from LocalStorage.`);
+    } catch (e) {}
+  }
+
+  showToast("Verification cancelled.", "var(--error)", "var(--error)");
+
+  // Re-open details view
+  if (selectedEvent) {
+    openEventDetail(selectedEvent);
+  }
+}
+
+async function handleVerificationSuccess(registrationData) {
+  if (currentVerificationUnsubscribe) {
+    currentVerificationUnsubscribe();
+    currentVerificationUnsubscribe = null;
+  }
+  if (simulatorPollingInterval) {
+    clearInterval(simulatorPollingInterval);
+    simulatorPollingInterval = null;
+  }
+
+  const simBtn = document.getElementById("btn-simulate-approval");
+  if (simBtn) simBtn.style.display = "none";
+
+  document.getElementById("waiting-verification-overlay").style.display = "none";
+
+  // Fire confetti
+  triggerConfetti();
+
+  showToast("Payment Verified! Ticket Generated.", "var(--success)", "var(--success)");
+
+  // Decrement seats
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
+      await db.collection(targetCol).doc(registrationData.eventId).update({
+        seats: firebase.firestore.FieldValue.increment(-1)
+      });
+    } catch (e) {
+      console.error("Failed to decrement seats:", e);
+    }
+  } else {
+    try {
+      let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+      let evIdx = mockEvents.findIndex(e => e.id === registrationData.eventId);
+      if (evIdx !== -1) {
+        mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
+        localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+      }
+      let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+      let tourIdx = mockTours.findIndex(t => t.id === registrationData.eventId);
+      if (tourIdx !== -1) {
+        mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
+        localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
+      }
+    } catch (e) {}
+  }
+
+  // Sync state
+  await syncRegistrations();
+
+  // Redirect to ticket pass view
+  const fullRegObj = USER_REGISTRATIONS.find(r => r.registrationId === registrationData.registrationId);
+  if (fullRegObj) {
+    showTicket(fullRegObj);
+  } else {
+    showTicket({
+      id: registrationData.eventId,
+      registrationId: registrationData.registrationId,
+      ticketId: registrationData.registrationId,
+      title: registrationData.eventTitle,
+      type: selectedEvent.type,
+      typeLabel: selectedEvent.typeLabel,
+      date: selectedEvent.date,
+      time: selectedEvent.time,
+      location: selectedEvent.location,
+      color: selectedEvent.color,
+      status: "Confirmed",
+      checkedIn: false
+    });
+  }
+}
+
+// Simulator Trigger Action Click Binding
+document.addEventListener("DOMContentLoaded", () => {
+  const simApprovalBtn = document.getElementById("btn-simulate-approval");
+  if (simApprovalBtn) {
+    simApprovalBtn.addEventListener("click", () => {
+      if (pendingRegistrationId) {
+        try {
+          let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+          const idx = mockRegs.findIndex(r => r.registrationId === pendingRegistrationId);
+          if (idx !== -1) {
+            mockRegs[idx].status = "Confirmed";
+            localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+            console.log(`Simulated admin approval for ${pendingRegistrationId}`);
+          }
+        } catch (e) {
+          console.error("Simulated approval trigger error:", e);
+        }
+      }
+    });
+  }
+});
 
 async function completeUpiRegistration(registrationData) {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -819,7 +970,12 @@ async function completeUpiRegistration(registrationData) {
   // Mock registrations write
   try {
     let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-    mockRegs.push(registrationData);
+    if (!mockRegs.some(r => r.registrationId === registrationData.registrationId)) {
+      mockRegs.push(registrationData);
+    } else {
+      const idx = mockRegs.findIndex(r => r.registrationId === registrationData.registrationId);
+      mockRegs[idx] = registrationData;
+    }
     localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
 
     // Decrement seats locally
@@ -871,48 +1027,6 @@ async function completeUpiRegistration(registrationData) {
   // Sync state in background
   await syncRegistrations();
 }
-
-// Bind confirm button
-document.getElementById("detail-upi-confirm-btn").addEventListener("click", async () => {
-  if (paymentPending && pendingRegistration) {
-    console.log("Manual UPI checkout payment confirmation trigger fired.");
-    const regData = { ...pendingRegistration };
-    
-    // Clear state
-    paymentPending = false;
-    pendingRegistration = null;
-    if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
-    
-    await completeUpiRegistration(regData);
-  }
-});
-
-// Bind cancel button
-document.getElementById("detail-upi-cancel-btn").addEventListener("click", () => {
-  paymentPending = false;
-  pendingRegistration = null;
-  if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
-  
-  document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("detail-reg-form").style.display = "block";
-  const stickyCta = document.querySelector(".sticky-cta-container");
-  if (stickyCta) stickyCta.style.display = "block";
-});
-
-// Listen for browser visibility return
-document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible" && paymentPending && pendingRegistration) {
-    console.log("Visibility state change returned. Auto-confirming registration pipeline...");
-    const regData = { ...pendingRegistration };
-    
-    // Clear state
-    paymentPending = false;
-    pendingRegistration = null;
-    if (paymentTimeoutId) clearTimeout(paymentTimeoutId);
-    
-    await completeUpiRegistration(regData);
-  }
-});
 
 function showTicket(registration) {
   document.getElementById("ticket-event-name").textContent = registration.title;

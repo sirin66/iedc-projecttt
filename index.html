@@ -1057,6 +1057,60 @@
       <button type="button" onclick="closeCustomAlert()" class="btn" style="background: var(--error); color: white; width: 100%; border: none; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Dismiss</button>
     </div>
   </div>
+
+  <!-- Waiting for Admin Verification Overlay -->
+  <div id="waiting-verification-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(8, 8, 16, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; align-items: center; justify-content: center; animation: fadeInOverlay 0.25s ease;">
+    <div style="background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 24px 48px rgba(0,0,0,0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); display: flex; flex-direction: column; align-items: center; gap: 12px;">
+      
+      <!-- Glowing rotating spinner -->
+      <div class="verification-spinner" style="width: 55px; height: 55px; border: 4px solid rgba(200, 232, 74, 0.1); border-top: 4px solid var(--nova-yellow); border-radius: 50%; animation: spin 1s linear infinite; box-shadow: 0 0 15px rgba(200, 232, 74, 0.2); margin-bottom: 8px;"></div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+
+      <h3 style="font-size: 18px; font-weight: 800; color: white; margin-bottom: 2px;">Waiting for Admin Verification</h3>
+      <div id="waiting-amount-label" style="font-size: 15px; font-weight: 700; color: var(--nova-yellow); margin-bottom: 8px;">Amount Due: ₹0</div>
+
+      <p style="font-size: 12px; color: var(--muted-white); line-height: 1.5; margin-bottom: 12px; max-width: 320px;">
+        Please complete the UPI payment. Once verified on our bank credit records, your registration status will change and your ticket QR code will generate automatically.
+      </p>
+
+      <!-- Desktop View: QR Code inside overlay -->
+      <div id="waiting-desktop-view" style="display: none; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span class="section-eyebrow" style="color: var(--nova-yellow); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">Scan UPI QR to Pay</span>
+        <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+          <img id="waiting-upi-qr-image" src="" alt="Dynamic UPI QR Code" style="width: 150px; height: 150px; display: block; object-fit: contain;">
+        </div>
+      </div>
+
+      <!-- Mobile View: Intent Link inside overlay -->
+      <div id="waiting-mobile-view" style="display: none; flex-direction: column; align-items: center; gap: 8px; width: 100%; margin-bottom: 8px;">
+        <a id="waiting-upi-mobile-link" href="#" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--nova-yellow); color: var(--nova-yellow); font-size: 12px; padding: 10px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-decoration: none;">
+          ⚡ Launch UPI App Again
+        </a>
+      </div>
+
+      <div style="font-size: 10px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+        Polling Database Stream...
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px;">
+        <!-- Simulator Trigger Button (for test validation without real admin console) -->
+        <button type="button" id="btn-simulate-approval" class="btn" style="display: none; background: var(--success); color: #080810; width: 100%; font-weight: 800; padding: 10px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 11px; border: none; letter-spacing: 0.5px;">
+          🔧 Simulate Admin Approval
+        </button>
+
+        <!-- Cancel Verification Button -->
+        <button type="button" id="btn-cancel-polling" class="btn" style="background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted-white); width: 100%; font-weight: 700; padding: 10px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 11px;">
+          Cancel Verification
+        </button>
+      </div>
+
+    </div>
+  </div>
 </body>
 
 </html>

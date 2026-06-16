@@ -1222,6 +1222,7 @@
         const phone = reg.phone || "N/A";
         const payRef = reg.razorpayPaymentId || reg.utrNumber || "FREE CHECKOUT";
         const isCheckedIn = reg.checkedIn === true;
+        const status = reg.status || "Confirmed";
 
         row.innerHTML = `
           <td><div style="font-weight: 700; text-transform: uppercase;">${name}</div></td>
@@ -1232,12 +1233,22 @@
           </td>
           <td style="font-size: 12px; font-family: monospace;">${payRef}</td>
           <td>
-            <span class="badge-status ${isCheckedIn ? 'badge-approved' : 'badge-pending'}">
-              ${isCheckedIn ? 'Checked In' : 'Not Checked In'}
-            </span>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span class="badge-status ${status === 'Confirmed' ? 'badge-approved' : 'badge-pending'}">
+                ${status === 'Confirmed' ? 'Confirmed' : 'Pending'}
+              </span>
+              <span class="badge-status ${isCheckedIn ? 'badge-approved' : 'badge-pending'}">
+                ${isCheckedIn ? 'Checked In' : 'Not Checked In'}
+              </span>
+            </div>
           </td>
           <td style="text-align: right;">
             <div style="display: flex; gap: 6px; justify-content: flex-end;">
+              ${status === 'Pending' ? `
+                <button class="admin-table-btn" onclick="approveRegistrationManually('${reg.id || reg.registrationId}')" style="background: rgba(74, 232, 138, 0.15); border: 1px solid var(--success); color: var(--success);">
+                  Approve Pay
+                </button>
+              ` : ''}
               <button class="admin-table-btn" onclick="toggleCheckInManually('${reg.id || reg.registrationId}', ${isCheckedIn})" style="background: rgba(255,255,255,0.05); color: white;">
                 ${isCheckedIn ? 'Undo Check-In' : 'Check In'}
               </button>
@@ -1268,6 +1279,36 @@
         } catch (e) {
           console.error("Manual checkin update failed:", e);
         }
+      } else {
+        // Trigger real-time UI refresh in Simulator Mode
+        const dropdown = document.getElementById("admin-event-filter");
+        if (dropdown) loadAttendeeList(dropdown.value);
+      }
+    };
+
+    window.approveRegistrationManually = async function(regId) {
+      if (!confirm("Are you sure you want to approve this pending registration payment?")) return;
+
+      // Update local storage simulator
+      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      const foundIdx = mockRegs.findIndex(r => r.registrationId === regId || r.id === regId);
+      if (foundIdx !== -1) {
+        mockRegs[foundIdx].status = "Confirmed";
+        localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+      }
+
+      if (useRealFirebase) {
+        try {
+          await db.collection("registrations").doc(regId).update({ status: "Confirmed" });
+          console.log(`Successfully approved registration doc ${regId} in Firestore.`);
+        } catch (e) {
+          console.error("Firestore approve registration failed:", e);
+          alert("Error approving registration: " + e.message);
+        }
+      } else {
+        // Trigger real-time UI refresh in Simulator Mode
+        const dropdown = document.getElementById("admin-event-filter");
+        if (dropdown) loadAttendeeList(dropdown.value);
       }
     };
 
