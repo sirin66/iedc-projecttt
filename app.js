@@ -1102,14 +1102,31 @@ function renderDashboard() {
       card.className = "ticket-wallet-card";
       card.style.setProperty("--ticket-color", reg.color);
       
+      const isPending = reg.status === "Pending";
       const isChecked = reg.checkedIn === true;
-      const statusBadgeClass = isChecked ? "badge-approved" : "badge-pending";
-      const statusText = isChecked ? "Checked In" : "Active Pass";
+      
+      let badgeStyle = "background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.25); color: #22c55e; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
+      let statusText = "✅ Confirmed";
+      if (isPending) {
+        badgeStyle = "background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.25); color: #eab308; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
+        statusText = "⏳ Processing Payment...";
+      } else if (isChecked) {
+        badgeStyle = "background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #3b82f6; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
+        statusText = "Checked In";
+      }
+
+      const qrSection = isPending 
+        ? `<div style="font-size:9px; color:#eab308; font-weight:700; max-width:80px; text-align:center; line-height:1.3;">Pending Verification</div>`
+        : `<canvas id="qr-canvas-${reg.ticketId}"></canvas>`;
+
+      const footerAction = isPending 
+        ? `<span style="color:var(--muted-white); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Pending Verification</span>`
+        : `<span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>`;
 
       card.innerHTML = `
         <div class="ticket-wallet-header">
           <span class="chip chip-${reg.type}" style="font-size:10px !important;">${reg.typeLabel}</span>
-          <span class="badge-status ${statusBadgeClass}">${statusText}</span>
+          <span style="${badgeStyle}">${statusText}</span>
         </div>
         <div class="ticket-wallet-body">
           <div class="ticket-wallet-info">
@@ -1117,20 +1134,22 @@ function renderDashboard() {
             <span style="font-size:12px; color:var(--muted-white);">${reg.date} • ${reg.time}</span>
             <span style="font-size:11px; color:var(--soft-purple); font-weight:700;">📍 ${reg.location}</span>
           </div>
-          <div class="ticket-wallet-qr">
-            <canvas id="qr-canvas-${reg.ticketId}"></canvas>
+          <div class="ticket-wallet-qr" style="${isPending ? 'background:transparent; border:1.5px dashed rgba(234,179,8,0.3); padding:4px; display:flex; align-items:center; justify-content:center; border-radius:8px;' : ''}">
+            ${qrSection}
           </div>
         </div>
         <div class="ticket-wallet-perf"></div>
         <div class="ticket-wallet-footer">
           <span style="font-family:monospace; color:var(--muted-white); font-size: 11px;">ID: ${reg.ticketId}</span>
-          <span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>
+          ${footerAction}
         </div>
       `;
       listContainer.appendChild(card);
       
-      // Draw live canvas QR code inside card
-      drawTicketQRCode(`qr-canvas-${reg.ticketId}`, reg.ticketId, reg.color);
+      // Draw live canvas QR code inside card ONLY if confirmed
+      if (!isPending) {
+        drawTicketQRCode(`qr-canvas-${reg.ticketId}`, reg.ticketId, reg.color);
+      }
     });
   }
 
@@ -1883,6 +1902,113 @@ async function handleSignOut() {
 
 document.getElementById("btn-logout").addEventListener("click", handleSignOut);
 document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
+
+// Webhook wait screen Back/Dashboard action binder
+const waitBackBtn = document.getElementById("btn-waiting-back");
+if (waitBackBtn) {
+  waitBackBtn.onclick = () => {
+    const waitOverlay = document.getElementById("waiting-verification-overlay");
+    if (waitOverlay) waitOverlay.style.display = "none";
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+    navigateTo("dashboard");
+    switchDashboardTab("events");
+  };
+}
+
+/**
+ * Standalone batch cleanup utility to remove duplicate or orphaned registrations.
+ * Can be executed directly from the browser developer console (F12) by an administrator.
+ */
+window.cleanupOrphanedTickets = async function() {
+  if (!useRealFirebase) {
+    console.warn("Cleanup is only available in live Firestore mode.");
+    return "Failed: Not in Firestore mode.";
+  }
+
+  try {
+    const db = firebase.firestore();
+    console.log("Starting batch cleanup of duplicate/orphaned registrations...");
+    
+    // 1. Fetch all registrations
+    const regsSnap = await db.collection("registrations").get();
+    const allRegs = [];
+    regsSnap.forEach(doc => {
+      allRegs.push({ id: doc.id, ref: doc.ref, ...doc.data() });
+    });
+
+    console.log(`Retrieved ${allRegs.length} total registration records.`);
+
+    // 2. Identify duplicates (same studentUid and eventId)
+    const grouped = {};
+    allRegs.forEach(reg => {
+      const key = `${reg.studentUid}_${reg.eventId}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(reg);
+    });
+
+    const toDelete = [];
+    let keptConfirmed = 0;
+    let deletedDuplicates = 0;
+
+    Object.keys(grouped).forEach(key => {
+      const group = grouped[key];
+      if (group.length > 1) {
+        console.log(`Duplicate registrations found for student_event ${key} (${group.length} docs)`);
+        
+        // Sort group: Confirmed first, then oldest first
+        group.sort((a, b) => {
+          if (a.status === "Confirmed" && b.status !== "Confirmed") return -1;
+          if (a.status !== "Confirmed" && b.status === "Confirmed") return 1;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
+        // Keep the first one (confirmed, or oldest)
+        const primary = group[0];
+        console.log(`Keeping primary registration: ${primary.id} (status: ${primary.status})`);
+        if (primary.status === "Confirmed") keptConfirmed++;
+
+        // Delete the rest
+        for (let i = 1; i < group.length; i++) {
+          const duplicate = group[i];
+          toDelete.push(duplicate.ref.delete());
+          deletedDuplicates++;
+          console.log(`Marking duplicate for deletion: ${duplicate.id} (status: ${duplicate.status})`);
+        }
+      }
+    });
+
+    // 3. Delete orphaned registrations (where student doc does not exist)
+    let deletedOrphans = 0;
+    for (const reg of allRegs) {
+      if (reg.studentUid) {
+        const studentDoc = await db.collection("students").doc(reg.studentUid).get();
+        if (!studentDoc.exists) {
+          console.log(`Orphaned registration found (student account ${reg.studentUid} does not exist): ${reg.id}`);
+          toDelete.push(reg.ref.delete());
+          deletedOrphans++;
+        }
+      }
+    }
+
+    // Resolve delete operations
+    await Promise.all(toDelete);
+    
+    const summary = `Cleanup Completed Successfully!
+----------------------------------
+Duplicates Deleted: ${deletedDuplicates}
+Orphans Deleted: ${deletedOrphans}
+Total Cleaned: ${deletedDuplicates + deletedOrphans} records.`;
+    
+    console.log(summary);
+    return summary;
+
+  } catch (err) {
+    console.error("Batch cleanup failed:", err);
+    return `Error running cleanup: ${err.message}`;
+  }
+};
 
 // Dashboard tabs navigation
 function switchDashboardTab(tabId) {
