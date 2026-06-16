@@ -1241,6 +1241,9 @@
               <button class="admin-table-btn" onclick="toggleCheckInManually('${reg.id || reg.registrationId}', ${isCheckedIn})" style="background: rgba(255,255,255,0.05); color: white;">
                 ${isCheckedIn ? 'Undo Check-In' : 'Check In'}
               </button>
+              <button class="admin-table-btn admin-table-btn-reject" onclick="deleteRegistrationManually('${reg.id || reg.registrationId}')" style="background: rgba(232, 74, 74, 0.15); border: 1px solid var(--error); color: var(--error);">
+                🗑️ Delete
+              </button>
             </div>
           </td>
         `;
@@ -1265,6 +1268,29 @@
         } catch (e) {
           console.error("Manual checkin update failed:", e);
         }
+      }
+    };
+
+    window.deleteRegistrationManually = async function(regId) {
+      if (!confirm("Are you sure you want to delete this registration permanently?")) return;
+
+      // Update local storage simulator
+      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      mockRegs = mockRegs.filter(r => r.registrationId !== regId && r.id !== regId);
+      localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+
+      if (useRealFirebase) {
+        try {
+          await db.collection("registrations").doc(regId).delete();
+          console.log(`Successfully deleted registration doc ${regId} from Firestore.`);
+        } catch (e) {
+          console.error("Firestore delete registration failed:", e);
+          alert("Error deleting registration: " + e.message);
+        }
+      } else {
+        // Trigger real-time UI refresh in Simulator Mode
+        const dropdown = document.getElementById("admin-event-filter");
+        if (dropdown) loadAttendeeList(dropdown.value);
       }
     };
 
