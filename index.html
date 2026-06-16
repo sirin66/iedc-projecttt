@@ -1072,11 +1072,11 @@
         }
       </style>
 
-      <h3 style="font-size: 18px; font-weight: 800; color: white; margin-bottom: 2px;">Waiting for Admin Verification</h3>
+      <h3 style="font-size: 16px; font-weight: 800; color: white; margin-bottom: 2px; line-height: 1.3;">Waiting for secure bank SMS confirmation...</h3>
       <div id="waiting-amount-label" style="font-size: 15px; font-weight: 700; color: var(--nova-yellow); margin-bottom: 8px;">Amount Due: ₹0</div>
 
-      <p style="font-size: 12px; color: var(--muted-white); line-height: 1.5; margin-bottom: 12px; max-width: 320px;">
-        Please complete the UPI payment. Once verified on our bank credit records, your registration status will change and your ticket QR code will generate automatically.
+      <p style="font-size: 11px; color: var(--muted-white); line-height: 1.5; margin-bottom: 12px; max-width: 320px;">
+        Please do not close or refresh this page. Once your UPI transfer is verified, our system will immediately authorize your registration and issue your pass.
       </p>
 
       <!-- Desktop View: QR Code inside overlay -->
@@ -1094,19 +1094,14 @@
         </a>
       </div>
 
-      <div style="font-size: 10px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+      <div style="font-size: 9px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
         Polling Database Stream...
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px;">
-        <!-- Simulator Trigger Button (for test validation without real admin console) -->
-        <button type="button" id="btn-simulate-approval" class="btn" style="display: none; background: var(--success); color: #080810; width: 100%; font-weight: 800; padding: 10px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 11px; border: none; letter-spacing: 0.5px;">
-          🔧 Simulate Admin Approval
-        </button>
-
-        <!-- Cancel Verification Button -->
-        <button type="button" id="btn-cancel-polling" class="btn" style="background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted-white); width: 100%; font-weight: 700; padding: 10px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 11px;">
-          Cancel Verification
+        <!-- Simulator SMS Confirmation Trigger Button -->
+        <button type="button" id="btn-simulate-approval" class="btn" style="display: none; background: var(--success); color: #080810; width: 100%; font-weight: 800; padding: 12px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 11px; border: none; letter-spacing: 0.5px;">
+          🔧 Simulate SMS Confirmation
         </button>
       </div>
 
