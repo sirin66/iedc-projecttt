@@ -16,7 +16,6 @@
   --glass-shadow-hover: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 255, 255, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 
   --accent-color: #ffffff;
-  --accent-glow: rgba(255, 255, 255, 0.15);
   
   --success-color: #4ae88a;
   --warning-color: #eab308;
@@ -27,7 +26,6 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 32px;
-  --space-xxl: 48px;
 }
 
 /* Base resets */
@@ -47,7 +45,7 @@ body {
   position: relative;
 }
 
-/* Gradient floating background glow widgets */
+/* Gradient background glows */
 .bg-glow-container {
   position: fixed;
   top: 0;
@@ -79,7 +77,7 @@ body {
   filter: blur(100px);
 }
 
-/* Glassmorphic Container Core */
+/* Glassmorphic Container */
 .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -111,7 +109,7 @@ body {
   text-align: center;
 }
 
-/* Typography styles */
+/* Typography */
 .brand-title {
   font-family: var(--font-display);
   font-weight: 900;
@@ -152,7 +150,7 @@ body {
   line-height: 1.5;
 }
 
-/* High Fidelity Forms, Inputs, Buttons styling */
+/* Inputs & Buttons */
 .form-group {
   margin-bottom: var(--space-md);
   text-align: left;
@@ -187,7 +185,6 @@ body {
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.08);
 }
 
-/* Perfectly rounded flat monochrome buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -214,10 +211,6 @@ body {
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 30px rgba(255, 255, 255, 0.3);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
 }
 
 .btn-glass {
@@ -282,7 +275,7 @@ body {
   }
 }
 
-/* Interactive Boot Camp card widgets */
+/* Workshop event card */
 .camp-card {
   padding: var(--space-lg);
   display: flex;
@@ -317,41 +310,7 @@ body {
   color: var(--white-pure);
 }
 
-/* Dynamic Scrolling News Ticker */
-.ticker-wrap {
-  width: 100%;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 12px 0;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  position: relative;
-  z-index: 10;
-}
-
-.ticker {
-  display: flex;
-  white-space: nowrap;
-  animation: marquee 25s linear infinite;
-}
-
-.ticker-item {
-  display: inline-block;
-  padding: 0 4rem;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--white-pure);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-@keyframes marquee {
-  0% { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(-50%, 0, 0); }
-}
-
-/* Horizontal Ticket Glass Modal popup rendering styles */
+/* Horizontal Ticket Pass */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -475,35 +434,7 @@ body {
   transform: rotate(90deg);
 }
 
-/* Announcements feed list */
-.announcements-feed-container {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: var(--space-xs);
-}
-
-.announcements-feed-container::-webkit-scrollbar {
-  width: 6px;
-}
-.announcements-feed-container::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-}
-
-.announcement-item {
-  padding: var(--space-md);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.015);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-/* Admin panel layouts and Table grid styling */
+/* Admin Panel Table grid styling */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -556,7 +487,7 @@ body {
   border: 1px solid rgba(234, 179, 8, 0.2);
 }
 
-/* Toast user alerts */
+/* Toast Alerts */
 .toast-msg {
   position: fixed;
   bottom: 24px;

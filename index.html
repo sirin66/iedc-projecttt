@@ -13,14 +13,42 @@
     <div class="bg-glow-sphere-2"></div>
   </div>
 
-  <!-- Dynamic Scrolling News Ticker -->
-  <div class="ticker-wrap">
-    <div class="ticker" id="news-ticker-container">
-      <span class="ticker-item">Loading active news bulletins...</span>
+  <!-- SECTION 1: AUTHENTICATION LOGIN INTERFACE -->
+  <div id="login-section" class="viewport-centered">
+    <div class="glass-panel login-card">
+      <div style="margin-bottom: var(--space-lg);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: var(--space-sm); color: var(--white-pure);">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <h1 class="brand-title">Console Gate</h1>
+        <p class="brand-subtitle">Student Authentication</p>
+      </div>
+
+      <form id="login-form" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label class="input-label" for="student-email">Student Email</label>
+          <input type="email" id="student-email" class="input-field" placeholder="username@rit.ac.in" required autocomplete="username">
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-xl);">
+          <label class="input-label" for="student-password">Security Password</label>
+          <input type="password" id="student-password" class="input-field" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" id="login-btn" class="btn btn-primary">
+          Verify & Enter
+        </button>
+      </form>
+
+      <div style="margin-top: var(--space-lg);">
+        <p class="body-sub">Access requires a verified campus student record. Contact IEDC support for administrative credential mapping.</p>
+      </div>
     </div>
   </div>
 
-  <div class="dashboard-layout">
+  <!-- SECTION 2: STUDENT PORTAL & WORKSPACE WORKFLOW -->
+  <div id="portal-section" class="dashboard-layout" style="display: none;">
     <!-- Header banner -->
     <header class="dashboard-header">
       <div>
@@ -71,7 +99,7 @@
         </div>
       </section>
 
-      <!-- Right side: Student Profile, Wallet & Announcements -->
+      <!-- Right side: Student Profile & Wallet -->
       <aside style="display: flex; flex-direction: column; gap: var(--space-lg);">
         <h2 class="section-title">My Profile</h2>
         <div class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
@@ -90,15 +118,8 @@
         </div>
 
         <h2 class="section-title">Ticket Wallet</h2>
-        <div id="wallet-container" class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); min-height: 100px; justify-content: center; text-align: center;">
+        <div id="wallet-container" class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); min-height: 120px; justify-content: center; text-align: center;">
           <p class="body-sub" id="wallet-empty-message">No active ticket passes stored in wallet.</p>
-        </div>
-
-        <h2 class="section-title">Recent Announcements</h2>
-        <div id="announcements-list-container" class="announcements-feed-container">
-          <div class="glass-panel" style="padding: var(--space-lg); text-align: center;">
-            <p class="body-sub">No recent administrative announcements posted.</p>
-          </div>
         </div>
       </aside>
     </main>

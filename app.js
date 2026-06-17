@@ -1,8 +1,8 @@
 // ==========================================================
-// RITU 2026 — FULL-STACK ENGINE & ACCESS GATE
+// RITU 2026 — SECURE FULL-STACK ENGINE & EXPLOIT PATCHES
 // ==========================================================
 
-// Firebase configuration block
+// Firebase configuration parameters
 const firebaseConfig = {
   apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
   authDomain: "iedc-ux.firebaseapp.com",
@@ -21,7 +21,7 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Toast alert notification utility helper
+// Toast user alert notification panel utility
 function showToast(message, color = "var(--white-pure)") {
   const toast = document.getElementById("app-toast");
   const text = document.getElementById("toast-text");
@@ -37,39 +37,43 @@ function showToast(message, color = "var(--white-pure)") {
   }
 }
 
-// Helper: Formats ticker items scrolling text
-function updateNewsTickerText(text) {
-  const container = document.getElementById('news-ticker-container');
-  if (container) {
-    container.innerHTML = `
-      <span class="ticker-item">${text}</span>
-      <span class="ticker-item">${text}</span>
-      <span class="ticker-item">${text}</span>
-      <span class="ticker-item">${text}</span>
-    `;
-  }
-}
-
 // ==========================================================
-// 1. ROUTING & ACCESS GUARD & CONTENT STREAM LISTENER
+// 1. STATE-DRIVEN REDIRECTION GATEWAY & ROUTING SECURITY
 // ==========================================================
-const isIndexPage = window.location.pathname.endsWith("index.html") || window.location.pathname === "/";
-const isLoginPage = window.location.pathname.endsWith("login.html");
+const isIndexPage = window.location.pathname.endsWith("index.html") || window.location.pathname === "/" || window.location.pathname.endsWith("/");
 const isAdminPage = window.location.pathname.endsWith("admin.html");
 
-if (isIndexPage) {
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      // Direct unauthenticated users to the Login Portal
-      window.location.href = "login.html";
+// Monitor Auth state changes globally
+auth.onAuthStateChanged(async (user) => {
+  if (isIndexPage) {
+    const loginSection = document.getElementById("login-section");
+    const portalSection = document.getElementById("portal-section");
+
+    if (user) {
+      // User is authenticated -> show Student Workspace, hide Login Card
+      if (loginSection) loginSection.style.display = "none";
+      if (portalSection) portalSection.style.display = "block";
+      
+      // Load student data
+      loadStudentPortalData(user);
     } else {
-      loadMainPortal(user);
+      // User is unauthenticated -> show Login Card, hide Student Workspace
+      if (portalSection) portalSection.style.display = "none";
+      if (loginSection) loginSection.style.display = "flex";
+      
+      // Setup login button click listener
+      bindLoginListener();
     }
-  });
-} else if (isLoginPage) {
-  // Bind Login Trigger
+  } else if (isAdminPage) {
+    loadAdminConsoleData();
+  }
+});
+
+// BIND: Login verification trigger handler
+function bindLoginListener() {
   const loginBtn = document.getElementById('login-btn');
-  if (loginBtn) {
+  if (loginBtn && !loginBtn.getAttribute('data-listener-bound')) {
+    loginBtn.setAttribute('data-listener-bound', 'true');
     loginBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       const email = document.getElementById('student-email').value.trim();
@@ -84,12 +88,12 @@ if (isIndexPage) {
         loginBtn.disabled = true;
         loginBtn.textContent = "Authenticating...";
 
-        // Execute credential verification
+        // Verify credentials with Auth API
         await auth.signInWithEmailAndPassword(email, password);
 
         showToast("Success! Entering Hub...", "var(--success-color)");
         setTimeout(() => {
-          window.location.href = "index.html";
+          window.location.href = "index.html"; // Explicit redirection back to index.html
         }, 1000);
 
       } catch (error) {
@@ -107,17 +111,12 @@ if (isIndexPage) {
       }
     });
   }
-} else if (isAdminPage) {
-  auth.onAuthStateChanged((user) => {
-    loadAdminConsole();
-  });
 }
 
 // ==========================================================
-// 2. MAIN WEBSITE / PORTAL WORKSPACE LOADERS
+// 2. STUDENT PORTAL DATA LOADERS
 // ==========================================================
-async function loadMainPortal(user) {
-  // Populate student displays
+async function loadStudentPortalData(user) {
   const emailDisplay = document.getElementById('profile-email-display');
   if (emailDisplay) emailDisplay.textContent = user.email;
 
@@ -132,7 +131,7 @@ async function loadMainPortal(user) {
       statusBadge.textContent = p.approved === true ? "Approved" : "Pending Approval";
       statusBadge.className = p.approved === true ? "badge-status-pill badge-approved" : "badge-status-pill badge-pending";
     } else {
-      // Create fallback record
+      // Seeding fallback student record on first login
       const nameFromEmail = user.email.split('@')[0].toUpperCase();
       const fallbackProfile = {
         uid: user.uid,
@@ -152,47 +151,10 @@ async function loadMainPortal(user) {
       statusBadge.className = "badge-status-pill badge-pending";
     }
   } catch (err) {
-    console.error("Profile load failed:", err);
+    console.error("Student profile loading failed:", err);
   }
 
-  // Real-time dynamic news ticker listener
-  db.collection("news").doc("ticker").onSnapshot((doc) => {
-    const text = doc.exists ? doc.data().text : "Welcome to RITU 2026 Event Platform & Premium Support Hub!";
-    updateNewsTickerText(text);
-  }, (error) => {
-    console.error("News ticker snapshot error:", error);
-    updateNewsTickerText("RITU 2026 event platform is active.");
-  });
-
-  // Real-time dynamic announcements feed listener
-  db.collection("announcements").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-    const container = document.getElementById("announcements-list-container");
-    if (!container) return;
-
-    container.innerHTML = "";
-    if (snapshot.empty) {
-      container.innerHTML = `
-        <div class="glass-panel" style="padding: var(--space-lg); text-align: center;">
-          <p class="body-sub">No recent administrative announcements posted.</p>
-        </div>`;
-      return;
-    }
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const div = document.createElement("div");
-      div.className = "announcement-item";
-      div.innerHTML = `
-        <p class="body-lead" style="font-weight: 600;">${data.text || ""}</p>
-        <span style="font-size: 10px; color: var(--white-muted);">${data.date || ""}</span>
-      `;
-      container.appendChild(div);
-    });
-  }, (error) => {
-    console.error("Announcements snapshot error:", error);
-  });
-
-  // Real-time ticket wallet sync
+  // Real-time Ticket Wallet snapshot sync
   db.collection("registrations")
     .where("studentUid", "==", user.uid)
     .onSnapshot((snapshot) => {
@@ -228,6 +190,8 @@ async function loadMainPortal(user) {
         `;
         container.appendChild(card);
       });
+    }, (error) => {
+      console.error("Wallet stream error:", error);
     });
 }
 
@@ -240,9 +204,9 @@ if (registerCampBtn) {
 
     try {
       registerCampBtn.disabled = true;
-      registerCampBtn.textContent = "Requesting Registration...";
+      registerCampBtn.textContent = "Processing...";
 
-      // Check if duplicate exists
+      // Check if already registered
       const existingQuery = await db.collection("registrations")
         .where("studentUid", "==", user.uid)
         .where("eventId", "==", "gen-ai-bootcamp-01")
@@ -267,7 +231,7 @@ if (registerCampBtn) {
         phone: "+91 98765 43210",
         checkedIn: false,
         status: "Pending",
-        payment_status: "Pending", // Starts in pending lock
+        payment_status: "Pending", // Gated pending state
         amount: 150,
         createdAt: new Date().toISOString(),
         studentUid: user.uid,
@@ -278,7 +242,7 @@ if (registerCampBtn) {
       showToast("Registration requested! Pending payment approval.", "var(--success-color)");
 
     } catch (err) {
-      console.error("Registration fail:", err);
+      console.error("Registration query failed:", err);
       showToast("Registration failed: " + err.message, "var(--error-color)");
     } finally {
       registerCampBtn.disabled = false;
@@ -288,14 +252,14 @@ if (registerCampBtn) {
 }
 
 // ==========================================================
-// 3. SECURE TICKET VISIBILITY LOCK GATING
+// 3. SECURE VISIBILITY LOCK GATING: VIEW TICKET PASS
 // ==========================================================
 const viewTicketBtn = document.getElementById('view-ticket-btn');
 if (viewTicketBtn) {
   viewTicketBtn.addEventListener('click', async () => {
     const user = auth.currentUser;
     if (!user) {
-      showToast("Session expired. Please re-login.", "var(--error-color)");
+      showToast("Session expired. Please log in.", "var(--error-color)");
       return;
     }
 
@@ -303,6 +267,7 @@ if (viewTicketBtn) {
       viewTicketBtn.disabled = true;
       viewTicketBtn.textContent = "Verifying Registration...";
 
+      // Query student's registrations
       const snap = await db.collection("registrations")
         .where("studentUid", "==", user.uid)
         .where("eventId", "==", "gen-ai-bootcamp-01")
@@ -320,13 +285,13 @@ if (viewTicketBtn) {
         regId = doc.id;
       });
 
-      // STRICT GATE CHECK: Verify payment status is strictly equal to Success
+      // SECURE CONDITIONAL TICKET GATING: check if payment status strictly Success
       if (regData && regData.payment_status === "Success") {
         const modal = document.getElementById('ticket-modal');
         document.getElementById('ticket-attendee-name').textContent = regData.studentName.toUpperCase();
         document.getElementById('ticket-id').textContent = regId;
 
-        // Render dynamic pass QR code
+        // Render pass QR code on canvas
         const canvas = document.getElementById('ticket-qr-canvas');
         if (canvas) {
           new QRious({
@@ -340,16 +305,16 @@ if (viewTicketBtn) {
         }
 
         modal.classList.add('active');
-        showToast("Pass verified & unlocked!", "var(--success-color)");
+        showToast("Ticket Pass Unlocked!", "var(--success-color)");
 
       } else {
-        // LOCK TICKET PASS: strictly block and alert
+        // STRICT BLOCK ACCESS: Alert student
         alert("Payment Pending!");
-        showToast("Block: Payment Pending.", "var(--error-color)");
+        showToast("Gating Lock: Payment Pending.", "var(--error-color)");
       }
 
     } catch (err) {
-      console.error("Gating check fail:", err);
+      console.error("Gating check failed:", err);
       showToast("Verification failed: " + err.message, "var(--error-color)");
     } finally {
       viewTicketBtn.disabled = false;
@@ -358,7 +323,7 @@ if (viewTicketBtn) {
   });
 }
 
-// Modal closing trigger listener
+// Modal close action
 const modalClose = document.getElementById('modal-close');
 if (modalClose) {
   modalClose.addEventListener('click', () => {
@@ -367,13 +332,13 @@ if (modalClose) {
 }
 
 // ==========================================================
-// 4. ADMIN OPERATIONAL CONTROL CENTER
+// 4. ADMIN OPERATIONAL CONTROL PANEL
 // ==========================================================
-function loadAdminConsole() {
+function loadAdminConsoleData() {
   const tbody = document.getElementById('admin-registrations-tbody');
   if (!tbody) return;
 
-  // Real-time approvals ledger stream
+  // Real-time approvals snapshot listener
   db.collection("registrations").onSnapshot((snapshot) => {
     tbody.innerHTML = "";
     
@@ -382,7 +347,7 @@ function loadAdminConsole() {
     let pending = 0;
 
     if (snapshot.empty) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--white-muted);">No student registrations found in database ledger.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--white-muted);">No student registrations found in database ledger.</td></tr>`;
       updateAdminStats(0, 0, 0);
       return;
     }
@@ -403,6 +368,10 @@ function loadAdminConsole() {
         <td>
           <div style="font-weight: 700; color: var(--white-pure);">${reg.studentName || "N/A"}</div>
           <div style="font-size: 11px; color: var(--white-muted); font-family: monospace;">ID: ${reg.registerNo || "N/A"}</div>
+        </td>
+        <td>
+          <div>${reg.studentEmail || "N/A"}</div>
+          <div style="font-size: 11px; color: var(--white-muted);">${reg.phone || "N/A"}</div>
         </td>
         <td>
           <div style="font-weight: 600;">${reg.eventTitle || "Workshop"}</div>
@@ -437,105 +406,10 @@ function loadAdminConsole() {
     updateAdminStats(total, success, pending);
 
   }, (error) => {
-    console.error("Admin registration listener failed:", error);
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--error-color);">Firestore connection error. Permission denied.</td></tr>`;
+    console.error("Admin snapshot listen fail:", error);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--error-color);">Database connection error. Permission denied.</td></tr>`;
   });
-
-  // News ticker text control setup
-  db.collection("news").doc("ticker").get().then((doc) => {
-    if (doc.exists) {
-      document.getElementById('news-ticker-input').value = doc.data().text || "";
-    }
-  });
-
-  const updateNewsBtn = document.getElementById('update-news-btn');
-  if (updateNewsBtn) {
-    updateNewsBtn.onclick = async () => {
-      const tickerText = document.getElementById('news-ticker-input').value.trim();
-      if (!tickerText) return;
-      try {
-        updateNewsBtn.disabled = true;
-        updateNewsBtn.textContent = "Updating...";
-        await db.collection("news").doc("ticker").set({ text: tickerText });
-        showToast("News ticker content updated!", "var(--success-color)");
-      } catch (err) {
-        console.error("Ticker save failed:", err);
-        showToast("Ticker update failed: " + err.message, "var(--error-color)");
-      } finally {
-        updateNewsBtn.disabled = false;
-        updateNewsBtn.textContent = "Overwrite Ticker Text";
-      }
-    };
-  }
-
-  // Announcements manager setup
-  db.collection("announcements").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-    const list = document.getElementById('admin-announcements-list');
-    if (!list) return;
-
-    list.innerHTML = "";
-    if (snapshot.empty) {
-      list.innerHTML = `<div style="text-align: center; color: var(--white-muted); padding: var(--space-md);">No active announcements found.</div>`;
-      return;
-    }
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const item = document.createElement("div");
-      item.className = "announcement-item";
-      item.style.position = "relative";
-      item.innerHTML = `
-        <p class="body-lead" style="font-weight: 600; padding-right: 70px;">${data.text || ""}</p>
-        <span style="font-size: 10px; color: var(--white-muted);">${data.date || ""}</span>
-        <button class="btn" style="position: absolute; right: 10px; top: 10px; width: auto; padding: 6px 12px; font-size: 9px; background: var(--error-color); color: white;" onclick="deleteAnnouncement('${doc.id}')">Delete</button>
-      `;
-      list.appendChild(item);
-    });
-  });
-
-  const postAnnouncementBtn = document.getElementById('post-announcement-btn');
-  if (postAnnouncementBtn) {
-    postAnnouncementBtn.onclick = async () => {
-      const textInput = document.getElementById('announcement-input');
-      const text = textInput.value.trim();
-      if (!text) return;
-      
-      try {
-        postAnnouncementBtn.disabled = true;
-        postAnnouncementBtn.textContent = "Posting...";
-        
-        await db.collection("announcements").add({
-          text: text,
-          date: new Date().toLocaleDateString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }),
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        textInput.value = "";
-        showToast("Announcement published live!", "var(--success-color)");
-
-      } catch (err) {
-        console.error("Announcement post failed:", err);
-        showToast("Post failed: " + err.message, "var(--error-color)");
-      } finally {
-        postAnnouncementBtn.disabled = false;
-        postAnnouncementBtn.textContent = "Post Custom Announcement";
-      }
-    };
-  }
 }
-
-// Global window handle for deleting announcements
-async function deleteAnnouncement(announcementId) {
-  if (!confirm("Are you sure you want to delete this announcement?")) return;
-  try {
-    await db.collection("announcements").doc(announcementId).delete();
-    showToast("Announcement deleted successfully!", "var(--success-color)");
-  } catch (err) {
-    console.error("Announcement delete failed:", err);
-    showToast("Delete failed: " + err.message, "var(--error-color)");
-  }
-}
-window.deleteAnnouncement = deleteAnnouncement;
 
 function updateAdminStats(total, success, pending) {
   const totalEl = document.getElementById('admin-stat-total');
@@ -547,7 +421,7 @@ function updateAdminStats(total, success, pending) {
   if (pendingEl) pendingEl.textContent = pending;
 }
 
-// Student verification approval transaction workflow
+// Global approval mutation function
 async function approveStudent(regId) {
   try {
     showToast("Processing approval mutation...", "var(--white-pure)");
@@ -561,24 +435,24 @@ async function approveStudent(regId) {
 
     const regData = docSnap.data();
 
-    // 1. Confirm payment and registration status
+    // 1. Update registration status in Firestore live
     await docRef.update({
       status: "Confirmed",
       payment_status: "Success",
       verifiedAt: new Date().toISOString()
     });
 
-    // 2. Approve student record
+    // 2. Update student account profile in Firestore live
     if (regData.studentUid) {
       await db.collection("students").doc(regData.studentUid).update({
         approved: true
       });
     }
 
-    showToast("Student approval confirmed!", "var(--success-color)");
+    showToast("Student verified and approved!", "var(--success-color)");
 
   } catch (err) {
-    console.error("Approval workflow failed:", err);
+    console.error("Approval transaction failed:", err);
     showToast("Approval failed: " + err.message, "var(--error-color)");
   }
 }
@@ -591,7 +465,7 @@ const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
   logoutBtn.addEventListener('click', async () => {
     await auth.signOut();
-    window.location.href = "login.html";
+    window.location.href = "index.html"; // Triggers auth state redirect back to login state
   });
 }
 
@@ -599,6 +473,6 @@ const adminLogoutBtn = document.getElementById('admin-logout-btn');
 if (adminLogoutBtn) {
   adminLogoutBtn.addEventListener('click', async () => {
     await auth.signOut();
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   });
 }

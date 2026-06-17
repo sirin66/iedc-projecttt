@@ -13,12 +13,12 @@
     <div class="bg-glow-sphere-2"></div>
   </div>
 
-  <div class="dashboard-layout" style="max-width: 1200px;">
+  <div class="dashboard-layout" style="max-width: 1000px;">
     <!-- Header banner -->
     <header class="dashboard-header">
       <div>
         <h1 class="brand-title" style="font-size: 28px;">Admin Console</h1>
-        <p class="body-sub" style="letter-spacing: 1px;">Platform Management & Content Control</p>
+        <p class="body-sub" style="letter-spacing: 1px;">Student Registration Approvals</p>
       </div>
       <div style="display: flex; align-items: center; gap: var(--space-md);">
         <button id="admin-logout-btn" class="btn btn-glass" style="width: auto; padding: 10px 20px; font-size: 11px;">
@@ -43,73 +43,29 @@
       </div>
     </section>
 
-    <!-- Workspace split grid -->
-    <div style="display: grid; grid-template-columns: 1.6fr 1.4fr; gap: var(--space-xl);">
-      <!-- Column 1: Approvals Table Queue -->
-      <section style="display: flex; flex-direction: column; gap: var(--space-lg);">
-        <h2 class="section-title">Section 1: Registrations Queue</h2>
-        <div class="glass-panel" style="padding: var(--space-lg); overflow-x: auto;">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Student Details</th>
-                <th>Event Details</th>
-                <th>Payment Ref</th>
-                <th>Status</th>
-                <th style="text-align: right;">Operations</th>
-              </tr>
-            </thead>
-            <tbody id="admin-registrations-tbody">
-              <tr>
-                <td colspan="5" style="text-align: center; color: var(--white-muted); padding: var(--space-xl);">
-                  Establishing secure database query stream...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Column 2: Content Managers -->
-      <aside style="display: flex; flex-direction: column; gap: var(--space-xl);">
-        <!-- Section 2: News Ticker Control -->
-        <div>
-          <h2 class="section-title">Section 2: News Ticker Control</h2>
-          <div class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="input-label" for="news-ticker-input">Scrolling News Ticker Text</label>
-              <textarea id="news-ticker-input" class="input-field" placeholder="Enter scrolling notification marquee text bulletins here..." rows="2" style="resize: none; border-radius: 16px; margin-bottom: var(--space-sm);"></textarea>
-              <button id="update-news-btn" class="btn btn-primary" style="padding: 12px var(--space-md);">
-                Overwrite Ticker Text
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 3: Announcements Manager -->
-        <div>
-          <h2 class="section-title">Section 3: Recent Announcements Manager</h2>
-          <div class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
-            <!-- Post new Announcement -->
-            <div class="form-group" style="margin-bottom: 0; border-bottom: 1px dashed rgba(255,255,255,0.08); padding-bottom: var(--space-md);">
-              <label class="input-label" for="announcement-input">Post Custom Announcement Feed</label>
-              <textarea id="announcement-input" class="input-field" placeholder="Type new announcement content details here..." rows="3" style="resize: none; border-radius: 16px; margin-bottom: var(--space-sm);"></textarea>
-              <button id="post-announcement-btn" class="btn btn-primary" style="padding: 12px var(--space-md);">
-                Post Custom Announcement
-              </button>
-            </div>
-            
-            <!-- List existing Announcements with Delete handles -->
-            <label class="input-label" style="padding-left: 0;">Active Feed Management</label>
-            <div id="admin-announcements-list" class="announcements-feed-container" style="max-height: 250px;">
-              <div style="text-align: center; color: var(--white-muted); padding: var(--space-md);">
-                No active announcements found.
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
+    <!-- Main Approvals Queue Table -->
+    <main class="glass-panel" style="padding: var(--space-lg); overflow-x: auto;">
+      <h2 class="section-title">Student Registrations Ledger</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Student Details</th>
+            <th>Contact Details</th>
+            <th>Event / Workshop</th>
+            <th>Reference Code</th>
+            <th>Payment Status</th>
+            <th style="text-align: right;">Operations</th>
+          </tr>
+        </thead>
+        <tbody id="admin-registrations-tbody">
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--white-muted); padding: var(--space-xl);">
+              Establishing secure connection stream to Firestore...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
   </div>
 
   <!-- Custom alert/toast popup container -->
