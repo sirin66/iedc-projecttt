@@ -2053,11 +2053,114 @@ function switchDashboardTab(tabId) {
   });
 }
 
-const NOTIFICATIONS_DATA = [
-  { id: "1", title: "Welcome to IEDC RIT Gateway!", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", time: "Just Now" },
-  { id: "2", title: "InnovateRIT Hackathon Registration Open", body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", time: "2 Hours Ago" },
-  { id: "3", title: "AI/ML Bootcamp Registration Fee", body: "Please make sure to complete payment for AI/ML Hands-on Bootcamp (₹150) to secure your seat.", time: "1 Day Ago" }
-];
+let NOTIFICATIONS_DATA = [];
+
+let announcementsUnsubscribe = null;
+let tickerUnsubscribe = null;
+
+function initRealTimeSync() {
+  if (announcementsUnsubscribe) announcementsUnsubscribe();
+  if (tickerUnsubscribe) tickerUnsubscribe();
+
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      
+      // 1. Ticker Real-Time Sync
+      tickerUnsubscribe = db.collection("config").doc("ticker").onSnapshot((doc) => {
+        if (doc.exists) {
+          updateTickerUI(doc.data().text);
+        } else {
+          updateTickerUI("");
+        }
+      }, (err) => {
+        console.error("Ticker real-time sync error:", err);
+      });
+
+      // 2. Announcements Real-Time Sync
+      announcementsUnsubscribe = db.collection("announcements").onSnapshot((snap) => {
+        let items = [];
+        snap.forEach(doc => {
+          const data = doc.data();
+          items.push({
+            id: doc.id,
+            title: data.title || "",
+            body: data.message || data.body || "",
+            time: data.time || formatTimeAgo(data.createdAt),
+            createdAt: data.createdAt,
+            timestamp: data.timestamp
+          });
+        });
+        items.sort((a, b) => {
+          const timeA = a.timestamp ? (a.timestamp.toDate ? a.timestamp.toDate() : new Date(a.timestamp)) : new Date(a.createdAt || 0);
+          const timeB = b.timestamp ? (b.timestamp.toDate ? b.timestamp.toDate() : new Date(b.timestamp)) : new Date(b.createdAt || 0);
+          return timeB - timeA;
+        });
+        NOTIFICATIONS_DATA = items;
+        renderNotifications();
+      }, (err) => {
+        console.error("Announcements real-time sync error:", err);
+      });
+    } catch (e) {
+      console.error("Error starting Firestore real-time listeners:", e);
+    }
+  } else {
+    // Simulator polling fallbacks
+    function pollSimulator() {
+      // Ticker
+      const tickerData = JSON.parse(localStorage.getItem("firebase_mock_config_ticker") || '{"text":""}');
+      updateTickerUI(tickerData.text);
+
+      // Announcements
+      const mockAnnouncements = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
+      let items = mockAnnouncements.map(a => ({
+        id: a.id,
+        title: a.title || "",
+        body: a.message || a.body || "",
+        time: a.time || formatTimeAgo(a.createdAt),
+        createdAt: a.createdAt
+      }));
+      items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      NOTIFICATIONS_DATA = items;
+      renderNotifications();
+    }
+    pollSimulator();
+    setInterval(pollSimulator, 2000);
+  }
+}
+
+function updateTickerUI(text) {
+  const container = document.querySelector(".ticker");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const rawText = text || "📢 Welcome to IEDC RIT Event Platform!";
+  const items = rawText.split("|");
+  items.forEach(item => {
+    const span = document.createElement("span");
+    span.className = "ticker-item";
+    span.textContent = item.trim();
+    container.appendChild(span);
+  });
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return "Just Now";
+  try {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const secs = Math.floor(diff / 1000);
+    const mins = Math.floor(secs / 60);
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
+
+    if (secs < 60) return "Just Now";
+    if (mins < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  } catch (e) {
+    return "Just Now";
+  }
+}
 
 function renderNotifications() {
   const container = document.getElementById("notifications-list-container");
@@ -2077,6 +2180,7 @@ function renderNotifications() {
 
 // Session Initializer Gating check
 async function initSession() {
+  initRealTimeSync();
   const cachedUid = sessionStorage.getItem("loggedInUserUid");
   if (cachedUid) {
     try {

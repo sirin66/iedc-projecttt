@@ -568,6 +568,9 @@
         <div class="admin-nav-item" id="nav-tab-tournaments" onclick="switchAdminWorkspaceTab('tournaments')">
           Tournament Studio
         </div>
+        <div class="admin-nav-item" id="nav-tab-announcements" onclick="switchAdminWorkspaceTab('announcements')">
+          Announcements & Ticker
+        </div>
         <div class="admin-nav-item" id="nav-tab-scanner" onclick="switchAdminWorkspaceTab('scanner')">
           Volunteer QR Scanner
         </div>
@@ -911,6 +914,54 @@
         </section>
       </div>
 
+      <!-- Announcements & Ticker Workspace View -->
+      <div id="workspace-announcements" style="display: none; width: 100%;">
+        <section class="admin-data-section" style="max-width: 760px; margin: 0 auto; margin-bottom: var(--space-xl);">
+          <div class="event-studio-container">
+            <h2>Live Marquee Ticker Setup</h2>
+            <p style="color: var(--muted-white); font-size: 12px; margin-bottom: var(--space-md);">
+              Update the text flowing at the absolute top of the user panel. Use the <code>|</code> character to separate multiple news ticker items.
+            </p>
+            <form id="admin-ticker-form" onsubmit="handleTickerUpdate(event)">
+              <div class="form-group">
+                <label for="admin-ticker-text">Scrolling Ticker Text</label>
+                <input type="text" id="admin-ticker-text" placeholder="Eg: Message 1 | Message 2 | Message 3" required style="background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 8px; color: white;">
+              </div>
+              <button type="submit" class="btn-submit" id="btn-ticker-submit">Update Ticker</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="admin-data-section" style="max-width: 760px; margin: 0 auto;">
+          <div class="event-studio-container">
+            <h2 id="announcement-form-title">Compose Announcement</h2>
+            <form id="announcement-form" onsubmit="handleAnnouncementSubmit(event)">
+              <input type="hidden" id="editAnnouncementId" value="">
+              
+              <div class="form-group">
+                <label for="announcement-title">Announcement Title</label>
+                <input type="text" id="announcement-title" placeholder="Eg: Hackathon Registration Open!" required style="background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 8px; color: white;">
+              </div>
+
+              <div class="form-group">
+                <label for="announcement-message">Announcement Message</label>
+                <textarea id="announcement-message" placeholder="Type the main message description here..." rows="4" required style="background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 8px; color: white; width: 100%; font-family: inherit; resize: vertical;"></textarea>
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="btn-cancel-announcement-edit" onclick="resetAnnouncementFormState()" style="display: none; flex: 1; padding: 14px; border: 1.5px solid rgba(255,255,255,0.1); background: transparent; color: white; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700; text-transform: uppercase;">Cancel</button>
+                <button type="submit" class="btn-submit" id="btn-announcement-submit" style="flex: 2;">Post Announcement</button>
+              </div>
+            </form>
+
+            <h3 style="margin-top: 40px; font-size: 16px;" class="section-eyebrow">Active Announcements</h3>
+            <div id="admin-announcements-list" style="display: flex; flex-direction: column; gap: var(--space-md); margin-top: 20px;">
+              <!-- Dynamic list of announcements with actions -->
+            </div>
+          </div>
+        </section>
+      </div>
+
     </main>
   </div>
 
@@ -960,6 +1011,7 @@
     let dynamicEventsRegistry = [];
     let dynamicTournamentsRegistry = [];
     let dynamicRegistrationsRegistry = [];
+    let dynamicAnnouncementsRegistry = [];
 
     // Open an active persistent real-time change-stream with Firestore collection endpoints
     function syncRegistrationWorkspace() {
@@ -1017,12 +1069,55 @@
           loadAttendeeList(activeFilter);
         });
 
+        // Real-Time announcements sync
+        db.collection('announcements').onSnapshot((snap) => {
+          dynamicAnnouncementsRegistry = [];
+          snap.forEach(doc => {
+            dynamicAnnouncementsRegistry.push({ id: doc.id, ...doc.data() });
+          });
+          dynamicAnnouncementsRegistry.sort((a, b) => {
+            const timeA = a.timestamp ? (a.timestamp.toDate ? a.timestamp.toDate() : new Date(a.timestamp)) : new Date(0);
+            const timeB = b.timestamp ? (b.timestamp.toDate ? b.timestamp.toDate() : new Date(b.timestamp)) : new Date(0);
+            return timeB - timeA;
+          });
+          renderActiveAnnouncementsList();
+        });
+
+        // Real-time marquee config ticker sync
+        db.collection('config').doc('ticker').onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            const input = document.getElementById("admin-ticker-text");
+            if (input && document.activeElement !== input) {
+              input.value = data.text || "";
+            }
+          }
+        });
+
       } else {
         syncSimulatorWorkspace();
       }
     }
 
     function syncSimulatorWorkspace() {
+      // Seed announcements database fallback if empty
+      let mockAnnouncements = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
+      if (mockAnnouncements.length === 0) {
+        mockAnnouncements = [
+          { id: "announcement-1", title: "Welcome to IEDC RIT Gateway!", message: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), time: "Just Now" },
+          { id: "announcement-2", title: "InnovateRIT Hackathon Registration Open", message: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), time: "2 Hours Ago" },
+          { id: "announcement-3", title: "AI/ML Bootcamp Registration Fee", message: "Please make sure to complete payment for AI/ML Bootcamp (₹150) to secure your seat.", body: "Please make sure to complete payment for AI/ML Bootcamp (₹150) to secure your seat.", createdAt: new Date(Date.now() - 3600000 * 24).toISOString(), time: "1 Day Ago" }
+        ];
+        localStorage.setItem("firebase_mock_announcements", JSON.stringify(mockAnnouncements));
+      }
+
+      // Seed configuration ticker fallback if empty
+      let mockTicker = JSON.parse(localStorage.getItem("firebase_mock_config_ticker") || "null");
+      if (!mockTicker) {
+        mockTicker = { text: "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!" };
+        localStorage.setItem("firebase_mock_config_ticker", JSON.stringify(mockTicker));
+      }
+
       function updateSimulatorData() {
         const mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         dynamicStudentsRegistry = [];
@@ -1058,10 +1153,20 @@
         dynamicEventsRegistry = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
         dynamicTournamentsRegistry = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
         dynamicRegistrationsRegistry = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        dynamicAnnouncementsRegistry = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
+
+        dynamicAnnouncementsRegistry.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         populateDropdowns();
         renderActiveEventsList();
         renderActiveTournamentsList();
+        renderActiveAnnouncementsList();
+
+        const tickerData = JSON.parse(localStorage.getItem("firebase_mock_config_ticker") || '{"text":""}');
+        const input = document.getElementById("admin-ticker-text");
+        if (input && document.activeElement !== input) {
+          input.value = tickerData.text || "";
+        }
 
         const activeFilter = document.getElementById("admin-event-filter").value;
         loadAttendeeList(activeFilter);
@@ -1429,7 +1534,7 @@
 
     // Switch Workspace Drawer Tabs
     window.switchAdminWorkspaceTab = function(tabId) {
-      const tabs = ["registrations", "events", "tournaments", "auditing", "scanner"];
+      const tabs = ["registrations", "events", "tournaments", "announcements", "auditing", "scanner"];
       tabs.forEach(t => {
         const tabEl = document.getElementById(`nav-tab-${t}`);
         const viewEl = document.getElementById(`workspace-${t}`);
@@ -1462,6 +1567,9 @@
       } else if (tabId === "tournaments") {
         if (breadcrumb) breadcrumb.textContent = "Console / Tournaments";
         if (title) title.textContent = "Tournament Studio";
+      } else if (tabId === "announcements") {
+        if (breadcrumb) breadcrumb.textContent = "Console / Announcements";
+        if (title) title.textContent = "Announcements Feed & Ticker";
       } else if (tabId === "scanner") {
         if (breadcrumb) breadcrumb.textContent = "Console / Scanner";
         if (title) title.textContent = "Volunteer Check-In Gate";
@@ -1958,6 +2066,165 @@
       }
     };
 
+
+    // --- ANNOUNCEMENTS & TICKER CRUD ENGINES ---
+    window.handleTickerUpdate = async function(event) {
+      event.preventDefault();
+      const submitBtn = document.getElementById("btn-ticker-submit");
+      const text = document.getElementById("admin-ticker-text").value.trim();
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Updating...";
+
+      const tickerData = { text };
+      localStorage.setItem("firebase_mock_config_ticker", JSON.stringify(tickerData));
+
+      if (useRealFirebase) {
+        try {
+          await db.collection("config").doc("ticker").set(tickerData);
+          alert("Ticker text updated successfully in Firestore!");
+        } catch (e) {
+          console.error("Firestore ticker update failed:", e);
+          alert("Error: " + e.message);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Update Ticker";
+        }
+      } else {
+        alert("Ticker text updated successfully (Simulator Mode)!");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Update Ticker";
+      }
+    };
+
+    window.handleAnnouncementSubmit = async function(event) {
+      event.preventDefault();
+      const submitBtn = document.getElementById("btn-announcement-submit");
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Processing...";
+
+      try {
+        const editId = document.getElementById("editAnnouncementId").value;
+        const title = document.getElementById("announcement-title").value.trim();
+        const message = document.getElementById("announcement-message").value.trim();
+
+        const slug = editId ? editId : ("announcement-" + Date.now());
+        const announcementData = {
+          id: slug,
+          title,
+          message,
+          body: message, // map body to message for user news feed compatibility
+          createdAt: new Date().toISOString(),
+          time: "Just Now",
+          timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+        };
+
+        // Save to simulator
+        let mockAnnouncements = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
+        if (editId) {
+          const idx = mockAnnouncements.findIndex(a => a.id === editId);
+          if (idx !== -1) {
+            announcementData.createdAt = mockAnnouncements[idx].createdAt;
+            mockAnnouncements[idx] = announcementData;
+          }
+        } else {
+          mockAnnouncements.push(announcementData);
+        }
+        localStorage.setItem("firebase_mock_announcements", JSON.stringify(mockAnnouncements));
+
+        if (useRealFirebase) {
+          await db.collection("announcements").doc(slug).set(announcementData);
+        }
+
+        alert(editId ? "Announcement updated successfully!" : "Announcement posted successfully!");
+        resetAnnouncementFormState();
+      } catch (error) {
+        console.error("Announcement save failed:", error);
+        alert("Error: " + error.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    };
+
+    window.editAnnouncementItem = function(id) {
+      const match = dynamicAnnouncementsRegistry.find(a => a.id === id);
+      if (!match) return;
+
+      document.getElementById("editAnnouncementId").value = match.id;
+      document.getElementById("announcement-title").value = match.title;
+      document.getElementById("announcement-message").value = match.message || match.body || "";
+
+      document.getElementById("announcement-form-title").innerHTML = `Update Announcement: <span style="color:var(--soft-purple);">${match.title}</span>`;
+      document.getElementById("btn-announcement-submit").textContent = "Update Announcement";
+      document.getElementById("btn-cancel-announcement-edit").style.display = "block";
+
+      document.getElementById("announcement-form").scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.resetAnnouncementFormState = function() {
+      document.getElementById("announcement-form").reset();
+      document.getElementById("editAnnouncementId").value = "";
+      document.getElementById("announcement-form-title").textContent = "Compose Announcement";
+      document.getElementById("btn-announcement-submit").textContent = "Post Announcement";
+      document.getElementById("btn-cancel-announcement-edit").style.display = "none";
+      if (!useRealFirebase) syncRegistrationWorkspace();
+    };
+
+    window.deleteAnnouncementItem = async function(id) {
+      if (!confirm("Are you sure you want to delete this announcement permanently?")) return;
+
+      let mockAnnouncements = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
+      mockAnnouncements = mockAnnouncements.filter(a => a.id !== id);
+      localStorage.setItem("firebase_mock_announcements", JSON.stringify(mockAnnouncements));
+
+      if (useRealFirebase) {
+        try {
+          await db.collection("announcements").doc(id).delete();
+        } catch (e) {
+          console.error("Firestore delete failed:", e);
+        }
+      } else {
+        syncRegistrationWorkspace();
+      }
+      alert("Announcement deleted successfully!");
+    };
+
+    function renderActiveAnnouncementsList() {
+      const container = document.getElementById("admin-announcements-list");
+      if (!container) return;
+
+      container.innerHTML = "";
+      if (dynamicAnnouncementsRegistry.length === 0) {
+        container.innerHTML = `<div style="color: var(--muted-white); font-size:12px;">No active announcements found.</div>`;
+        return;
+      }
+
+      dynamicAnnouncementsRegistry.forEach(a => {
+        const card = document.createElement("div");
+        card.className = "admin-item-card";
+        card.style.background = "rgba(255, 255, 255, 0.01)";
+        card.style.border = "1px solid rgba(255, 255, 255, 0.04)";
+        card.style.padding = "16px";
+        card.style.borderRadius = "12px";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.gap = "8px";
+
+        const dateStr = a.createdAt ? new Date(a.createdAt).toLocaleString() : "TBD";
+
+        card.innerHTML = `
+          <div style="font-weight:800; font-size:14px; color:white;">${a.title}</div>
+          <p style="font-size:12px; color:var(--muted-white); line-height:1.4;">${a.message || a.body || ""}</p>
+          <span style="font-size:10px; color:var(--muted-white);">${dateStr}</span>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn-action-icon btn-edit-item" onclick="editAnnouncementItem('${a.id}')">✏️ Edit</button>
+            <button class="btn-action-icon btn-delete-item" onclick="deleteAnnouncementItem('${a.id}')">🗑️ Delete</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
 
     // Verification check to secure admin panel
     function verifyAdminAccess() {
