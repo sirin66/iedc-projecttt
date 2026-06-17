@@ -16,6 +16,7 @@
   --glass-shadow-hover: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 255, 255, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 
   --accent-color: #ffffff;
+  --accent-glow: rgba(255, 255, 255, 0.15);
   
   --success-color: #4ae88a;
   --warning-color: #eab308;
@@ -26,6 +27,7 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 32px;
+  --space-xxl: 48px;
 }
 
 /* Base resets */
@@ -45,7 +47,7 @@ body {
   position: relative;
 }
 
-/* Gradient background glows */
+/* Gradient floating background glow widgets */
 .bg-glow-container {
   position: fixed;
   top: 0;
@@ -77,7 +79,7 @@ body {
   filter: blur(100px);
 }
 
-/* Glassmorphic Container */
+/* Glassmorphic Container Core */
 .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -109,7 +111,7 @@ body {
   text-align: center;
 }
 
-/* Typography */
+/* Typography styles */
 .brand-title {
   font-family: var(--font-display);
   font-weight: 900;
@@ -150,7 +152,7 @@ body {
   line-height: 1.5;
 }
 
-/* Inputs & Buttons */
+/* High Fidelity Forms, Inputs, Buttons styling */
 .form-group {
   margin-bottom: var(--space-md);
   text-align: left;
@@ -185,6 +187,7 @@ body {
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.08);
 }
 
+/* Perfectly rounded flat monochrome buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -213,6 +216,10 @@ body {
   box-shadow: 0 12px 30px rgba(255, 255, 255, 0.3);
 }
 
+.btn-primary:active {
+  transform: translateY(0);
+}
+
 .btn-glass {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -228,8 +235,8 @@ body {
 /* Dashboard Workspace layout */
 .dashboard-layout {
   min-height: 100vh;
-  padding: var(--space-lg);
-  max-width: 1100px;
+  padding: var(--space-xl) var(--space-lg);
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -238,7 +245,6 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-xl);
-  padding: 0 var(--space-sm);
 }
 
 .user-badge {
@@ -247,7 +253,7 @@ body {
   gap: var(--space-sm);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 8px 18px;
+  padding: 6px 16px;
   border-radius: 100px;
 }
 
@@ -259,8 +265,8 @@ body {
 
 .grid-dashboard {
   display: grid;
-  grid-template-columns: 1.8fr 1.2fr;
-  gap: var(--space-xl);
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-lg);
 }
 
 @media (max-width: 768px) {
@@ -275,7 +281,7 @@ body {
   }
 }
 
-/* Workshop event card */
+/* Interactive Boot Camp card widgets */
 .camp-card {
   padding: var(--space-lg);
   display: flex;
@@ -310,16 +316,16 @@ body {
   color: var(--white-pure);
 }
 
-/* Horizontal Ticket Pass */
+/* Horizontal Ticket Glass Modal popup rendering styles */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(3, 6, 17, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(3, 6, 17, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -347,6 +353,7 @@ body {
   transform: scale(1) translateY(0);
 }
 
+/* horizontal horizontal ticket design */
 .horizontal-ticket {
   display: flex;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%);
@@ -368,7 +375,7 @@ body {
 }
 
 .ticket-stub {
-  flex: 1.1;
+  flex: 1;
   padding: var(--space-lg);
   border-left: 1px dashed rgba(255, 255, 255, 0.15);
   display: flex;
@@ -380,13 +387,14 @@ body {
   text-align: center;
 }
 
+/* Semi circle perforation points */
 .ticket-perf-top, .ticket-perf-bottom {
   position: absolute;
   width: 16px;
   height: 16px;
   background: #030611;
   border-radius: 50%;
-  left: calc(64.5% - 8px);
+  left: calc(66.6% - 8px);
   z-index: 10;
 }
 .ticket-perf-top { top: -8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -404,11 +412,13 @@ body {
   margin: 0 auto;
 }
 
-.qr-placeholder canvas {
-  width: 100% !important;
-  height: 100% !important;
+.qr-placeholder img, .qr-placeholder canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
+/* Modal close button */
 .modal-close-trigger {
   position: absolute;
   top: 16px;
@@ -434,7 +444,7 @@ body {
   transform: rotate(90deg);
 }
 
-/* Admin Panel Table grid styling */
+/* Admin panel layouts and Table grid styling */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -487,7 +497,7 @@ body {
   border: 1px solid rgba(234, 179, 8, 0.2);
 }
 
-/* Toast Alerts */
+/* Toast user alerts */
 .toast-msg {
   position: fixed;
   bottom: 24px;

@@ -3,8 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RITU 2026 — Secure Event Platform</title>
+  <title>RITU 2026 — Event Platform</title>
   <link rel="stylesheet" href="style.css">
+  
+  <style>
+    /* In-App Ticker Tape Styles */
+    .ticker-wrap {
+      width: 100%;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .ticker {
+      display: flex;
+      white-space: nowrap;
+      animation: marquee 30s linear infinite;
+    }
+    .ticker-item {
+      display: inline-block;
+      padding: 0 3rem;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--white-pure);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    @keyframes marquee {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+    
+    /* Announcement item styles */
+    .announcement-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: var(--space-md);
+      transition: all 0.3s ease;
+    }
+    .announcement-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+  </style>
 </head>
 <body>
   <!-- Floating background shapes -->
@@ -13,51 +61,24 @@
     <div class="bg-glow-sphere-2"></div>
   </div>
 
-  <!-- SECTION 1: AUTHENTICATION LOGIN INTERFACE -->
-  <div id="login-section" class="viewport-centered">
-    <div class="glass-panel login-card">
-      <div style="margin-bottom: var(--space-lg);">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: var(--space-sm); color: var(--white-pure);">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-        </svg>
-        <h1 class="brand-title">Console Gate</h1>
-        <p class="brand-subtitle">Student Authentication</p>
-      </div>
-
-      <form id="login-form" onsubmit="event.preventDefault();">
-        <div class="form-group">
-          <label class="input-label" for="student-email">Student Email</label>
-          <input type="email" id="student-email" class="input-field" placeholder="username@rit.ac.in" required autocomplete="username">
-        </div>
-
-        <div class="form-group" style="margin-bottom: var(--space-xl);">
-          <label class="input-label" for="student-password">Security Password</label>
-          <input type="password" id="student-password" class="input-field" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-
-        <button type="submit" id="login-btn" class="btn btn-primary">
-          Verify & Enter
-        </button>
-      </form>
-
-      <div style="margin-top: var(--space-lg);">
-        <p class="body-sub">Access requires a verified campus student record. Contact IEDC support for administrative credential mapping.</p>
-      </div>
+  <!-- Horizontal scrolling news ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker" id="news-ticker-container">
+      <span class="ticker-item" id="news-ticker-text">Syncing with live event updates feed...</span>
+      <span class="ticker-item" id="news-ticker-text-dup">Syncing with live event updates feed...</span>
     </div>
   </div>
 
-  <!-- SECTION 2: STUDENT PORTAL & WORKSPACE WORKFLOW -->
-  <div id="portal-section" class="dashboard-layout" style="display: none;">
+  <div class="dashboard-layout">
     <!-- Header banner -->
-    <header class="dashboard-header">
+    <header class="dashboard-header" style="margin-top: var(--space-md);">
       <div>
-        <h1 class="brand-title" style="font-size: 28px;">Student Hub</h1>
-        <p class="body-sub" style="letter-spacing: 1px;">RITU 2026 Consolidated Matrix</p>
+        <h1 class="brand-title" style="font-size: 28px;">RITU 2026</h1>
+        <p class="body-sub" style="letter-spacing: 1px;">Event Platform & Support Hub</p>
       </div>
       <div style="display: flex; align-items: center; gap: var(--space-md);">
         <div class="user-badge">
-          <span class="user-badge-name" id="profile-name-display">Loading Student...</span>
+          <span class="user-badge-name" id="profile-name-display">Verifying Session...</span>
         </div>
         <button id="logout-btn" class="btn btn-glass" style="width: auto; padding: 10px 20px; font-size: 11px;">
           Log Out
@@ -99,7 +120,7 @@
         </div>
       </section>
 
-      <!-- Right side: Student Profile & Wallet -->
+      <!-- Right side: Student Profile, Wallet, and dynamic Announcements -->
       <aside style="display: flex; flex-direction: column; gap: var(--space-lg);">
         <h2 class="section-title">My Profile</h2>
         <div class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
@@ -118,8 +139,13 @@
         </div>
 
         <h2 class="section-title">Ticket Wallet</h2>
-        <div id="wallet-container" class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); min-height: 120px; justify-content: center; text-align: center;">
+        <div id="wallet-container" class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); min-height: 100px; justify-content: center; text-align: center;">
           <p class="body-sub" id="wallet-empty-message">No active ticket passes stored in wallet.</p>
+        </div>
+
+        <h2 class="section-title">Announcements</h2>
+        <div id="announcements-list-container" class="glass-panel" style="padding: var(--space-lg); min-height: 120px;">
+          <p class="body-sub" style="text-align: center; color: var(--white-muted); margin-top: 20px;">Subscribing to live bulletin feed...</p>
         </div>
       </aside>
     </main>

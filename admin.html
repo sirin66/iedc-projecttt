@@ -5,6 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RITU 2026 — Admin Control Center</title>
   <link rel="stylesheet" href="style.css">
+  
+  <style>
+    /* Admin workspace grids layout */
+    .admin-workspace-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: var(--space-lg);
+    }
+    @media (max-width: 900px) {
+      .admin-workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    /* Announcement management items layout */
+    .admin-announcement-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-sm);
+      transition: all 0.2s ease;
+    }
+    .admin-announcement-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+  </style>
 </head>
 <body>
   <!-- Floating background shapes -->
@@ -13,12 +42,12 @@
     <div class="bg-glow-sphere-2"></div>
   </div>
 
-  <div class="dashboard-layout" style="max-width: 1000px;">
+  <div class="dashboard-layout" style="max-width: 1200px;">
     <!-- Header banner -->
     <header class="dashboard-header">
       <div>
         <h1 class="brand-title" style="font-size: 28px;">Admin Console</h1>
-        <p class="body-sub" style="letter-spacing: 1px;">Student Registration Approvals</p>
+        <p class="body-sub" style="letter-spacing: 1px;">Platform Management & Content Control</p>
       </div>
       <div style="display: flex; align-items: center; gap: var(--space-md);">
         <button id="admin-logout-btn" class="btn btn-glass" style="width: auto; padding: 10px 20px; font-size: 11px;">
@@ -27,7 +56,7 @@
       </div>
     </header>
 
-    <!-- Executive stats panels -->
+    <!-- Stats summary panels -->
     <section style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); margin-bottom: var(--space-xl);">
       <div class="glass-panel" style="padding: var(--space-lg); text-align: center;">
         <span class="input-label" style="padding-left: 0; text-align: center;">Total Registrations</span>
@@ -43,29 +72,72 @@
       </div>
     </section>
 
-    <!-- Main Approvals Queue Table -->
-    <main class="glass-panel" style="padding: var(--space-lg); overflow-x: auto;">
-      <h2 class="section-title">Student Registrations Ledger</h2>
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Student Details</th>
-            <th>Contact Details</th>
-            <th>Event / Workshop</th>
-            <th>Reference Code</th>
-            <th>Payment Status</th>
-            <th style="text-align: right;">Operations</th>
-          </tr>
-        </thead>
-        <tbody id="admin-registrations-tbody">
-          <tr>
-            <td colspan="6" style="text-align: center; color: var(--white-muted); padding: var(--space-xl);">
-              Establishing secure connection stream to Firestore...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </main>
+    <!-- Main Workspace layouts -->
+    <div class="admin-workspace-grid">
+      <!-- Section 1 (Left): Registrations Queue Table -->
+      <section class="glass-panel" style="padding: var(--space-lg); overflow-x: auto; display: flex; flex-direction: column; gap: var(--space-md);">
+        <h2 class="section-title" style="margin-bottom: 0;">Section 1: Registrations Approval Queue</h2>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Student Details</th>
+              <th>Contact</th>
+              <th>Event Details</th>
+              <th>Reference Code</th>
+              <th>Payment Status</th>
+              <th style="text-align: right;">Operations</th>
+            </tr>
+          </thead>
+          <tbody id="admin-registrations-tbody">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--white-muted); padding: var(--space-xl);">
+                Establishing secure communication stream to Firestore collection ledger...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Section 2 & 3 (Right): Content Controls -->
+      <aside style="display: flex; flex-direction: column; gap: var(--space-lg);">
+        <!-- Section 2: News Ticker Control -->
+        <div class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
+          <h2 class="section-title" style="font-size: 18px; margin-bottom: 0;">Section 2: News Ticker Controller</h2>
+          <p class="body-sub">Overwrite the dynamic scrolling text marquee displayed on the student homepage ticker tape.</p>
+          <form id="news-ticker-form" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: var(--space-sm);">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="input-label" for="news-ticker-input">Marquee Message</label>
+              <input type="text" id="news-ticker-input" class="input-field" placeholder="Enter scrolling updates message..." required>
+            </div>
+            <button type="submit" id="update-news-btn" class="btn btn-primary" style="margin-top: var(--space-xs);">
+              Overwrite Ticker Text
+            </button>
+          </form>
+        </div>
+
+        <!-- Section 3: Recent Announcements Manager -->
+        <div class="glass-panel" style="padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
+          <h2 class="section-title" style="font-size: 18px; margin-bottom: 0;">Section 3: Recent Announcements Manager</h2>
+          <p class="body-sub">Post new bullet bulletins to the live student dashboard feed or delete stale posts dynamically.</p>
+          <form id="announcement-form" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: var(--space-sm);">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="input-label" for="announcement-input">Announcement Bulletin</label>
+              <textarea id="announcement-input" class="input-field" style="border-radius: 16px; resize: none; height: 80px;" placeholder="Type announcement details here..." required></textarea>
+            </div>
+            <button type="submit" id="post-announcement-btn" class="btn btn-primary" style="margin-top: var(--space-xs);">
+              Publish Bulletin
+            </button>
+          </form>
+          
+          <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: var(--space-md); margin-top: var(--space-sm);">
+            <span class="input-label" style="padding-left: 0; margin-bottom: var(--space-sm);">Active Bulletins Feed</span>
+            <div id="admin-announcements-list" style="max-height: 250px; overflow-y: auto;">
+              <p class="body-sub" style="text-align: center; color: var(--white-muted); padding: var(--space-md) 0;">No active bulletins posted.</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
   </div>
 
   <!-- Custom alert/toast popup container -->

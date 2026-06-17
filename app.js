@@ -1,8 +1,8 @@
 // ==========================================================
-// RITU 2026 — SECURE FULL-STACK ENGINE & EXPLOIT PATCHES
+// RITU 2026 — SECURE ENGINE, LIVE DATA & EXPLOIT PATCHES
 // ==========================================================
 
-// Firebase configuration parameters
+// Firebase Initialization configuration block
 const firebaseConfig = {
   apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
   authDomain: "iedc-ux.firebaseapp.com",
@@ -21,7 +21,7 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Toast user alert notification panel utility
+// Toast alert notification utility helper
 function showToast(message, color = "var(--white-pure)") {
   const toast = document.getElementById("app-toast");
   const text = document.getElementById("toast-text");
@@ -38,87 +38,221 @@ function showToast(message, color = "var(--white-pure)") {
 }
 
 // ==========================================================
-// 1. STATE-DRIVEN REDIRECTION GATEWAY & ROUTING SECURITY
+// 1. ROUTING GUARDS & AUTHENTICATION GATES
 // ==========================================================
-const isIndexPage = window.location.pathname.endsWith("index.html") || window.location.pathname === "/" || window.location.pathname.endsWith("/");
-const isAdminPage = window.location.pathname.endsWith("admin.html");
+const path = window.location.pathname;
 
-// Monitor Auth state changes globally
-auth.onAuthStateChanged(async (user) => {
-  if (isIndexPage) {
-    const loginSection = document.getElementById("login-section");
-    const portalSection = document.getElementById("portal-section");
-
-    if (user) {
-      // User is authenticated -> show Student Workspace, hide Login Card
-      if (loginSection) loginSection.style.display = "none";
-      if (portalSection) portalSection.style.display = "block";
-      
-      // Load student data
-      loadStudentPortalData(user);
+// On the main page, verify active authentication session
+if (path.endsWith("index.html") || path.endsWith("/")) {
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      // Force redirect back to gateway page if unauthenticated
+      window.location.href = "login.html";
     } else {
-      // User is unauthenticated -> show Login Card, hide Student Workspace
-      if (portalSection) portalSection.style.display = "none";
-      if (loginSection) loginSection.style.display = "flex";
-      
-      // Setup login button click listener
-      bindLoginListener();
+      loadStudentPortal(user);
     }
-  } else if (isAdminPage) {
-    loadAdminConsoleData();
-  }
-});
+  });
+}
 
-// BIND: Login verification trigger handler
-function bindLoginListener() {
-  const loginBtn = document.getElementById('login-btn');
-  if (loginBtn && !loginBtn.getAttribute('data-listener-bound')) {
-    loginBtn.setAttribute('data-listener-bound', 'true');
-    loginBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('student-email').value.trim();
-      const password = document.getElementById('student-password').value;
+// Login trigger event click handler
+const loginBtn = document.getElementById('login-btn');
+if (loginBtn) {
+  loginBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('student-email').value.trim();
+    const password = document.getElementById('student-password').value;
 
-      if (!email || !password) {
-        showToast("Please enter email and security password.", "var(--warning-color)");
-        return;
+    if (!email || !password) {
+      showToast("Please enter email and security password.", "var(--warning-color)");
+      return;
+    }
+
+    try {
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Authenticating...";
+
+      // Standard Firebase credential verification
+      await auth.signInWithEmailAndPassword(email, password);
+      
+      showToast("Success! Redirecting...", "var(--success-color)");
+      setTimeout(() => {
+        window.location.href = "index.html"; // Redirect back to main page
+      }, 1000);
+
+    } catch (error) {
+      console.error("Auth Failure:", error);
+      let alertMsg = "Authentication failed: " + error.message;
+      if (error.code === "auth/wrong-password") {
+        alertMsg = "Incorrect security password. Access denied.";
+      } else if (error.code === "auth/user-not-found") {
+        alertMsg = "Student record not found in system.";
       }
-
-      try {
-        loginBtn.disabled = true;
-        loginBtn.textContent = "Authenticating...";
-
-        // Verify credentials with Auth API
-        await auth.signInWithEmailAndPassword(email, password);
-
-        showToast("Success! Entering Hub...", "var(--success-color)");
-        setTimeout(() => {
-          window.location.href = "index.html"; // Explicit redirection back to index.html
-        }, 1000);
-
-      } catch (error) {
-        console.error("Auth Failure:", error);
-        let alertMsg = "Authentication failed: " + error.message;
-        if (error.code === "auth/wrong-password") {
-          alertMsg = "Incorrect security password. Access denied.";
-        } else if (error.code === "auth/user-not-found") {
-          alertMsg = "Student record not found in system.";
-        }
-        showToast(alertMsg, "var(--error-color)");
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = "Verify & Enter";
-      }
-    });
-  }
+      showToast(alertMsg, "var(--error-color)");
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Authenticate & Enter";
+    }
+  });
 }
 
 // ==========================================================
-// 2. STUDENT PORTAL DATA LOADERS
+// 2. LIVE DATA HANDLERS: NEWS TICKER & ANNOUNCEMENTS
 // ==========================================================
-async function loadStudentPortalData(user) {
-  const emailDisplay = document.getElementById('profile-email-display');
-  if (emailDisplay) emailDisplay.textContent = user.email;
+
+// News Ticker Real-Time snapshot subscription
+db.collection("news").doc("global-news").onSnapshot((doc) => {
+  let message = "Welcome to RITU 2026 Event Platform & Support Hub!";
+  if (doc.exists) {
+    message = doc.data().text || message;
+  }
+  
+  const tickerText = document.getElementById("news-ticker-text");
+  const tickerTextDup = document.getElementById("news-ticker-text-dup");
+  if (tickerText) tickerText.textContent = message;
+  if (tickerTextDup) tickerTextDup.textContent = message;
+
+  // Sync value inside admin console text-input field
+  const newsInput = document.getElementById("news-ticker-input");
+  if (newsInput && document.activeElement !== newsInput) {
+    newsInput.value = message;
+  }
+}, (err) => {
+  console.warn("News ticker subscription bypassed or failed:", err);
+});
+
+// Admin News ticker overwrite handler
+const updateNewsBtn = document.getElementById("update-news-btn");
+if (updateNewsBtn) {
+  updateNewsBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("news-ticker-input");
+    const text = input.value.trim();
+    if (!text) return;
+
+    try {
+      updateNewsBtn.disabled = true;
+      updateNewsBtn.textContent = "Updating ticker...";
+
+      await db.collection("news").doc("global-news").set({
+        text,
+        updatedAt: new Date().toISOString()
+      });
+
+      showToast("Scrolling ticker message updated live!", "var(--success-color)");
+    } catch (err) {
+      console.error(err);
+      showToast("Ticker update failed: " + err.message, "var(--error-color)");
+    } finally {
+      updateNewsBtn.disabled = false;
+      updateNewsBtn.textContent = "Overwrite Ticker Text";
+    }
+  });
+}
+
+// Real-Time Announcements subscription (renders feed on home and admin dashboard)
+db.collection("announcements").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+  // 1. Populate Announcements Feed on student portal
+  const studentContainer = document.getElementById("announcements-list-container");
+  if (studentContainer) {
+    studentContainer.innerHTML = "";
+    if (snapshot.empty) {
+      studentContainer.innerHTML = '<p class="body-sub" style="text-align: center; color: var(--white-muted); margin-top: 20px;">No active announcement bulletins.</p>';
+    } else {
+      snapshot.forEach(doc => {
+        const ann = doc.data();
+        const dateStr = ann.timestamp ? new Date(ann.timestamp).toLocaleString() : "";
+        const div = document.createElement("div");
+        div.className = "announcement-card";
+        div.innerHTML = `
+          <p class="body-lead" style="font-weight: 600; color: var(--white-pure);">${ann.text || ""}</p>
+          <p class="body-sub" style="font-size: 10px; margin-top: 6px; color: var(--white-muted); font-family: monospace;">${dateStr}</p>
+        `;
+        studentContainer.appendChild(div);
+      });
+    }
+  }
+
+  // 2. Populate Announcements feed on admin control board
+  const adminContainer = document.getElementById("admin-announcements-list");
+  if (adminContainer) {
+    adminContainer.innerHTML = "";
+    if (snapshot.empty) {
+      adminContainer.innerHTML = '<p class="body-sub" style="text-align: center; color: var(--white-muted); padding: var(--space-md) 0;">No active bulletins posted.</p>';
+    } else {
+      snapshot.forEach(doc => {
+        const ann = doc.data();
+        const dateStr = ann.timestamp ? new Date(ann.timestamp).toLocaleString() : "";
+        const div = document.createElement("div");
+        div.className = "admin-announcement-item";
+        div.innerHTML = `
+          <div style="flex: 1; padding-right: var(--space-sm); text-align: left;">
+            <p class="body-lead" style="font-size: 13px; font-weight: 600; color: var(--white-pure); line-height: 1.4;">${ann.text || ""}</p>
+            <p class="body-sub" style="font-size: 10px; color: var(--white-muted); margin-top: 4px; font-family: monospace;">${dateStr}</p>
+          </div>
+          <button class="btn btn-glass" style="width: auto; padding: 6px 12px; font-size: 10px; border-radius: 8px; color: var(--error-color); border-color: rgba(232, 97, 74, 0.2);" onclick="deleteAnnouncement('${doc.id}')">
+            Delete
+          </button>
+        `;
+        adminContainer.appendChild(div);
+      });
+    }
+  }
+}, (err) => {
+  console.warn("Announcements stream failed:", err);
+});
+
+// Admin Announcement posting trigger handler
+const postAnnouncementBtn = document.getElementById("post-announcement-btn");
+if (postAnnouncementBtn) {
+  postAnnouncementBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("announcement-input");
+    const text = input.value.trim();
+    if (!text) return;
+
+    try {
+      postAnnouncementBtn.disabled = true;
+      postAnnouncementBtn.textContent = "Publishing...";
+
+      const id = "ann-" + Date.now();
+      await db.collection("announcements").doc(id).set({
+        id,
+        text,
+        timestamp: new Date().toISOString()
+      });
+
+      input.value = "";
+      showToast("Announcement bulletin published live!", "var(--success-color)");
+    } catch (err) {
+      console.error(err);
+      showToast("Announcement post failed: " + err.message, "var(--error-color)");
+    } finally {
+      postAnnouncementBtn.disabled = false;
+      postAnnouncementBtn.textContent = "Publish Bulletin";
+    }
+  });
+}
+
+// Admin Announcement deletion handler
+async function deleteAnnouncement(announcementId) {
+  if (!confirm("Are you sure you want to delete this announcement bulletin permanently?")) return;
+
+  try {
+    showToast("Deleting bulletin...", "var(--white-pure)");
+    await db.collection("announcements").doc(announcementId).delete();
+    showToast("Announcement deleted successfully!", "var(--success-color)");
+  } catch (err) {
+    console.error(err);
+    showToast("Delete failed: " + err.message, "var(--error-color)");
+  }
+}
+window.deleteAnnouncement = deleteAnnouncement;
+
+// ==========================================================
+// 3. STUDENT PORTAL DATA LOADER
+// ==========================================================
+async function loadStudentPortal(user) {
+  document.getElementById('profile-email-display').textContent = user.email;
 
   try {
     const profileSnap = await db.collection("students").doc(user.uid).get();
@@ -131,7 +265,7 @@ async function loadStudentPortalData(user) {
       statusBadge.textContent = p.approved === true ? "Approved" : "Pending Approval";
       statusBadge.className = p.approved === true ? "badge-status-pill badge-approved" : "badge-status-pill badge-pending";
     } else {
-      // Seeding fallback student record on first login
+      // Auto seed missing profiles
       const nameFromEmail = user.email.split('@')[0].toUpperCase();
       const fallbackProfile = {
         uid: user.uid,
@@ -151,10 +285,10 @@ async function loadStudentPortalData(user) {
       statusBadge.className = "badge-status-pill badge-pending";
     }
   } catch (err) {
-    console.error("Student profile loading failed:", err);
+    console.error("Error loading profile:", err);
   }
 
-  // Real-time Ticket Wallet snapshot sync
+  // Realtime Ticket Wallet synchronizer
   db.collection("registrations")
     .where("studentUid", "==", user.uid)
     .onSnapshot((snapshot) => {
@@ -176,7 +310,7 @@ async function loadStudentPortalData(user) {
         card.style.display = "flex";
         card.style.justifyContent = "space-between";
         card.style.alignItems = "center";
-
+        
         const isSuccess = reg.payment_status === "Success";
         const badgeClass = isSuccess ? "badge-approved" : "badge-pending";
         const badgeText = isSuccess ? "Active Pass" : "Pending Pay";
@@ -195,7 +329,7 @@ async function loadStudentPortalData(user) {
     });
 }
 
-// BIND: Register Boot Camp button trigger
+// BIND: Register Boot Camp Button click
 const registerCampBtn = document.getElementById('register-camp-btn');
 if (registerCampBtn) {
   registerCampBtn.addEventListener('click', async () => {
@@ -204,9 +338,9 @@ if (registerCampBtn) {
 
     try {
       registerCampBtn.disabled = true;
-      registerCampBtn.textContent = "Processing...";
+      registerCampBtn.textContent = "Requesting Registration...";
 
-      // Check if already registered
+      // Check if registration already exists to prevent duplication
       const existingQuery = await db.collection("registrations")
         .where("studentUid", "==", user.uid)
         .where("eventId", "==", "gen-ai-bootcamp-01")
@@ -231,7 +365,7 @@ if (registerCampBtn) {
         phone: "+91 98765 43210",
         checkedIn: false,
         status: "Pending",
-        payment_status: "Pending", // Gated pending state
+        payment_status: "Pending", // Starts as pending state
         amount: 150,
         createdAt: new Date().toISOString(),
         studentUid: user.uid,
@@ -242,8 +376,8 @@ if (registerCampBtn) {
       showToast("Registration requested! Pending payment approval.", "var(--success-color)");
 
     } catch (err) {
-      console.error("Registration query failed:", err);
-      showToast("Registration failed: " + err.message, "var(--error-color)");
+      console.error("Registration write failure:", err);
+      showToast("Failed to request registration: " + err.message, "var(--error-color)");
     } finally {
       registerCampBtn.disabled = false;
       registerCampBtn.textContent = "Register Workshop";
@@ -252,7 +386,7 @@ if (registerCampBtn) {
 }
 
 // ==========================================================
-// 3. SECURE VISIBILITY LOCK GATING: VIEW TICKET PASS
+// 4. SECURE TICKET LOCK GATING HANDLER
 // ==========================================================
 const viewTicketBtn = document.getElementById('view-ticket-btn');
 if (viewTicketBtn) {
@@ -265,9 +399,9 @@ if (viewTicketBtn) {
 
     try {
       viewTicketBtn.disabled = true;
-      viewTicketBtn.textContent = "Verifying Registration...";
+      viewTicketBtn.textContent = "Verifying Credentials...";
 
-      // Query student's registrations
+      // Fetch student's registration document from Firestore
       const snap = await db.collection("registrations")
         .where("studentUid", "==", user.uid)
         .where("eventId", "==", "gen-ai-bootcamp-01")
@@ -285,13 +419,14 @@ if (viewTicketBtn) {
         regId = doc.id;
       });
 
-      // SECURE CONDITIONAL TICKET GATING: check if payment status strictly Success
+      // Strict Conditional Visibility Lock check
       if (regData && regData.payment_status === "Success") {
+        // Open modal popup
         const modal = document.getElementById('ticket-modal');
         document.getElementById('ticket-attendee-name').textContent = regData.studentName.toUpperCase();
         document.getElementById('ticket-id').textContent = regId;
 
-        // Render pass QR code on canvas
+        // Generate dynamic horizontal secure QR pass code
         const canvas = document.getElementById('ticket-qr-canvas');
         if (canvas) {
           new QRious({
@@ -305,16 +440,16 @@ if (viewTicketBtn) {
         }
 
         modal.classList.add('active');
-        showToast("Ticket Pass Unlocked!", "var(--success-color)");
+        showToast("VIP Pass Unlocked!", "var(--success-color)");
 
       } else {
-        // STRICT BLOCK ACCESS: Alert student
+        // Strict visibility lock: BLOCK and Alert user explicitly
         alert("Payment Pending!");
-        showToast("Gating Lock: Payment Pending.", "var(--error-color)");
+        showToast("Security Block: Payment Pending.", "var(--error-color)");
       }
 
     } catch (err) {
-      console.error("Gating check failed:", err);
+      console.error("Ticket authentication failure:", err);
       showToast("Verification failed: " + err.message, "var(--error-color)");
     } finally {
       viewTicketBtn.disabled = false;
@@ -323,7 +458,7 @@ if (viewTicketBtn) {
   });
 }
 
-// Modal close action
+// Modal closing trigger listener
 const modalClose = document.getElementById('modal-close');
 if (modalClose) {
   modalClose.addEventListener('click', () => {
@@ -332,13 +467,19 @@ if (modalClose) {
 }
 
 // ==========================================================
-// 4. ADMIN OPERATIONAL CONTROL PANEL
+// 5. ADMIN CONTROLS SYSTEM BINDINGS
 // ==========================================================
-function loadAdminConsoleData() {
+if (path.endsWith("admin.html")) {
+  auth.onAuthStateChanged((user) => {
+    loadAdminData();
+  });
+}
+
+function loadAdminData() {
   const tbody = document.getElementById('admin-registrations-tbody');
   if (!tbody) return;
 
-  // Real-time approvals snapshot listener
+  // Real-time registrations snapshots subscription
   db.collection("registrations").onSnapshot((snapshot) => {
     tbody.innerHTML = "";
     
@@ -361,6 +502,7 @@ function loadAdminConsoleData() {
       else pending++;
 
       const tr = document.createElement('tr');
+      
       const badgeClass = isSuccess ? "badge-approved" : "badge-pending";
       const badgeText = isSuccess ? "Success" : "Pending";
 
@@ -397,7 +539,7 @@ function loadAdminConsoleData() {
         approveBtn.addEventListener('click', () => approveStudent(doc.id));
         actionCell.appendChild(approveBtn);
       } else {
-        actionCell.innerHTML = `<span style="font-size: 11px; color: var(--white-muted); font-weight: 700; text-transform: uppercase;">Approved</span>`;
+        actionCell.innerHTML = `<span style="font-size: 11px; color: var(--white-muted); font-weight: 700; text-transform: uppercase;">Verified</span>`;
       }
 
       tbody.appendChild(tr);
@@ -406,7 +548,7 @@ function loadAdminConsoleData() {
     updateAdminStats(total, success, pending);
 
   }, (error) => {
-    console.error("Admin snapshot listen fail:", error);
+    console.error("Admin real-time listener failed:", error);
     tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--error-color);">Database connection error. Permission denied.</td></tr>`;
   });
 }
@@ -421,11 +563,12 @@ function updateAdminStats(total, success, pending) {
   if (pendingEl) pendingEl.textContent = pending;
 }
 
-// Global approval mutation function
+// Live Admin Approval update document handler
 async function approveStudent(regId) {
   try {
-    showToast("Processing approval mutation...", "var(--white-pure)");
+    showToast("Processing administrative approval...", "var(--white-pure)");
 
+    // Get registration details to fetch student Uid
     const docRef = db.collection("registrations").doc(regId);
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
@@ -435,37 +578,37 @@ async function approveStudent(regId) {
 
     const regData = docSnap.data();
 
-    // 1. Update registration status in Firestore live
+    // 1. Update registration status live
     await docRef.update({
       status: "Confirmed",
       payment_status: "Success",
       verifiedAt: new Date().toISOString()
     });
 
-    // 2. Update student account profile in Firestore live
+    // 2. Update student account profile document live
     if (regData.studentUid) {
       await db.collection("students").doc(regData.studentUid).update({
         approved: true
       });
     }
 
-    showToast("Student verified and approved!", "var(--success-color)");
+    showToast("Registration payment approved successfully!", "var(--success-color)");
 
   } catch (err) {
     console.error("Approval transaction failed:", err);
-    showToast("Approval failed: " + err.message, "var(--error-color)");
+    showToast("Verification failed: " + err.message, "var(--error-color)");
   }
 }
 window.approveStudent = approveStudent;
 
 // ==========================================================
-// 5. SIGN OUT SYSTEM HANDLES
+// 6. SIGN OUT SYSTEM HANDLES
 // ==========================================================
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
   logoutBtn.addEventListener('click', async () => {
     await auth.signOut();
-    window.location.href = "index.html"; // Triggers auth state redirect back to login state
+    window.location.href = "login.html";
   });
 }
 
@@ -473,6 +616,6 @@ const adminLogoutBtn = document.getElementById('admin-logout-btn');
 if (adminLogoutBtn) {
   adminLogoutBtn.addEventListener('click', async () => {
     await auth.signOut();
-    window.location.href = "index.html";
+    window.location.href = "login.html";
   });
 }
