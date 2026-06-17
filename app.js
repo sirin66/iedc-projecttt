@@ -791,23 +791,18 @@ async function handleRegistrationCheckout() {
     eventData.price = amount;
     const upiLink = `upi://pay?pa=${eventData.upiId}&pn=${encodeURIComponent(eventData.title)}&am=${eventData.price}&cu=INR`;
 
-    // Bind Direct UPI App Button links
-    const gpayBtn = document.getElementById("upi-gpay-btn");
-    const phonepeBtn = document.getElementById("upi-phonepe-btn");
-    const paytmBtn = document.getElementById("upi-paytm-btn");
-    if (gpayBtn) gpayBtn.href = upiLink;
-    if (phonepeBtn) phonepeBtn.href = upiLink;
-    if (paytmBtn) paytmBtn.href = upiLink;
-
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const mobileView = document.getElementById("waiting-mobile-view");
-    const desktopView = document.getElementById("waiting-desktop-view");
     const upiMobileLink = document.getElementById("waiting-upi-mobile-link");
     const upiQrLink = document.getElementById("waiting-upi-qr-link");
 
     // Always set interactive QR wrapper link href to the UPI intent link
     if (upiQrLink) {
       upiQrLink.href = upiLink;
+    }
+
+    // Always set single universal button link href to the UPI intent link
+    if (upiMobileLink) {
+      upiMobileLink.href = upiLink;
     }
 
     // Always draw dynamic QR code to the canvas inside the modal
@@ -824,15 +819,7 @@ async function handleRegistrationCheckout() {
     }
 
     if (isMobile) {
-      if (mobileView) mobileView.style.display = "flex";
-      if (desktopView) desktopView.style.display = "flex"; // Show QR code container on mobile so it is clickable!
-      if (upiMobileLink) {
-        upiMobileLink.href = upiLink;
-      }
       window.location.href = upiLink;
-    } else {
-      if (mobileView) mobileView.style.display = "none";
-      if (desktopView) desktopView.style.display = "flex";
     }
 
     // Show waiting verification overlay

@@ -1298,60 +1298,44 @@
         Please do not close or refresh this page. Once your UPI transfer is verified, our system will immediately authorize your registration and issue your pass.
       </p>
 
-      <!-- Desktop View: QR Code inside overlay -->
-      <div id="waiting-desktop-view" style="display: none; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px;">
-        <span class="section-eyebrow" style="color: var(--nova-yellow); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">Scan QR or Tap to Pay</span>
-        <a id="waiting-upi-qr-link" href="#" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 14px; border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35); cursor: pointer; width: 180px; max-width: 100%;">
-          <!-- Official UPI Logo -->
-          <div style="background: rgba(255, 255, 255, 0.95); padding: 4px 8px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; width: 75px; height: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo.png/320px-UPI-Logo.png" alt="UPI" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-          </div>
-          
-          <div style="background: white; padding: 8px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 8px;">
-            <canvas id="waiting-upi-qr-canvas" style="display: block; width: 130px; height: 130px;"></canvas>
-          </div>
-          
-          <span style="font-size: 10px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
-            ⚡ Tap to Pay via App
-          </span>
-        </a>
-      </div>
-
-      <!-- Mobile View: Intent Link inside overlay -->
-      <div id="waiting-mobile-view" style="display: none; flex-direction: column; align-items: center; gap: 8px; width: 100%; margin-bottom: 8px;">
-        <a id="waiting-upi-mobile-link" href="#" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--nova-yellow); color: var(--nova-yellow); font-size: 12px; padding: 10px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-decoration: none;">
-          ⚡ Launch UPI App Again
-        </a>
-      </div>
-
-      <!-- Direct UPI Apps Section -->
-      <div style="width: 100%; margin: 8px 0; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-        <div style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px;">Or Pay Directly Via Mobile Apps:</div>
-        <div style="display: flex; justify-content: center; gap: 8px; width: 100%;">
-          <a id="upi-gpay-btn" href="#" class="upi-app-btn" style="flex: 1; text-decoration: none; background: rgba(66, 133, 244, 0.1); border: 1px solid rgba(66, 133, 244, 0.3); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.2s;">
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 1.56-1.56 2.95-3.24 3.5v2.9h5.18c3.07-2.83 4.83-7 4.83-11.97 0-.74-.07-1.48-.11-2.16z" fill="#4285F4"/>
-              <path d="M12.18 20.43c2.73 0 5.06-.9 6.75-2.43l-5.18-2.9c-.83.56-1.92.93-3.24.93-2.51 0-4.63-1.69-5.39-3.96H1.94v3.07c1.71 3.4 5.22 5.69 9.38 5.69z" fill="#34A853"/>
-              <path d="M6.79 12.07c-.19-.57-.3-1.17-.3-1.79s.11-1.22.3-1.79V5.42H1.94A10.15 10.15 0 0 0 0 10.28c0 1.8.47 3.48 1.94 4.86l4.85-3.07z" fill="#FBBC05"/>
-              <path d="M12.18 3.86c1.55 0 2.94.53 4.03 1.57l3.02-3.02C17.42.99 15.08 0 12.18 0c-4.16 0-7.67 2.29-9.38 5.69l4.85 3.07c.76-2.27 2.88-3.9 5.39-3.9z" fill="#EA4335"/>
-            </svg>
-            <span style="font-size: 10px; font-weight: 700;">Google Pay</span>
-          </a>
-          <a id="upi-phonepe-btn" href="#" class="upi-app-btn" style="flex: 1; text-decoration: none; background: rgba(139, 111, 212, 0.1); border: 1px solid rgba(139, 111, 212, 0.3); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.2s;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v4H9V7h6v2z" fill="#8B6FD4"/>
-            </svg>
-            <span style="font-size: 10px; font-weight: 700;">PhonePe</span>
-          </a>
-          <a id="upi-paytm-btn" href="#" class="upi-app-btn" style="flex: 1; text-decoration: none; background: rgba(0, 180, 216, 0.1); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.2s;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M1 5h22v14H1z" fill="#00b4d8" opacity="0.1"/>
-              <path d="M2 3h20c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H2c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm3 4v3h2V7h2V5H3v2h2zm8 0h3c1.1 0 2-.9 2-2V3h-7v2h2v2zm-4 6h4v2h-4v2h4v2H9v-8h4v2h-4z" fill="#00b4d8"/>
-            </svg>
-            <span style="font-size: 10px; font-weight: 700;">Paytm</span>
-          </a>
+      <!-- Unified Interactive QR Container -->
+      <a id="waiting-upi-qr-link" href="#" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 16px; border-radius: 20px; transition: all 0.3s ease; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35); cursor: pointer; width: 180px; max-width: 100%;">
+        <!-- Clean official UPI Logo via Inline SVG -->
+        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: center; width: 90px; height: 26px;">
+          <svg width="100%" height="100%" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+            <rect width="100" height="35" rx="6" fill="#F4F4F7" />
+            <!-- Stylized U-P-I -->
+            <path d="M18 10 v8 c0 1.5 1.2 2.5 2.5 2.5 s2.5-1 2.5-2.5 v-8 h2.5 v8 c0 2.5-2 4.5-5 4.5 s-5-2-5-4.5 v-8 z" fill="#097939" />
+            <path d="M31 10 h5.5 c2 0 3.5 1.2 3.5 3 s-1.5 3-3.5 3 H33.5 v5 H31 z M33.5 12.2 v2 h2.5 c1 0 1.5-.5 1.5-1 s-.5-1-1.5-1 z" fill="#006699" />
+            <path d="M46 10 h2.5 v11 H46 z" fill="#D63A37" />
+            <polygon points="53,21 59,10 61,10 55,21" fill="#097939" />
+            <polygon points="57,21 63,10 65,10 59,21" fill="#D63A37" />
+            <text x="14" y="30" font-family="'Inter', sans-serif" font-weight="900" font-size="5" fill="#333333" letter-spacing="0.2">UNIFIED PAYMENTS INTERFACE</text>
+          </svg>
         </div>
-      </div>
+        
+        <div style="background: white; padding: 8px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 8px;">
+          <canvas id="waiting-upi-qr-canvas" style="display: block; width: 130px; height: 130px;"></canvas>
+        </div>
+        
+        <span style="font-size: 10px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
+          Scan QR to Pay
+        </span>
+      </a>
+
+      <!-- Single Universal UPI Deep-Link Action Button -->
+      <a id="waiting-upi-mobile-link" href="#" class="btn" style="text-decoration: none; background: transparent !important; border: 2px solid var(--neon-purple) !important; color: var(--white-pure) !important; font-size: 11.5px; padding: 12px; border-radius: 12px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s ease-in-out; box-shadow: 0 0 12px rgba(139, 111, 212, 0.3) !important;">
+        ⚡ Pay via Any UPI App (GPay / PhonePe / Paytm)
+      </a>
+
+      <!-- Add hover style inside overlay for visual feedback -->
+      <style>
+        #waiting-upi-mobile-link:hover {
+          background: rgba(139, 111, 212, 0.1) !important;
+          box-shadow: 0 0 20px rgba(139, 111, 212, 0.6) !important;
+          transform: translateY(-1px);
+        }
+      </style>
 
       <div style="font-size: 9px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
         Polling Database Stream...
