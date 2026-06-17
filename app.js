@@ -780,9 +780,10 @@ async function handleRegistrationCheckout() {
     }
 
     // Construct dynamic UPI deep-link intent using eventData
-    const eventData = selectedEvent;
-    const upiId = eventData.upiId || eventData.upi || "iedcrit@okaxis";
-    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(eventData.title)}&am=${amount}&cu=INR`;
+    const eventData = { ...selectedEvent };
+    eventData.upiId = eventData.upiId || eventData.upi || "iedcrit@okaxis";
+    eventData.price = amount;
+    const upiLink = `upi://pay?pa=${eventData.upiId}&pn=${encodeURIComponent(eventData.title)}&am=${eventData.price}&cu=INR`;
 
     // Bind Direct UPI App Button links
     const gpayBtn = document.getElementById("upi-gpay-btn");
@@ -796,10 +797,29 @@ async function handleRegistrationCheckout() {
     const mobileView = document.getElementById("waiting-mobile-view");
     const desktopView = document.getElementById("waiting-desktop-view");
     const upiMobileLink = document.getElementById("waiting-upi-mobile-link");
+    const upiQrLink = document.getElementById("waiting-upi-qr-link");
+
+    // Always set interactive QR wrapper link href to the UPI intent link
+    if (upiQrLink) {
+      upiQrLink.href = upiLink;
+    }
+
+    // Always draw dynamic QR code to the canvas inside the modal
+    const upiCanvas = document.getElementById("waiting-upi-qr-canvas");
+    if (upiCanvas) {
+      new QRious({
+        element: upiCanvas,
+        value: upiLink,
+        size: 130,
+        background: "#FFFFFF",
+        foreground: "#080810",
+        level: "H"
+      });
+    }
 
     if (isMobile) {
       if (mobileView) mobileView.style.display = "flex";
-      if (desktopView) desktopView.style.display = "none";
+      if (desktopView) desktopView.style.display = "flex"; // Show QR code container on mobile so it is clickable!
       if (upiMobileLink) {
         upiMobileLink.href = upiLink;
       }
@@ -807,18 +827,6 @@ async function handleRegistrationCheckout() {
     } else {
       if (mobileView) mobileView.style.display = "none";
       if (desktopView) desktopView.style.display = "flex";
-      
-      const upiCanvas = document.getElementById("waiting-upi-qr-canvas");
-      if (upiCanvas) {
-        new QRious({
-          element: upiCanvas,
-          value: upiLink,
-          size: 150,
-          background: "#FFFFFF",
-          foreground: "#080810",
-          level: "H"
-        });
-      }
     }
 
     // Show waiting verification overlay

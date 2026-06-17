@@ -1300,10 +1300,21 @@
 
       <!-- Desktop View: QR Code inside overlay -->
       <div id="waiting-desktop-view" style="display: none; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px;">
-        <span class="section-eyebrow" style="color: var(--nova-yellow); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">Scan UPI QR to Pay</span>
-        <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-          <canvas id="waiting-upi-qr-canvas" style="display: block; width: 150px; height: 150px;"></canvas>
-        </div>
+        <span class="section-eyebrow" style="color: var(--nova-yellow); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">Scan QR or Tap to Pay</span>
+        <a id="waiting-upi-qr-link" href="#" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 14px; border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35); cursor: pointer; width: 180px; max-width: 100%;">
+          <!-- Official UPI Logo -->
+          <div style="background: rgba(255, 255, 255, 0.95); padding: 4px 8px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; width: 75px; height: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo.png/320px-UPI-Logo.png" alt="UPI" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+          </div>
+          
+          <div style="background: white; padding: 8px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 8px;">
+            <canvas id="waiting-upi-qr-canvas" style="display: block; width: 130px; height: 130px;"></canvas>
+          </div>
+          
+          <span style="font-size: 10px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
+            ⚡ Tap to Pay via App
+          </span>
+        </a>
       </div>
 
       <!-- Mobile View: Intent Link inside overlay -->
