@@ -799,6 +799,22 @@
                 <input type="number" id="eventMaxTeam" placeholder="Eg: 4" min="2" max="10">
               </div>
 
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventDuration">Event Duration</label>
+                  <input type="text" id="eventDuration" placeholder="Eg: 3 Hours or 2 Days" required>
+                </div>
+                <div class="form-group">
+                  <label for="eventWhatsapp">Official WhatsApp Group Link</label>
+                  <input type="url" id="eventWhatsapp" placeholder="https://chat.whatsapp.com/..." required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="eventInstructions">Specific Instructions for Attendees</label>
+                <input type="text" id="eventInstructions" placeholder="Eg: Laptops required. Basic Python knowledge requested." required>
+              </div>
+
               <div class="form-group">
                 <label for="eventDescription">Detailed Description</label>
                 <textarea id="eventDescription" placeholder="Provide a detailed description of the event topics..." rows="4" required></textarea>
@@ -869,6 +885,49 @@
               <div class="form-group">
                 <label for="tournamentLocation">Venue / Maps Link / Meeting Link</label>
                 <input type="text" id="tournamentLocation" placeholder="Eg: RIT Sports Ground / Discord Link" required>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentDate">Tournament Date</label>
+                  <input type="date" id="tournamentDate" required>
+                </div>
+                <div class="form-group">
+                  <label for="tournamentTime">Start Time (24h)</label>
+                  <input type="time" id="tournamentTime" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentSeats">Total Available Seats/Slots</label>
+                  <input type="number" id="tournamentSeats" placeholder="Eg: 64" required min="1">
+                </div>
+                <div class="form-group">
+                  <label for="tournamentHost">Host / Organizer Details</label>
+                  <input type="text" id="tournamentHost" placeholder="Eg: RIT Sports Club" required>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentDuration">Duration</label>
+                  <input type="text" id="tournamentDuration" placeholder="Eg: 3 Hours" required>
+                </div>
+                <div class="form-group">
+                  <label for="tournamentWhatsapp">WhatsApp Group Link</label>
+                  <input type="url" id="tournamentWhatsapp" placeholder="https://chat.whatsapp.com/..." required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="tournamentInstructions">Tournament Instructions</label>
+                <input type="text" id="tournamentInstructions" placeholder="Eg: Check-in 10m before. Esports rules apply." required>
+              </div>
+
+              <div class="form-group">
+                <label for="tournamentDescription">Detailed Description</label>
+                <textarea id="tournamentDescription" placeholder="Provide details about registration brackets, rules, and cash awards..." rows="3" required></textarea>
               </div>
 
               <div style="display: flex; gap: 10px;">
@@ -1397,26 +1456,49 @@
       }
     };
 
+    function triggerSimulatedAlerts(reg) {
+      const studentName = reg.studentName || "Student";
+      const email = reg.studentEmail || "student@rit.ac.in";
+      const phone = reg.phone || "+91 98765 43210";
+      const passLink = `http://localhost:5000/pass?id=${reg.registrationId || reg.id}`;
+
+      console.log(`[SMS/EMAIL TRIGGERED] Send ticket to ${studentName} (Email: ${email}, Phone: ${phone}) Link: ${passLink}`);
+      alert(`⚡ Automated notification sent to ${studentName} via WhatsApp (${phone}) and Email (${email})!`);
+    }
+
     window.approveRegistrationManually = async function(regId) {
       if (!confirm("Are you sure you want to approve this pending registration payment?")) return;
 
-      // Update local storage simulator
+      let regData = null;
       let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
       const foundIdx = mockRegs.findIndex(r => r.registrationId === regId || r.id === regId);
       if (foundIdx !== -1) {
         mockRegs[foundIdx].status = "Confirmed";
+        regData = mockRegs[foundIdx];
         localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
       }
 
       if (useRealFirebase) {
         try {
+          const doc = await db.collection("registrations").doc(regId).get();
+          if (doc.exists) {
+            regData = doc.data();
+            regData.id = doc.id;
+          }
           await db.collection("registrations").doc(regId).update({ status: "Confirmed" });
           console.log(`Successfully approved registration doc ${regId} in Firestore.`);
+          if (regData) {
+            regData.status = "Confirmed";
+            triggerSimulatedAlerts(regData);
+          }
         } catch (e) {
           console.error("Firestore approve registration failed:", e);
           alert("Error approving registration: " + e.message);
         }
       } else {
+        if (regData) {
+          triggerSimulatedAlerts(regData);
+        }
         // Trigger real-time UI refresh in Simulator Mode
         const dropdown = document.getElementById("admin-event-filter");
         if (dropdown) loadAttendeeList(dropdown.value);
@@ -1617,6 +1699,9 @@
         const poster = document.getElementById("eventPoster").value.trim();
         const hasTeam = document.getElementById("eventHasTeam").value === "true";
         const maxTeamSize = hasTeam ? parseInt(document.getElementById("eventMaxTeam").value) : 1;
+        const duration = document.getElementById("eventDuration").value.trim();
+        const whatsappLink = document.getElementById("eventWhatsapp").value.trim();
+        const instructions = document.getElementById("eventInstructions").value.trim();
         const description = document.getElementById("eventDescription").value.trim();
 
         // Format dates into human readable values
@@ -1669,6 +1754,9 @@
           poster,
           poster_url: poster,
           upi: upiId,
+          duration,
+          whatsappLink,
+          instructions,
           timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
         };
 
@@ -1734,6 +1822,9 @@
         document.getElementById("event-team-size-group").style.display = "none";
       }
 
+      document.getElementById("eventDuration").value = match.duration || "";
+      document.getElementById("eventWhatsapp").value = match.whatsappLink || "";
+      document.getElementById("eventInstructions").value = match.instructions || "";
       document.getElementById("eventDescription").value = match.description || "";
 
       // Shifting workspace UI into Update Document Mode
@@ -1825,6 +1916,29 @@
         const mode = document.getElementById("tournamentMode").value;
         const location = document.getElementById("tournamentLocation").value.trim();
 
+        const dateInput = document.getElementById("tournamentDate").value;
+        const timeInput = document.getElementById("tournamentTime").value;
+        const seats = parseInt(document.getElementById("tournamentSeats").value);
+        const host = document.getElementById("tournamentHost").value.trim();
+        const duration = document.getElementById("tournamentDuration").value.trim();
+        const whatsappLink = document.getElementById("tournamentWhatsapp").value.trim();
+        const instructions = document.getElementById("tournamentInstructions").value.trim();
+        const description = document.getElementById("tournamentDescription").value.trim();
+
+        // Format dates into human readable values
+        const dateObj = new Date(dateInput);
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = dateObj.toLocaleDateString('en-US', options); 
+        const isoDate = `${dateInput}T${timeInput}:00`;
+
+        // Format 24h input time to 12h AM/PM string
+        const [hours24, minutes] = timeInput.split(":");
+        let hours12 = parseInt(hours24);
+        const ampm = hours12 >= 12 ? 'PM' : 'AM';
+        hours12 = hours12 % 12;
+        hours12 = hours12 ? hours12 : 12; 
+        const formattedTime = `${hours12 < 10 ? '0' + hours12 : hours12}:${minutes} ${ampm}`;
+
         const tournamentSlug = editId ? editId : (title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000));
 
         const tournamentData = {
@@ -1841,6 +1955,15 @@
           maxTeamSize,
           mode,
           location,
+          date: formattedDate,
+          isoDate,
+          time: formattedTime,
+          seats,
+          host,
+          duration,
+          whatsappLink,
+          instructions,
+          description,
           type: "tournament",
           typeLabel: "Tournament",
           color: maxTeamSize > 1 ? "#8B6FD4" : "#C8E84A",
@@ -1886,6 +2009,19 @@
       document.getElementById("tournamentMaxTeam").value = String(match.maxTeamSize || 1);
       document.getElementById("tournamentMode").value = match.mode || "offline";
       document.getElementById("tournamentLocation").value = match.location || "";
+
+      // Try setting date and time back to inputs
+      if (match.isoDate) {
+        const dtParts = match.isoDate.split("T");
+        document.getElementById("tournamentDate").value = dtParts[0] || "";
+        document.getElementById("tournamentTime").value = (dtParts[1] || "").substring(0, 5) || "";
+      }
+      document.getElementById("tournamentSeats").value = match.seats || 64;
+      document.getElementById("tournamentHost").value = match.host || "";
+      document.getElementById("tournamentDuration").value = match.duration || "";
+      document.getElementById("tournamentWhatsapp").value = match.whatsappLink || "";
+      document.getElementById("tournamentInstructions").value = match.instructions || "";
+      document.getElementById("tournamentDescription").value = match.description || "";
 
       document.getElementById("tournament-form-title").innerHTML = `Update Tournament: <span style="color:var(--soft-purple);">${match.title}</span>`;
       document.getElementById("btn-tournament-submit").textContent = "Update Tournament";

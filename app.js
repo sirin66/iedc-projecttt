@@ -104,6 +104,10 @@ async function switchTab(tabName) {
   const bottomNav = document.querySelector(".bottom-nav");
   if (bottomNav) bottomNav.style.display = "flex";
 
+  // Ensure global news ticker is visible when tab sections are active
+  const globalTicker = document.getElementById("global-ticker-wrap");
+  if (globalTicker) globalTicker.style.display = "block";
+
   // 3. Update active neon state on bottom icons
   document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
       btn.classList.remove('active-neon');
@@ -151,6 +155,16 @@ async function navigateTo(screenId) {
   if (targetScreen) {
     targetScreen.style.display = "block";
     targetScreen.classList.add("active");
+  }
+
+  // Handle ticker visibility based on screen navigation
+  const globalTicker = document.getElementById("global-ticker-wrap");
+  if (globalTicker) {
+    if (screenId === "auth" || screenId === "pending") {
+      globalTicker.style.display = "none";
+    } else {
+      globalTicker.style.display = "block";
+    }
   }
 
   const presentationContainer = document.querySelector(".presentation-container");
@@ -259,7 +273,11 @@ async function syncRegistrations() {
               checkedIn: reg.checkedIn === true,
               razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
               phone: reg.phone || "",
-              bankAccountName: reg.bankAccountName || ""
+              bankAccountName: reg.bankAccountName || "",
+              duration: match ? (match.duration || "") : "",
+              whatsappLink: match ? (match.whatsappLink || "") : "",
+              instructions: match ? (match.instructions || "") : "",
+              poster: match ? (match.poster || match.poster_url || "") : ""
             });
           });
 
@@ -302,7 +320,11 @@ async function syncRegistrations() {
             checkedIn: reg.checkedIn === true,
             razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
             phone: reg.phone || "",
-            bankAccountName: reg.bankAccountName || ""
+            bankAccountName: reg.bankAccountName || "",
+            duration: match ? (match.duration || "") : "",
+            whatsappLink: match ? (match.whatsappLink || "") : "",
+            instructions: match ? (match.instructions || "") : "",
+            poster: match ? (match.poster || match.poster_url || "") : ""
           });
         }
       });
@@ -995,15 +1017,31 @@ async function completeUpiRegistration(registrationData) {
 
 function showTicket(registration) {
   document.getElementById("ticket-event-name").textContent = registration.title;
-  document.getElementById("ticket-date").textContent = registration.date;
+  document.getElementById("ticket-date").textContent = registration.date + " - " + registration.time;
   document.getElementById("ticket-loc").textContent = registration.location;
   document.getElementById("ticket-id-text").textContent = `TICKET ID: ${registration.ticketId}`;
   
+  document.getElementById("ticket-attendee").textContent = registration.studentName || USER_PROFILE.name || "Student";
+  document.getElementById("ticket-student-id").textContent = registration.registerNo || USER_PROFILE.id || "N/A";
+  
+  const posterUrl = registration.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80";
+  document.getElementById("ticket-poster-img").style.backgroundImage = `linear-gradient(to bottom, rgba(8,8,16,0.1), rgba(10,10,20,0.9)), url(${posterUrl})`;
+
   const typeTag = document.getElementById("ticket-type-tag");
   typeTag.textContent = registration.typeLabel;
-  typeTag.className = `ticket-event-type chip chip-${registration.type}`;
+  typeTag.className = `chip chip-${registration.type}`;
 
   generateQRCode(registration.ticketId, registration.color);
+
+  // Conditional WhatsApp group link inside pass
+  const waBtn = document.getElementById("ticket-whatsapp-btn");
+  const isConfirmed = registration.status === "Confirmed";
+  if (isConfirmed && registration.whatsappLink) {
+    waBtn.href = registration.whatsappLink;
+    waBtn.style.display = "inline-flex";
+  } else {
+    waBtn.style.display = "none";
+  }
 
   document.getElementById("btn-ticket-download").onclick = () => {
     showToast("Ticket downloaded successfully!", "var(--success)", "var(--success)");
@@ -1123,6 +1161,13 @@ function renderDashboard() {
         ? `<span style="color:var(--muted-white); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Pending Verification</span>`
         : `<span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>`;
 
+      const detailsId = `wallet-details-${reg.ticketId}`;
+      const isConfirmed = reg.status === "Confirmed";
+      const whatsappButton = (isConfirmed && reg.whatsappLink) 
+        ? `<a href="${reg.whatsappLink}" target="_blank" class="btn" style="background:#25D366 !important; color:white !important; font-size:11px; padding:8px 12px; border-radius:8px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; text-transform:uppercase; box-shadow:0 0 10px rgba(37,211,102,0.3); width: 100%;">💬 Join Official WhatsApp Group</a>` 
+        : "";
+
+      card.style.cursor = "pointer";
       card.innerHTML = `
         <div class="ticket-wallet-header">
           <span class="chip chip-${reg.type}" style="font-size:10px !important;">${reg.typeLabel}</span>
@@ -1138,6 +1183,18 @@ function renderDashboard() {
             ${qrSection}
           </div>
         </div>
+        
+        <!-- Interactive Expandable Detail View -->
+        <div id="${detailsId}" style="display: none; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 4px; font-size: 12px; color: var(--muted-white); text-align: left;">
+          <div style="display:flex; justify-content:space-between; gap: 10px;">
+            <span>Start Time: <strong style="color:white;">${reg.time}</strong></span>
+            <span>Duration: <strong style="color:white;">${reg.duration || '3 Hours'}</strong></span>
+          </div>
+          <div>Location: <strong style="color:white;">${reg.location}</strong></div>
+          <div style="line-height:1.4;">Instructions: <span style="color:white;">${reg.instructions || 'Please arrive 15 minutes before the start time. Carry your student ID card.'}</span></div>
+          ${whatsappButton}
+        </div>
+
         <div class="ticket-wallet-perf"></div>
         <div class="ticket-wallet-footer">
           <span style="font-family:monospace; color:var(--muted-white); font-size: 11px;">ID: ${reg.ticketId}</span>
@@ -1145,6 +1202,18 @@ function renderDashboard() {
         </div>
       `;
       listContainer.appendChild(card);
+      
+      // Bind click event to toggle details section on ticket wallet card
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("a") || e.target.closest("span[onclick]") || e.target.closest("canvas")) {
+          return;
+        }
+        const detailsEl = document.getElementById(detailsId);
+        if (detailsEl) {
+          const isHidden = detailsEl.style.display === "none";
+          detailsEl.style.display = isHidden ? "flex" : "none";
+        }
+      });
       
       // Draw live canvas QR code inside card ONLY if confirmed
       if (!isPending) {

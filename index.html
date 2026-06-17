@@ -465,6 +465,13 @@
 
       <div class="screen-container">
 
+        <!-- Global news ticker -->
+        <div class="ticker-wrap" id="global-ticker-wrap" style="display: none;">
+          <div class="ticker">
+            <span class="ticker-item">📢 Loading live announcements...</span>
+          </div>
+        </div>
+
         <!-- Initial In-App Mobile Advertisement/Alert Overlay -->
         <div id="ad-overlay" class="ad-overlay">
           <div class="ad-modal">
@@ -722,13 +729,6 @@
         </div>
 
         <div id="home-section" class="screen nav-section active">
-          <!-- Horizontal Scrolling News Ticker Tape -->
-          <div class="ticker-wrap">
-            <div class="ticker">
-              <span class="ticker-item">📢 Loading live announcements...</span>
-            </div>
-          </div>
-
           <div class="app-header">
             <div class="logo-wrapper">
               <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -961,88 +961,67 @@
           </div>
         </div>
 
-        <div id="screen-ticket" class="screen full-height" style="background: rgba(8, 8, 16, 0.96); backdrop-filter: blur(20px);">
+        <div id="screen-ticket" class="screen full-height" style="background: rgba(8, 8, 16, 0.98); backdrop-filter: blur(20px); display: none;">
           <div class="btn-back" id="ticket-back-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </div>
-
-          <div class="screen-content ticket-screen-content" style="padding-top: calc(var(--space-xxl) + 16px);">
-            <span class="section-eyebrow" style="text-align: center;">Successfully Registered!</span>
-            <h1 class="h2-title" style="margin-top: var(--space-xs); text-align: center;">Get Ready to Innovate</h1>
-
-            <div class="ticket-wrapper">
-              <div class="ticket-inner">
-                <div class="ticket-qr-area">
-                  <div class="ticket-qr-header">
-                    <div class="logo-wrapper">
-                      <svg width="72" height="34" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
-                        style="display: block;">
-                        <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
-                        <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
-                        <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(8,8,16,0.3)" />
-                        <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950"
-                          font-size="18" fill="#080810" letter-spacing="-0.5">IEDC</text>
-                        <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950"
-                          font-size="18" fill="#080810" letter-spacing="-0.5">RIT</text>
-                        <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
-                          stroke-linejoin="round" />
-                        <circle cx="74" cy="32" r="3" fill="#E8614A" />
-                      </svg>
-                    </div>
-                    <span class="ticket-event-type chip" id="ticket-type-tag">HACKATHON</span>
-                  </div>
-                  <div class="ticket-qr-canvas-container">
-                    <canvas id="qr-canvas" class="ticket-qr-canvas"></canvas>
-                  </div>
-                  <span class="ticket-scan-prompt">Scan at Entry Gate</span>
-                </div>
-
-                <div class="ticket-perforation"></div>
-
-                <div class="ticket-info-area">
-                  <div class="ticket-event-name" id="ticket-event-name">InnovateRIT Hackathon</div>
-
-                  <div class="ticket-details-grid">
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">Attendee</span>
-                      <span class="ticket-detail-val" id="ticket-attendee">Sirin</span>
-                    </div>
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">Date</span>
-                      <span class="ticket-detail-val" id="ticket-date">24 June, 2026</span>
-                    </div>
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">Location</span>
-                      <span class="ticket-detail-val" id="ticket-loc">RIT Seminar Hall</span>
-                    </div>
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">College</span>
-                      <span class="ticket-detail-val" id="ticket-college">Rajiv Gandhi Institute of Technology</span>
-                    </div>
-                  </div>
-
-                  <span class="ticket-id" id="ticket-id-text">TICKET ID: IEDC-90823-RIT</span>
+          <div class="screen-content" style="padding: 24px 16px 100px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; height: 100%;">
+            <div class="poster-ticket-card" id="poster-ticket-card" style="position: relative; width: 100%; max-width: 320px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(10, 10, 20, 0.85); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(200, 232, 74, 0.15); overflow: hidden; display: flex; flex-direction: column; margin-top: 10px;">
+              
+              <!-- Backdrop/Header Image -->
+              <div id="ticket-poster-img" style="width: 100%; height: 160px; background-size: cover; background-position: center; position: relative;">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(8,8,16,0.1), rgba(10,10,20,0.9));"></div>
+                <div style="position: absolute; top: 12px; right: 12px;">
+                  <span id="ticket-type-tag" class="chip" style="font-size: 10px; font-weight: 800; border: none;">WORKSHOP</span>
                 </div>
               </div>
+
+              <!-- Content Area -->
+              <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; margin-top: -30px; z-index: 2;">
+                <h2 id="ticket-event-name" style="font-family: var(--font-display); font-size: 22px; font-weight: 900; line-height: 1.2; color: #fff; margin: 0;">Event Name</h2>
+                
+                <!-- QR Code Canvas -->
+                <div style="background: white; padding: 12px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: inline-block; margin: 8px 0;">
+                  <canvas id="qr-canvas" style="display: block; width: 150px; height: 150px;"></canvas>
+                </div>
+                
+                <!-- Attendee Info -->
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 4px; border-top: 1px dashed rgba(255, 255, 255, 0.15); border-bottom: 1px dashed rgba(255, 255, 255, 0.15); padding: 12px 0;">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-white);">
+                    <span>ATTENDEE</span>
+                    <span>REGISTER ID</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #fff;">
+                    <span id="ticket-attendee">Student Name</span>
+                    <span id="ticket-student-id" style="font-family: monospace; color: var(--neon-yellow);">RIT22CS089</span>
+                  </div>
+                  
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-white); margin-top: 8px;">
+                    <span>DATE & TIME</span>
+                    <span>VENUE / LOCATION</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #fff; text-align: left;">
+                    <span id="ticket-date">June 24, 2026 - 10:00 AM</span>
+                    <span id="ticket-loc" style="text-align: right; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Seminar Hall</span>
+                  </div>
+                </div>
+
+                <!-- Ticket ID Footer -->
+                <div id="ticket-id-text" style="font-family: monospace; font-size: 11px; color: var(--muted-white); letter-spacing: 0.5px;">TICKET ID: reg-123456</div>
+
+                <!-- Conditional WhatsApp button inside pass -->
+                <a id="ticket-whatsapp-btn" href="#" target="_blank" class="btn" style="display: none; background: #25D366 !important; color: #fff !important; width: 100%; padding: 12px; font-size: 12px; border-radius: 12px; font-weight: 800; border: none; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 0 15px rgba(37, 211, 102, 0.4); text-transform: uppercase;">
+                  💬 Join Official WhatsApp Group
+                </a>
+              </div>
+
             </div>
 
-            <div class="ticket-actions">
-              <button class="btn btn-secondary" id="btn-ticket-download">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                </svg>
-                Download
-              </button>
-              <button class="btn btn-ghost" id="btn-ticket-share">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
-                </svg>
-                Share
-              </button>
+            <div class="ticket-actions" style="display: flex; gap: 12px; margin-top: 20px; width: 100%; max-width: 320px;">
+              <button class="btn btn-secondary" id="btn-ticket-download" style="flex: 1; font-size: 12px; padding: 12px;">Download</button>
+              <button class="btn btn-ghost" id="btn-ticket-share" style="flex: 1; font-size: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.1); color: white;">Share Pass</button>
             </div>
           </div>
         </div>
