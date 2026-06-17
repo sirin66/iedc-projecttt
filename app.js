@@ -199,7 +199,8 @@ async function syncRegistrations() {
               status: reg.status || "Confirmed",
               checkedIn: reg.checkedIn === true,
               razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-              phone: reg.phone || ""
+              phone: reg.phone || "",
+              bankAccountName: reg.bankAccountName || ""
             });
           });
 
@@ -241,7 +242,8 @@ async function syncRegistrations() {
             status: reg.status || "Confirmed",
             checkedIn: reg.checkedIn === true,
             razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-            phone: reg.phone || ""
+            phone: reg.phone || "",
+            bankAccountName: reg.bankAccountName || ""
           });
         }
       });
@@ -500,7 +502,7 @@ function openEventDetail(event) {
       modalPayBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
     }
   } else {
-    const btnText = event.price && event.price !== "Free" ? "Register & Pay via UPI" : "Confirm Free Register";
+    const btnText = event.price && event.price !== "Free" ? "Proceed to Pay" : "Confirm Free Register";
     regBtn.textContent = btnText;
     regBtn.disabled = false;
     regBtn.style.backgroundColor = "var(--nova-yellow)";
@@ -589,6 +591,13 @@ document.getElementById("detail-reg-form").addEventListener("submit", (e) => {
 async function handleRegistrationCheckout() {
   if (!selectedEvent) return;
 
+  // ===== STRICT VALIDATION: Bank Account Owner Name =====
+  const bankAccountName = document.getElementById("detail-reg-bank-name").value.trim();
+  if (!bankAccountName) {
+    alert("Please enter the Bank Account Owner's Full Name to proceed with the payment");
+    return;
+  }
+
   const phone = document.getElementById("detail-reg-phone").value.trim();
   if (!phone) {
     showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
@@ -676,6 +685,7 @@ async function handleRegistrationCheckout() {
     studentName: USER_PROFILE.name,
     studentEmail: USER_PROFILE.email,
     registerNo: USER_PROFILE.id,
+    bankAccountName, // Save the bank account owner's name here!
     phone,
     teamMembers,
     amount,
@@ -716,9 +726,9 @@ async function handleRegistrationCheckout() {
       amountLabel.textContent = `Amount Due: ₹${amount}`;
     }
 
-    // Dynamically fetch UPI ID from selected event, falling back to default if missing
-    const upiId = selectedEvent.upiId || selectedEvent.upi || "iedcrit@okaxis";
-    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(selectedEvent.title)}&am=${amount}&cu=INR`;
+    // Construct dynamic UPI deep-link intent using eventData
+    const eventData = selectedEvent;
+    const upiLink = `upi://pay?pa=${eventData.upiId}&pn=${eventData.title}&am=150&cu=INR`;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const mobileView = document.getElementById("waiting-mobile-view");
     const desktopView = document.getElementById("waiting-desktop-view");
@@ -1125,6 +1135,10 @@ function renderDashboard() {
 window.viewPassDetails = function(ticketId) {
   const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
   if (reg) {
+    if (reg.status === "Pending") {
+      showToast("Payment is still processing.", "var(--warning)", "var(--warning)");
+      return;
+    }
     showTicket(reg);
   }
 };
@@ -1877,6 +1891,14 @@ window.closeWaitingOverlayAndGoToWallet = function() {
   navigateTo("dashboard");
   switchDashboardTab("events");
 };
+
+document.getElementById("btn-waiting-back").addEventListener("click", () => {
+  const waitOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitOverlay) waitOverlay.style.display = "none";
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  navigateTo("dashboard");
+  switchDashboardTab("events");
+});
 
 /**
  * Standalone batch cleanup utility to remove duplicate or orphaned registrations.

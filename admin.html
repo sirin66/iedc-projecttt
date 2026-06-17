@@ -674,6 +674,7 @@
                   <th>Student Name</th>
                   <th>KTU ID</th>
                   <th>Contact Details</th>
+                  <th>Account Holder Name</th>
                   <th>Payment Ref</th>
                   <th>Check-In Gate Status</th>
                   <th style="text-align: right;">Registration Status</th>
@@ -681,7 +682,7 @@
               </thead>
               <tbody id="attendee-table-body">
                 <tr>
-                  <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 32px;">
+                  <td colspan="7" style="text-align: center; color: var(--muted-white); padding: 32px;">
                     Please select an event above to view attendee auditing ledger.
                   </td>
                 </tr>
@@ -1193,7 +1194,7 @@
       if (!selectedEventId) {
         attendeeTbody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 32px;">
+            <td colspan="7" style="text-align: center; color: var(--muted-white); padding: 32px;">
               Please select an event above to view attendee auditing ledger.
             </td>
           </tr>`;
@@ -1207,7 +1208,7 @@
       if (matches.length === 0) {
         attendeeTbody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 32px;">
+            <td colspan="7" style="text-align: center; color: var(--muted-white); padding: 32px;">
               No attendees found for this event yet.
             </td>
           </tr>`;
@@ -1220,6 +1221,7 @@
         const ktu = reg.registerNo || "N/A";
         const email = reg.studentEmail || "N/A";
         const phone = reg.phone || "N/A";
+        const bankAccountName = reg.bankAccountName || "N/A";
         const payRef = reg.razorpayPaymentId || reg.utrNumber || "FREE CHECKOUT";
         const isCheckedIn = reg.checkedIn === true;
         const status = reg.status || "Confirmed";
@@ -1231,6 +1233,7 @@
             <div>${email}</div>
             <div style="font-size: 11px; color: var(--muted-white);">${phone}</div>
           </td>
+          <td><div style="font-weight: 600; color: var(--nova-yellow);">${bankAccountName}</div></td>
           <td style="font-size: 12px; font-family: monospace;">${payRef}</td>
           <td>
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -1397,16 +1400,17 @@
       }
 
       // Compile CSV content
-      let csv = "Student Name,KTU ID,Email,Phone,Payment Reference Code,Checked-In Gate\n";
+      let csv = "Student Name,KTU ID,Email,Phone,Account Holder Name,Payment Reference Code,Checked-In Gate\n";
       matches.forEach(reg => {
         const name = (reg.studentName || "").replace(/,/g, " ");
         const ktu = (reg.registerNo || "").replace(/,/g, " ");
         const email = (reg.studentEmail || "").replace(/,/g, " ");
         const phone = (reg.phone || "").replace(/,/g, " ");
+        const bankName = (reg.bankAccountName || "").replace(/,/g, " ");
         const payRef = (reg.razorpayPaymentId || reg.utrNumber || "FREE").replace(/,/g, " ");
         const checked = reg.checkedIn === true ? "YES" : "NO";
 
-        csv += `"${name}","${ktu}","${email}","${phone}","${payRef}","${checked}"\n`;
+        csv += `"${name}","${ktu}","${email}","${phone}","${bankName}","${payRef}","${checked}"\n`;
       });
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
