@@ -1,8 +1,37 @@
-// ==========================================================
-// RITU 2026 — SECURE ENGINE, LIVE DATA & EXPLOIT PATCHES
-// ==========================================================
+// ==========================================
+// 01 — APPLICATION STATE & CONFIGURATION
+// ==========================================
 
-// Firebase Initialization configuration block
+let EVENTS_DATA = [];
+let USER_REGISTRATIONS = [];
+let USER_PROFILE = {
+  name: "",
+  email: "",
+  id: "",
+  collegeName: "",
+  avatar: "",
+  phone: ""
+};
+
+let selectedEvent = null;
+let currentFilter = "all";
+let searchQuery = "";
+let countdownInterval = null;
+let detailCountdownInterval = null;
+let teamMemberCount = 0;
+let pendingRegistration = null;
+let currentVerificationUnsubscribe = null;
+let simulatorPollingInterval = null;
+let pendingRegistrationId = null;
+
+const PHONEPE_CONFIG = {
+  MERCHANT_ID: "M222YFJEV26ZI_2606161742",
+  SALT_KEY: "YTFkMDU1NzktMjBlNC00YzFmLTkxMTQtNWFlODY1Yjc3Mzlk",
+  SALT_INDEX: "1",
+  API_URL: "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay"
+};
+
+// Firebase initialization configuration block
 const firebaseConfig = {
   apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
   authDomain: "iedc-ux.firebaseapp.com",
@@ -13,609 +42,2151 @@ const firebaseConfig = {
   measurementId: "G-2KH08MNGSX"
 };
 
-// Initialize Firebase standard execution logic
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// Toast alert notification utility helper
-function showToast(message, color = "var(--white-pure)") {
-  const toast = document.getElementById("app-toast");
-  const text = document.getElementById("toast-text");
-  if (toast && text) {
-    text.textContent = message;
-    toast.style.borderColor = color;
-    toast.classList.add("show");
-    setTimeout(() => {
-      toast.classList.remove("show");
-    }, 3000);
-  } else {
-    console.log(`[Toast Fallback]: ${message}`);
+let useRealFirebase = false;
+if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    useRealFirebase = true;
+    console.log("Firebase initialized successfully inside client engine.");
+  } catch (error) {
+    console.error("Firebase initialization fallback error:", error);
   }
 }
+sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
-// ==========================================================
-// 1. ROUTING GUARDS & AUTHENTICATION GATES
-// ==========================================================
-const path = window.location.pathname;
+// ==========================================
+// 02 — DOM ELEMENTS REGISTRY
+// ==========================================
 
-// On the main page, verify active authentication session
-if (path.endsWith("index.html") || path.endsWith("/")) {
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      // Force redirect back to gateway page if unauthenticated
-      window.location.href = "login.html";
-    } else {
-      loadStudentPortal(user);
-    }
+const screens = {
+  auth: document.getElementById("screen-auth"),
+  pending: document.getElementById("screen-pending"),
+  home: document.getElementById("home-section"),
+  detail: document.getElementById("screen-detail"),
+  ticket: document.getElementById("screen-ticket"),
+  profile: document.getElementById("profile-section"),
+  wallet: document.getElementById("wallet-section"),
+  news: document.getElementById("news-section")
+};
+
+const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
+
+// ==========================================
+// 03 — ROUTING & SCREEN TRANSITIONS
+// ==========================================
+
+async function switchTab(tabName) {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+
+  // 1. Hide all navigation sections completely
+  document.querySelectorAll('.nav-section').forEach(section => {
+      section.style.display = 'none';
+      section.classList.remove('active');
   });
-}
-
-// Login trigger event click handler
-const loginBtn = document.getElementById('login-btn');
-if (loginBtn) {
-  loginBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('student-email').value.trim();
-    const password = document.getElementById('student-password').value;
-
-    if (!email || !password) {
-      showToast("Please enter email and security password.", "var(--warning-color)");
-      return;
-    }
-
-    try {
-      loginBtn.disabled = true;
-      loginBtn.textContent = "Authenticating...";
-
-      // Standard Firebase credential verification
-      await auth.signInWithEmailAndPassword(email, password);
-      
-      showToast("Success! Redirecting...", "var(--success-color)");
-      setTimeout(() => {
-        window.location.href = "index.html"; // Redirect back to main page
-      }, 1000);
-
-    } catch (error) {
-      console.error("Auth Failure:", error);
-      let alertMsg = "Authentication failed: " + error.message;
-      if (error.code === "auth/wrong-password") {
-        alertMsg = "Incorrect security password. Access denied.";
-      } else if (error.code === "auth/user-not-found") {
-        alertMsg = "Student record not found in system.";
-      }
-      showToast(alertMsg, "var(--error-color)");
-    } finally {
-      loginBtn.disabled = false;
-      loginBtn.textContent = "Authenticate & Enter";
-    }
-  });
-}
-
-// ==========================================================
-// 2. LIVE DATA HANDLERS: NEWS TICKER & ANNOUNCEMENTS
-// ==========================================================
-
-// News Ticker Real-Time snapshot subscription
-db.collection("news").doc("global-news").onSnapshot((doc) => {
-  let message = "Welcome to RITU 2026 Event Platform & Support Hub!";
-  if (doc.exists) {
-    message = doc.data().text || message;
-  }
   
-  const tickerText = document.getElementById("news-ticker-text");
-  const tickerTextDup = document.getElementById("news-ticker-text-dup");
-  if (tickerText) tickerText.textContent = message;
-  if (tickerTextDup) tickerTextDup.textContent = message;
-
-  // Sync value inside admin console text-input field
-  const newsInput = document.getElementById("news-ticker-input");
-  if (newsInput && document.activeElement !== newsInput) {
-    newsInput.value = message;
+  // 2. Unhide the targeted section smoothly
+  const activeSection = document.getElementById(`${tabName}-section`);
+  if (activeSection) {
+      activeSection.style.display = 'block';
+      activeSection.classList.add('active');
   }
-}, (err) => {
-  console.warn("News ticker subscription bypassed or failed:", err);
-});
 
-// Admin News ticker overwrite handler
-const updateNewsBtn = document.getElementById("update-news-btn");
-if (updateNewsBtn) {
-  updateNewsBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("news-ticker-input");
-    const text = input.value.trim();
-    if (!text) return;
-
-    try {
-      updateNewsBtn.disabled = true;
-      updateNewsBtn.textContent = "Updating ticker...";
-
-      await db.collection("news").doc("global-news").set({
-        text,
-        updatedAt: new Date().toISOString()
-      });
-
-      showToast("Scrolling ticker message updated live!", "var(--success-color)");
-    } catch (err) {
-      console.error(err);
-      showToast("Ticker update failed: " + err.message, "var(--error-color)");
-    } finally {
-      updateNewsBtn.disabled = false;
-      updateNewsBtn.textContent = "Overwrite Ticker Text";
+  // Hide any overlay screens if open (e.g. auth, pending, detail, ticket)
+  const overlayIds = ["auth", "pending", "detail", "ticket"];
+  overlayIds.forEach(id => {
+    if (screens[id]) {
+      screens[id].style.display = "none";
+      screens[id].classList.remove("active");
     }
   });
-}
 
-// Real-Time Announcements subscription (renders feed on home and admin dashboard)
-db.collection("announcements").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
-  // 1. Populate Announcements Feed on student portal
-  const studentContainer = document.getElementById("announcements-list-container");
-  if (studentContainer) {
-    studentContainer.innerHTML = "";
-    if (snapshot.empty) {
-      studentContainer.innerHTML = '<p class="body-sub" style="text-align: center; color: var(--white-muted); margin-top: 20px;">No active announcement bulletins.</p>';
-    } else {
-      snapshot.forEach(doc => {
-        const ann = doc.data();
-        const dateStr = ann.timestamp ? new Date(ann.timestamp).toLocaleString() : "";
-        const div = document.createElement("div");
-        div.className = "announcement-card";
-        div.innerHTML = `
-          <p class="body-lead" style="font-weight: 600; color: var(--white-pure);">${ann.text || ""}</p>
-          <p class="body-sub" style="font-size: 10px; margin-top: 6px; color: var(--white-muted); font-family: monospace;">${dateStr}</p>
-        `;
-        studentContainer.appendChild(div);
-      });
-    }
-  }
+  // Ensure bottom navigation bar is visible when tab sections are active
+  const bottomNav = document.querySelector(".bottom-nav");
+  if (bottomNav) bottomNav.style.display = "flex";
 
-  // 2. Populate Announcements feed on admin control board
-  const adminContainer = document.getElementById("admin-announcements-list");
-  if (adminContainer) {
-    adminContainer.innerHTML = "";
-    if (snapshot.empty) {
-      adminContainer.innerHTML = '<p class="body-sub" style="text-align: center; color: var(--white-muted); padding: var(--space-md) 0;">No active bulletins posted.</p>';
-    } else {
-      snapshot.forEach(doc => {
-        const ann = doc.data();
-        const dateStr = ann.timestamp ? new Date(ann.timestamp).toLocaleString() : "";
-        const div = document.createElement("div");
-        div.className = "admin-announcement-item";
-        div.innerHTML = `
-          <div style="flex: 1; padding-right: var(--space-sm); text-align: left;">
-            <p class="body-lead" style="font-size: 13px; font-weight: 600; color: var(--white-pure); line-height: 1.4;">${ann.text || ""}</p>
-            <p class="body-sub" style="font-size: 10px; color: var(--white-muted); margin-top: 4px; font-family: monospace;">${dateStr}</p>
-          </div>
-          <button class="btn btn-glass" style="width: auto; padding: 6px 12px; font-size: 10px; border-radius: 8px; color: var(--error-color); border-color: rgba(232, 97, 74, 0.2);" onclick="deleteAnnouncement('${doc.id}')">
-            Delete
-          </button>
-        `;
-        adminContainer.appendChild(div);
-      });
-    }
-  }
-}, (err) => {
-  console.warn("Announcements stream failed:", err);
-});
-
-// Admin Announcement posting trigger handler
-const postAnnouncementBtn = document.getElementById("post-announcement-btn");
-if (postAnnouncementBtn) {
-  postAnnouncementBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("announcement-input");
-    const text = input.value.trim();
-    if (!text) return;
-
-    try {
-      postAnnouncementBtn.disabled = true;
-      postAnnouncementBtn.textContent = "Publishing...";
-
-      const id = "ann-" + Date.now();
-      await db.collection("announcements").doc(id).set({
-        id,
-        text,
-        timestamp: new Date().toISOString()
-      });
-
-      input.value = "";
-      showToast("Announcement bulletin published live!", "var(--success-color)");
-    } catch (err) {
-      console.error(err);
-      showToast("Announcement post failed: " + err.message, "var(--error-color)");
-    } finally {
-      postAnnouncementBtn.disabled = false;
-      postAnnouncementBtn.textContent = "Publish Bulletin";
-    }
+  // 3. Update active neon state on bottom icons
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+      btn.classList.remove('active-neon');
   });
-}
-
-// Admin Announcement deletion handler
-async function deleteAnnouncement(announcementId) {
-  if (!confirm("Are you sure you want to delete this announcement bulletin permanently?")) return;
-
-  try {
-    showToast("Deleting bulletin...", "var(--white-pure)");
-    await db.collection("announcements").doc(announcementId).delete();
-    showToast("Announcement deleted successfully!", "var(--success-color)");
-  } catch (err) {
-    console.error(err);
-    showToast("Delete failed: " + err.message, "var(--error-color)");
-  }
-}
-window.deleteAnnouncement = deleteAnnouncement;
-
-// ==========================================================
-// 3. STUDENT PORTAL DATA LOADER
-// ==========================================================
-async function loadStudentPortal(user) {
-  document.getElementById('profile-email-display').textContent = user.email;
-
-  try {
-    const profileSnap = await db.collection("students").doc(user.uid).get();
-    if (profileSnap.exists) {
-      const p = profileSnap.data();
-      document.getElementById('profile-name-display').textContent = p.name || "Student";
-      document.getElementById('profile-id-display').textContent = p.registerNo || p.id || "N/A";
-
-      const statusBadge = document.getElementById('profile-status-display');
-      statusBadge.textContent = p.approved === true ? "Approved" : "Pending Approval";
-      statusBadge.className = p.approved === true ? "badge-status-pill badge-approved" : "badge-status-pill badge-pending";
-    } else {
-      // Auto seed missing profiles
-      const nameFromEmail = user.email.split('@')[0].toUpperCase();
-      const fallbackProfile = {
-        uid: user.uid,
-        name: nameFromEmail,
-        registerNo: "RIT26CS" + Math.floor(100 + Math.random() * 900),
-        approved: false,
-        email: user.email,
-        createdAt: new Date().toISOString()
-      };
-      await db.collection("students").doc(user.uid).set(fallbackProfile);
-
-      document.getElementById('profile-name-display').textContent = fallbackProfile.name;
-      document.getElementById('profile-id-display').textContent = fallbackProfile.registerNo;
-
-      const statusBadge = document.getElementById('profile-status-display');
-      statusBadge.textContent = "Pending Approval";
-      statusBadge.className = "badge-status-pill badge-pending";
-    }
-  } catch (err) {
-    console.error("Error loading profile:", err);
+  const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+  if (activeBtn) {
+      activeBtn.classList.add('active-neon');
   }
 
-  // Realtime Ticket Wallet synchronizer
-  db.collection("registrations")
-    .where("studentUid", "==", user.uid)
-    .onSnapshot((snapshot) => {
-      const container = document.getElementById('wallet-container');
-      if (!container) return;
+  // 4. Trigger data syncing and layout rendering
+  if (tabName === "home") {
+    await syncEvents();
+    renderHomeEvents();
+  } else {
+    await syncEvents();
+    await syncRegistrations();
+    renderDashboard();
+  }
+}
+window.switchTab = switchTab;
 
-      container.innerHTML = "";
-      if (snapshot.empty) {
-        container.innerHTML = `<p class="body-sub">No active ticket passes stored in wallet.</p>`;
+async function navigateTo(screenId) {
+  // If the target is one of the bottom tab pages, run switchTab instead
+  if (["home", "wallet", "news", "profile"].includes(screenId)) {
+    await switchTab(screenId);
+    return;
+  }
+
+  // Hide all screens (both overlay screens and nav-sections)
+  Object.entries(screens).forEach(([id, screen]) => {
+    if (screen) {
+      // Keep home section visible if details overlay (detail) is nested inside it
+      if (screenId === "detail" && id === "home") {
+        screen.style.display = "block";
+        screen.classList.add("active");
         return;
       }
+      screen.style.display = "none";
+      screen.classList.remove("active");
+    }
+  });
 
-      snapshot.forEach(doc => {
-        const reg = doc.data();
-        const card = document.createElement('div');
-        card.className = "glass-panel";
-        card.style.padding = "var(--space-md)";
-        card.style.textAlign = "left";
-        card.style.display = "flex";
-        card.style.justifyContent = "space-between";
-        card.style.alignItems = "center";
-        
-        const isSuccess = reg.payment_status === "Success";
-        const badgeClass = isSuccess ? "badge-approved" : "badge-pending";
-        const badgeText = isSuccess ? "Active Pass" : "Pending Pay";
+  // Show targeted overlay screen
+  const targetScreen = screens[screenId];
+  if (targetScreen) {
+    targetScreen.style.display = "block";
+    targetScreen.classList.add("active");
+  }
 
-        card.innerHTML = `
-          <div>
-            <h4 style="font-size: 13px; font-weight: 700; color: var(--white-pure);">${reg.eventTitle || "Workshop"}</h4>
-            <p class="body-sub" style="font-size: 10px; margin-top: 2px;">TICKET ID: ${doc.id}</p>
-          </div>
-          <span class="badge-status-pill ${badgeClass}">${badgeText}</span>
-        `;
-        container.appendChild(card);
+  const presentationContainer = document.querySelector(".presentation-container");
+  if (presentationContainer) presentationContainer.style.display = "flex";
+
+  const bottomNav = document.querySelector(".bottom-nav");
+  if (screenId === "auth" || screenId === "pending") {
+    if (bottomNav) bottomNav.style.display = "none";
+  } else {
+    if (bottomNav) bottomNav.style.display = "flex";
+  }
+}
+
+// Bind click event listeners dynamically to all bottom nav buttons
+document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tabName = btn.getAttribute("data-tab");
+    if (tabName) {
+      switchTab(tabName);
+    }
+  });
+});
+
+document.getElementById("detail-back-btn").addEventListener("click", () => {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  switchTab("home");
+});
+document.getElementById("ticket-back-btn").addEventListener("click", () => switchTab("wallet"));
+document.getElementById("setup-back-btn").addEventListener("click", () => switchTab("home"));
+
+// ==========================================
+// 04 — DATABASE SYNCHRONIZATION (Firestore / Simulator)
+// ==========================================
+
+async function syncEvents() {
+  let mergedEvents = [];
+
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      
+      const eventsSnap = await db.collection("events").get();
+      eventsSnap.forEach(doc => {
+        const evt = doc.data();
+        mergedEvents.push(evt);
       });
-    }, (error) => {
-      console.error("Wallet stream error:", error);
+
+      const tournamentsSnap = await db.collection("tournaments").get();
+      tournamentsSnap.forEach(doc => {
+        const tour = doc.data();
+        mergedEvents.push(tour);
+      });
+    } catch (err) {
+      console.error("Firestore events fetch error:", err);
+    }
+  } else {
+    // Simulator Mode fallback
+    try {
+      const mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+      const mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+
+      mockEvents.forEach(evt => mergedEvents.push(evt));
+      mockTournaments.forEach(tour => mergedEvents.push(tour));
+    } catch (err) {
+      console.error("Local mock storage load failed:", err);
+    }
+  }
+
+  EVENTS_DATA = mergedEvents;
+}
+
+let registrationsUnsubscribe = null;
+
+async function syncRegistrations() {
+  const cachedUid = sessionStorage.getItem("loggedInUserUid");
+  if (!cachedUid) return;
+
+  if (useRealFirebase) {
+    return new Promise((resolve) => {
+      if (registrationsUnsubscribe) {
+        registrationsUnsubscribe();
+      }
+      
+      const db = firebase.firestore();
+      registrationsUnsubscribe = db.collection("registrations")
+        .where("studentUid", "==", cachedUid)
+        .onSnapshot((snap) => {
+          let firebaseRegs = [];
+          snap.forEach(doc => {
+            const reg = doc.data();
+            const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+            firebaseRegs.push({
+              id: reg.eventId,
+              registrationId: reg.registrationId,
+              ticketId: reg.registrationId,
+              title: reg.eventTitle || (match ? match.title : "Event"),
+              type: match ? match.type : "talk",
+              typeLabel: match ? match.typeLabel : "Talk",
+              date: match ? match.date : "TBD",
+              isoDate: match ? match.isoDate : new Date().toISOString(),
+              time: match ? match.time : "TBD",
+              location: match ? match.location : "TBD",
+              host: match ? match.host : "IEDC RIT",
+              color: match ? match.color : "#C8E84A",
+              status: reg.status || "Confirmed",
+              checkedIn: reg.checkedIn === true,
+              razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+              phone: reg.phone || "",
+              bankAccountName: reg.bankAccountName || ""
+            });
+          });
+
+          USER_REGISTRATIONS = [...firebaseRegs];
+
+          // Re-render dashboard in real-time
+          const activeScreen = document.querySelector(".screen.active");
+          if (activeScreen && ["profile-section", "wallet-section", "news-section"].includes(activeScreen.id)) {
+            renderDashboard();
+          }
+          
+          resolve();
+        }, (err) => {
+          console.error("Registrations snapshot stream error:", err);
+          resolve();
+        });
     });
-}
-
-// BIND: Register Boot Camp Button click
-const registerCampBtn = document.getElementById('register-camp-btn');
-if (registerCampBtn) {
-  registerCampBtn.addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
+  } else {
+    // Simulator Mode fallback
+    let mergedRegs = [];
     try {
-      registerCampBtn.disabled = true;
-      registerCampBtn.textContent = "Requesting Registration...";
-
-      // Check if registration already exists to prevent duplication
-      const existingQuery = await db.collection("registrations")
-        .where("studentUid", "==", user.uid)
-        .where("eventId", "==", "gen-ai-bootcamp-01")
-        .get();
-
-      if (!existingQuery.empty) {
-        showToast("Already registered for this workshop.", "var(--warning-color)");
-        return;
-      }
-
-      const regId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
-      const studentName = document.getElementById('profile-name-display').textContent;
-      const registerNo = document.getElementById('profile-id-display').textContent;
-
-      const registrationData = {
-        registrationId: regId,
-        eventId: "gen-ai-bootcamp-01",
-        eventTitle: "Generative AI & Cloud Boot Camp",
-        studentName: studentName,
-        studentEmail: user.email,
-        registerNo: registerNo,
-        phone: "+91 98765 43210",
-        checkedIn: false,
-        status: "Pending",
-        payment_status: "Pending", // Starts as pending state
-        amount: 150,
-        createdAt: new Date().toISOString(),
-        studentUid: user.uid,
-        timestamp: new Date().toISOString()
-      };
-
-      await db.collection("registrations").doc(regId).set(registrationData);
-      showToast("Registration requested! Pending payment approval.", "var(--success-color)");
-
-    } catch (err) {
-      console.error("Registration write failure:", err);
-      showToast("Failed to request registration: " + err.message, "var(--error-color)");
-    } finally {
-      registerCampBtn.disabled = false;
-      registerCampBtn.textContent = "Register Workshop";
-    }
-  });
-}
-
-// ==========================================================
-// 4. SECURE TICKET LOCK GATING HANDLER
-// ==========================================================
-const viewTicketBtn = document.getElementById('view-ticket-btn');
-if (viewTicketBtn) {
-  viewTicketBtn.addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      showToast("Session expired. Please log in.", "var(--error-color)");
-      return;
-    }
-
-    try {
-      viewTicketBtn.disabled = true;
-      viewTicketBtn.textContent = "Verifying Credentials...";
-
-      // Fetch student's registration document from Firestore
-      const snap = await db.collection("registrations")
-        .where("studentUid", "==", user.uid)
-        .where("eventId", "==", "gen-ai-bootcamp-01")
-        .get();
-
-      if (snap.empty) {
-        showToast("Please register for the workshop first.", "var(--warning-color)");
-        return;
-      }
-
-      let regData = null;
-      let regId = null;
-      snap.forEach(doc => {
-        regData = doc.data();
-        regId = doc.id;
-      });
-
-      // Strict Conditional Visibility Lock check
-      if (regData && regData.payment_status === "Success") {
-        // Open modal popup
-        const modal = document.getElementById('ticket-modal');
-        document.getElementById('ticket-attendee-name').textContent = regData.studentName.toUpperCase();
-        document.getElementById('ticket-id').textContent = regId;
-
-        // Generate dynamic horizontal secure QR pass code
-        const canvas = document.getElementById('ticket-qr-canvas');
-        if (canvas) {
-          new QRious({
-            element: canvas,
-            value: regId,
-            size: 100,
-            background: "#FFFFFF",
-            foreground: "#030611",
-            level: "H"
+      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      mockRegs.forEach(reg => {
+        if (reg.studentUid === cachedUid) {
+          const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+          mergedRegs.push({
+            id: reg.eventId,
+            registrationId: reg.registrationId,
+            ticketId: reg.registrationId,
+            title: reg.eventTitle || (match ? match.title : "Event"),
+            type: match ? match.type : "talk",
+            typeLabel: match ? match.typeLabel : "Talk",
+            date: match ? match.date : "TBD",
+            isoDate: match ? match.isoDate : new Date().toISOString(),
+            time: match ? match.time : "TBD",
+            location: match ? match.location : "TBD",
+            host: match ? match.host : "IEDC RIT",
+            color: match ? match.color : "#C8E84A",
+            status: reg.status || "Confirmed",
+            checkedIn: reg.checkedIn === true,
+            razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
+            phone: reg.phone || "",
+            bankAccountName: reg.bankAccountName || ""
           });
         }
-
-        modal.classList.add('active');
-        showToast("VIP Pass Unlocked!", "var(--success-color)");
-
-      } else {
-        // Strict visibility lock: BLOCK and Alert user explicitly
-        alert("Payment Pending!");
-        showToast("Security Block: Payment Pending.", "var(--error-color)");
-      }
-
+      });
     } catch (err) {
-      console.error("Ticket authentication failure:", err);
-      showToast("Verification failed: " + err.message, "var(--error-color)");
-    } finally {
-      viewTicketBtn.disabled = false;
-      viewTicketBtn.textContent = "View Ticket Pass";
+      console.error("Mock registrations sync error:", err);
     }
-  });
+    USER_REGISTRATIONS = mergedRegs;
+    return Promise.resolve();
+  }
 }
 
-// Modal closing trigger listener
-const modalClose = document.getElementById('modal-close');
-if (modalClose) {
-  modalClose.addEventListener('click', () => {
-    document.getElementById('ticket-modal').classList.remove('active');
+// ==========================================
+// 05 — HOME SCREEN RENDERING & FILTERING
+// ==========================================
+
+function renderHomeEvents() {
+  const listContainer = document.getElementById("events-list-container");
+  const featuredContainer = document.getElementById("featured-card-container");
+  
+  listContainer.innerHTML = "";
+  featuredContainer.innerHTML = "";
+
+  // Filter query logic
+  let filtered = EVENTS_DATA.filter(evt => {
+    const matchesCategory = currentFilter === "all" || evt.type === currentFilter;
+    const matchesSearch = evt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          evt.host.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          evt.typeLabel.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
-}
 
-// ==========================================================
-// 5. ADMIN CONTROLS SYSTEM BINDINGS
-// ==========================================================
-if (path.endsWith("admin.html")) {
-  auth.onAuthStateChanged((user) => {
-    loadAdminData();
-  });
-}
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `
+      <div style="padding: var(--space-xl) 0; text-align: left; color: var(--muted-white);">
+        <p class="body-desc">No events found matching your queries.</p>
+      </div>
+    `;
+    return;
+  }
 
-function loadAdminData() {
-  const tbody = document.getElementById('admin-registrations-tbody');
-  if (!tbody) return;
+  // First spotlight card
+  let featuredEvent = null;
+  if (currentFilter === "all" && searchQuery === "") {
+    featuredEvent = filtered[0];
+    filtered = filtered.slice(1);
+  }
 
-  // Real-time registrations snapshots subscription
-  db.collection("registrations").onSnapshot((snapshot) => {
-    tbody.innerHTML = "";
-    
-    let total = 0;
-    let success = 0;
-    let pending = 0;
-
-    if (snapshot.empty) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--white-muted);">No student registrations found in database ledger.</td></tr>`;
-      updateAdminStats(0, 0, 0);
-      return;
+  if (featuredEvent) {
+    const featCard = document.createElement("div");
+    featCard.className = "card-featured";
+    featCard.style.setProperty("--event-color", featuredEvent.color);
+    if (featuredEvent.poster || featuredEvent.poster_url) {
+      const pUrl = featuredEvent.poster || featuredEvent.poster_url;
+      featCard.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.25), rgba(8, 8, 16, 0.9)), url(${pUrl})`;
+      featCard.style.backgroundSize = "cover";
+      featCard.style.backgroundPosition = "center";
     }
+    featCard.innerHTML = `
+      <div class="card-featured-circle"></div>
+      <div class="card-featured-content" style="width: 100%;">
+        <span class="chip chip-${featuredEvent.type}" style="margin-bottom: var(--space-sm);">${featuredEvent.typeLabel}</span>
+        <h2 class="h3-title" style="margin-bottom: var(--space-xs); line-height: 1.2;">${featuredEvent.title}</h2>
+        <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-bottom: 12px;">
+          <span>${featuredEvent.date}</span>
+          <span>•</span>
+          <span>${featuredEvent.time}</span>
+        </div>
+        <button class="card-btn-register" id="btn-register-${featuredEvent.id}">Register Now</button>
+      </div>
+    `;
+    featCard.addEventListener("click", (e) => {
+      if (e.target.classList.contains("card-btn-register")) return;
+      openEventDetail(featuredEvent);
+    });
+    featuredContainer.appendChild(featCard);
 
-    snapshot.forEach(doc => {
-      const reg = doc.data();
-      total++;
+    // Bind glassmorphic button click explicitly
+    featCard.querySelector(`#btn-register-${featuredEvent.id}`).addEventListener("click", (e) => {
+      e.stopPropagation();
+      openEventDetail(featuredEvent);
+    });
+  }
 
-      const isSuccess = reg.payment_status === "Success";
-      if (isSuccess) success++;
-      else pending++;
+  // Grid lists
+  filtered.forEach(evt => {
+    const card = document.createElement("div");
+    card.className = "card-event";
+    card.style.setProperty("--event-color", evt.color);
+    if (evt.poster || evt.poster_url) {
+      const pUrl = evt.poster || evt.poster_url;
+      card.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.65), rgba(8, 8, 16, 0.96)), url(${pUrl})`;
+      card.style.backgroundSize = "cover";
+      card.style.backgroundPosition = "center";
+    }
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <span class="chip chip-${evt.type}">${evt.typeLabel}</span>
+        <span class="caption-meta" style="color: var(--nova-yellow);">${evt.price}</span>
+      </div>
+      <h3 class="h3-title" style="margin-top: var(--space-xs); line-height:1.2;">${evt.title}</h3>
+      <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-top: auto; margin-bottom: 8px;">
+        <span style="display:flex; align-items:center; gap:4px;">
+          📅 ${evt.date}
+        </span>
+      </div>
+      <button class="card-btn-register" id="btn-register-${evt.id}">Register Now</button>
+    `;
+    card.addEventListener("click", (e) => {
+      if (e.target.classList.contains("card-btn-register")) return;
+      openEventDetail(evt);
+    });
+    listContainer.appendChild(card);
 
-      const tr = document.createElement('tr');
-      
-      const badgeClass = isSuccess ? "badge-approved" : "badge-pending";
-      const badgeText = isSuccess ? "Success" : "Pending";
+    // Bind glassmorphic button click explicitly
+    card.querySelector(`#btn-register-${evt.id}`).addEventListener("click", (e) => {
+      e.stopPropagation();
+      openEventDetail(evt);
+    });
+  });
+}
 
-      tr.innerHTML = `
-        <td>
-          <div style="font-weight: 700; color: var(--white-pure);">${reg.studentName || "N/A"}</div>
-          <div style="font-size: 11px; color: var(--white-muted); font-family: monospace;">ID: ${reg.registerNo || "N/A"}</div>
-        </td>
-        <td>
-          <div>${reg.studentEmail || "N/A"}</div>
-          <div style="font-size: 11px; color: var(--white-muted);">${reg.phone || "N/A"}</div>
-        </td>
-        <td>
-          <div style="font-weight: 600;">${reg.eventTitle || "Workshop"}</div>
-          <div style="font-size: 11px; color: var(--white-muted);">₹${reg.amount || 0}</div>
-        </td>
-        <td style="font-family: monospace; font-size: 12px;">${doc.id}</td>
-        <td>
-          <span class="badge-status-pill ${badgeClass}">${badgeText}</span>
-        </td>
-        <td style="text-align: right;" id="action-cell-${doc.id}">
-        </td>
-      `;
+// Search queries binding
+document.getElementById("search-input").addEventListener("input", (e) => {
+  searchQuery = e.target.value;
+  renderHomeEvents();
+});
 
-      const actionCell = tr.querySelector(`#action-cell-${doc.id}`);
-      if (!isSuccess) {
-        const approveBtn = document.createElement('button');
-        approveBtn.className = "btn btn-primary";
-        approveBtn.style.padding = "6px 14px";
-        approveBtn.style.width = "auto";
-        approveBtn.style.fontSize = "10px";
-        approveBtn.style.borderRadius = "8px";
-        approveBtn.textContent = "APPROVE";
-        approveBtn.addEventListener('click', () => approveStudent(doc.id));
-        actionCell.appendChild(approveBtn);
-      } else {
-        actionCell.innerHTML = `<span style="font-size: 11px; color: var(--white-muted); font-weight: 700; text-transform: uppercase;">Verified</span>`;
+// Category pills clicks
+document.querySelectorAll(".chip-category").forEach(pill => {
+  pill.addEventListener("click", () => {
+    document.querySelectorAll(".chip-category").forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    currentFilter = pill.getAttribute("data-category");
+    renderHomeEvents();
+  });
+});
+
+// ==========================================
+// 06 — SINGLE-PAGE CHECKOUT DETAILS OVERLAY
+// ==========================================
+
+function openEventDetail(event) {
+  selectedEvent = event;
+
+  // Background and titles
+  const hero = document.getElementById("detail-hero");
+  hero.style.setProperty("--event-color", event.color);
+  if (event.poster || event.poster_url) {
+    const pUrl = event.poster || event.poster_url;
+    hero.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.3), var(--void-black)), url(${pUrl})`;
+    hero.style.backgroundSize = "cover";
+    hero.style.backgroundPosition = "center";
+  } else {
+    hero.style.backgroundImage = "";
+  }
+  
+  document.getElementById("detail-title").textContent = event.title;
+  document.getElementById("detail-description").textContent = event.description || "No description available.";
+  
+  // Feature grid values
+  document.getElementById("detail-feat-date").textContent = event.date || "TBD";
+  document.getElementById("detail-feat-time").textContent = event.time || "TBD";
+  document.getElementById("detail-feat-seats").textContent = event.seats !== undefined ? `${event.seats} Seats` : "Unlimited";
+  document.getElementById("detail-feat-price").textContent = event.price || "Free";
+
+  // Category tags
+  const chipContainer = document.getElementById("detail-type-chip-container");
+  chipContainer.innerHTML = `<span class="chip chip-${event.type}">${event.typeLabel}</span>`;
+
+  // Venue location details
+  const metaRow = document.getElementById("detail-meta-row");
+  metaRow.innerHTML = `<span class="chip" style="background: rgba(255,255,255,0.15); border:none; text-transform:none; font-weight:500;">📍 ${event.location || 'Online'}</span>`;
+
+  // Speaker Profile values
+  const hostParts = (event.host || "Organized by IEDC RIT").split(", ");
+  document.getElementById("detail-host").textContent = hostParts[0] || "IEDC Speaker";
+  document.getElementById("detail-host-qual").textContent = hostParts.slice(1).join(", ") || "IEDC Guest Host";
+  
+  const linkedin = document.getElementById("detail-host-linkedin");
+  if (event.speakerLinkedin) {
+    linkedin.href = event.speakerLinkedin;
+    linkedin.style.display = "flex";
+  } else {
+    linkedin.style.display = "none";
+  }
+
+  // Online vs Offline Dynamic Adapters
+  const isOnline = event.mode === "online" || (event.location && event.location.toLowerCase().includes("http"));
+  const mapLink = document.getElementById("detail-location-map-link");
+  const meetDiv = document.getElementById("detail-location-meeting");
+  const meetLink = document.getElementById("detail-meeting-link");
+  const locationText = document.getElementById("detail-location-text");
+
+  locationText.textContent = isOnline ? "Virtual / Digital Room" : (event.location || "TBD");
+
+  if (isOnline) {
+    mapLink.style.display = "none";
+    meetDiv.style.display = "flex";
+    meetLink.href = (event.location && event.location.startsWith("http")) ? event.location : "https://meet.google.com";
+  } else {
+    mapLink.style.display = "inline-block";
+    mapLink.href = event.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}` : "#";
+    meetDiv.style.display = "none";
+  }
+
+  // Pre-fill user registration details
+  document.getElementById("detail-reg-name").value = USER_PROFILE.name || "";
+  document.getElementById("detail-reg-ktuid").value = USER_PROFILE.id || "";
+  document.getElementById("detail-reg-phone").value = USER_PROFILE.phone || "";
+
+  // Team slots dynamically
+  const teamSection = document.getElementById("detail-team-section");
+  const slotsContainer = document.getElementById("detail-team-slots-container");
+  slotsContainer.innerHTML = "";
+  teamMemberCount = 0;
+
+  if (event.hasTeam) {
+    teamSection.style.display = "flex";
+    addDetailTeamSlot();
+  } else {
+    teamSection.style.display = "none";
+  }
+
+  // Start Detail Countdown ticking clock
+  startDetailCountdown(event.isoDate);
+
+  // Reset payment checkout screen states
+  document.getElementById("registration-form").style.display = "flex";
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("ticket-container").style.display = "none";
+  
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  if (stickyCta) stickyCta.style.display = "block";
+
+  // Gating registration buttons
+  const regBtn = document.getElementById("detail-register-btn");
+  const modalPayBtn = document.getElementById("modal-pay-btn");
+  const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === event.id);
+
+  if (isAlreadyRegistered) {
+    regBtn.textContent = "View Ticket Pass";
+    regBtn.style.backgroundColor = "var(--galactic-purple)";
+    regBtn.style.color = "var(--white-pure)";
+    if (modalPayBtn) {
+      modalPayBtn.textContent = "View Ticket Pass";
+      modalPayBtn.style.backgroundColor = "var(--galactic-purple)";
+      modalPayBtn.style.color = "var(--white-pure)";
+    }
+  } else if (event.seats <= 0) {
+    regBtn.textContent = "Sold Out";
+    regBtn.disabled = true;
+    regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+    if (modalPayBtn) {
+      modalPayBtn.textContent = "Sold Out";
+      modalPayBtn.disabled = true;
+      modalPayBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+    }
+  } else {
+    const btnText = event.price && event.price !== "Free" ? "Proceed to Pay" : "Confirm Free Register";
+    regBtn.textContent = btnText;
+    regBtn.disabled = false;
+    regBtn.style.backgroundColor = "var(--nova-yellow)";
+    regBtn.style.color = "var(--void-black)";
+    if (modalPayBtn) {
+      modalPayBtn.textContent = btnText;
+      modalPayBtn.disabled = false;
+      modalPayBtn.style.backgroundColor = "var(--nova-yellow)";
+      modalPayBtn.style.color = "var(--void-black)";
+    }
+  }
+
+  navigateTo("detail");
+}
+
+function startDetailCountdown(isoDate) {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  const timerSpan = document.getElementById("detail-countdown-timer");
+
+  const target = isoDate ? new Date(isoDate).getTime() : new Date("2026-06-25T09:00:00").getTime();
+
+  function update() {
+    const diff = target - new Date().getTime();
+    if (diff <= 0) {
+      timerSpan.textContent = "Live Now / Ended";
+      clearInterval(detailCountdownInterval);
+    } else {
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      timerSpan.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s left`;
+    }
+  }
+
+  update();
+  detailCountdownInterval = setInterval(update, 1000);
+}
+
+function addDetailTeamSlot() {
+  if (!selectedEvent || teamMemberCount >= selectedEvent.maxTeamSize - 1) return;
+
+  teamMemberCount++;
+  const container = document.getElementById("detail-team-slots-container");
+  const div = document.createElement("div");
+  div.className = "team-member-input-row";
+  div.id = `detail-member-row-${teamMemberCount}`;
+  div.innerHTML = `
+    <input type="text" class="input-field detail-team-member-name" placeholder="Member #${teamMemberCount} Name" required style="flex:1;">
+    <button type="button" class="btn-remove-member" onclick="removeDetailTeamSlot(${teamMemberCount})">&times;</button>
+  `;
+  container.appendChild(div);
+}
+
+window.removeDetailTeamSlot = function(id) {
+  const row = document.getElementById(`detail-member-row-${id}`);
+  if (row) {
+    row.remove();
+    teamMemberCount--;
+  }
+};
+
+document.getElementById("detail-btn-add-member").addEventListener("click", addDetailTeamSlot);
+
+// EmailJS Credentials safely mapping in the background for admin approval use later
+const EMAILJS_CONFIG = {
+  SERVICE_ID: "service_u4ve6g2",
+  TEMPLATE_ID: "template_jla3p4e"
+};
+
+// Hooking Register & Pay Click Event
+document.getElementById("detail-register-btn").addEventListener("click", async () => {
+  if (!selectedEvent) return;
+
+  const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === selectedEvent.id);
+  if (isAlreadyRegistered) {
+    const reg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
+    if (!reg) return;
+
+    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+
+    let isSuccess = false;
+
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        const docSnap = await db.collection("registrations").doc(reg.registrationId).get();
+        if (docSnap.exists) {
+          const docData = docSnap.data();
+          if (docData.payment_status === "Success" || docData.status === "Confirmed") {
+            isSuccess = true;
+          }
+        }
+      } catch (err) {
+        console.error("Firestore verification error:", err);
       }
-
-      tbody.appendChild(tr);
-    });
-
-    updateAdminStats(total, success, pending);
-
-  }, (error) => {
-    console.error("Admin real-time listener failed:", error);
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--error-color);">Database connection error. Permission denied.</td></tr>`;
-  });
-}
-
-function updateAdminStats(total, success, pending) {
-  const totalEl = document.getElementById('admin-stat-total');
-  const successEl = document.getElementById('admin-stat-success');
-  const pendingEl = document.getElementById('admin-stat-pending');
-
-  if (totalEl) totalEl.textContent = total;
-  if (successEl) successEl.textContent = success;
-  if (pendingEl) pendingEl.textContent = pending;
-}
-
-// Live Admin Approval update document handler
-async function approveStudent(regId) {
-  try {
-    showToast("Processing administrative approval...", "var(--white-pure)");
-
-    // Get registration details to fetch student Uid
-    const docRef = db.collection("registrations").doc(regId);
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) {
-      showToast("Record not found.", "var(--error-color)");
-      return;
+    } else {
+      // Simulator Mode check
+      try {
+        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        const mockReg = mockRegs.find(r => r.registrationId === reg.registrationId);
+        if (mockReg && (mockReg.payment_status === "Success" || mockReg.status === "Confirmed")) {
+          isSuccess = true;
+        }
+      } catch (err) {
+        console.error("Simulator verification error:", err);
+      }
     }
 
-    const regData = docSnap.data();
+    if (isSuccess) {
+      showTicket(reg);
+    } else {
+      showCustomAlert(
+        "Payment Pending",
+        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
+      );
+    }
+    return;
+  }
 
-    // 1. Update registration status live
-    await docRef.update({
-      status: "Confirmed",
-      payment_status: "Success",
-      verifiedAt: new Date().toISOString()
-    });
+  // Trigger HTML5 validation and submit form
+  document.getElementById("registration-form").requestSubmit();
+});
 
-    // 2. Update student account profile document live
-    if (regData.studentUid) {
-      await db.collection("students").doc(regData.studentUid).update({
-        approved: true
+// Bind form submit event
+document.getElementById("registration-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  handleRegistrationCheckout();
+});
+
+async function handleRegistrationCheckout() {
+  if (!selectedEvent) return;
+
+  // ===== STRICT VALIDATION: Bank Account Owner Name =====
+  const bankAccountName = document.getElementById("detail-reg-bank-name").value.trim();
+  if (!bankAccountName) {
+    alert("Please enter the Bank Account Owner's Full Name to proceed with the payment");
+    return;
+  }
+
+  const phone = document.getElementById("detail-reg-phone").value.trim();
+  if (!phone) {
+    showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
+    return;
+  }
+  
+  const ktuid = USER_PROFILE.id || "";
+  const eventId = selectedEvent.id || selectedEvent.eventId;
+
+  // Set checkout processing status
+  const modalPayBtn = document.getElementById("modal-pay-btn");
+  const originalBtnText = modalPayBtn.textContent;
+  modalPayBtn.disabled = true;
+  modalPayBtn.textContent = "Checking details...";
+
+  // 1. Strict Duplicate Registration Check (Before Payment)
+  let hasDuplicate = false;
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      const snap = await db.collection("registrations").where("eventId", "==", eventId).get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (d.phone === phone || d.registerNo === ktuid) {
+          hasDuplicate = true;
+        }
+      });
+    } catch (err) {
+      console.error("Duplicate checking query error:", err);
+    }
+  } else {
+    // Simulator check
+    try {
+      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      hasDuplicate = mockRegs.some(r => r.eventId === eventId && (r.phone === phone || r.registerNo === ktuid));
+    } catch (e) {
+      console.error("Local mock duplicate search error:", e);
+    }
+  }
+
+  if (hasDuplicate) {
+    // Restore button
+    modalPayBtn.disabled = false;
+    modalPayBtn.textContent = originalBtnText;
+
+    // Close the detail modal
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+    navigateTo("home");
+
+    // Trigger glassmorphic conflict alert
+    showCustomAlert("Conflict", "Conflict: You are already registered for this event!");
+    return;
+  }
+
+  // Restore button text for future opens
+  modalPayBtn.disabled = false;
+  modalPayBtn.textContent = originalBtnText;
+
+  // Parse team members names if present
+  const teamInputs = document.querySelectorAll(".detail-team-member-name");
+  const teamMembers = [];
+  teamInputs.forEach(input => {
+    if (input.value.trim()) teamMembers.push(input.value.trim());
+  });
+
+  // Parse amount fee
+  let amount = 0;
+  if (selectedEvent.fee !== undefined) {
+    amount = parseInt(selectedEvent.fee);
+  } else if (selectedEvent.reg_fee !== undefined) {
+    amount = parseInt(selectedEvent.reg_fee);
+  } else {
+    const priceVal = selectedEvent.price || "Free";
+    const amountMatch = String(priceVal).match(/\d+/);
+    amount = amountMatch ? parseInt(amountMatch[0]) : 0;
+  }
+
+  // Compile registration data
+  const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+  const merchantTransactionId = "TXN_" + registrationId;
+  const registrationData = {
+    registrationId,
+    eventId,
+    eventTitle: selectedEvent.title,
+    studentName: USER_PROFILE.name,
+    studentEmail: USER_PROFILE.email,
+    registerNo: USER_PROFILE.id,
+    bankAccountName, // Save the bank account owner's name here!
+    phone,
+    teamMembers,
+    amount,
+    razorpayPaymentId: merchantTransactionId, // PhonePe Transaction ID mapped here
+    checkedIn: false,
+    status: amount > 0 ? "Pending" : "Confirmed",
+    payment_status: amount > 0 ? "Pending" : "Success",
+    createdAt: new Date().toISOString(),
+    studentUid: sessionStorage.getItem("loggedInUserUid"),
+    timestamp: new Date().toISOString()
+  };
+
+  if (amount > 0) {
+    // Save pending registration to database/localStorage first
+    try {
+      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      mockRegs.push(registrationData);
+      localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+    } catch (e) {
+      console.error("Local mock pending registration failed:", e);
+    }
+    
+    localStorage.setItem("pending_phonepe_registration", JSON.stringify(registrationData));
+
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        await db.collection("registrations").doc(registrationId).set(registrationData);
+      } catch (err) {
+        console.error("Firestore pending registration failed:", err);
+      }
+    }
+
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+
+    // Set waiting verification overlay details
+    const amountLabel = document.getElementById("waiting-amount-label");
+    if (amountLabel) {
+      amountLabel.textContent = `Amount Due: ₹${amount}`;
+    }
+
+    // Construct dynamic UPI deep-link intent using eventData
+    const eventData = { ...selectedEvent };
+    eventData.upiId = eventData.upiId || eventData.upi || "iedcrit@okaxis";
+    eventData.price = amount;
+    const upiLink = `upi://pay?pa=${eventData.upiId}&pn=${encodeURIComponent(eventData.title)}&am=${eventData.price}&cu=INR`;
+
+    // Bind Direct UPI App Button links
+    const gpayBtn = document.getElementById("upi-gpay-btn");
+    const phonepeBtn = document.getElementById("upi-phonepe-btn");
+    const paytmBtn = document.getElementById("upi-paytm-btn");
+    if (gpayBtn) gpayBtn.href = upiLink;
+    if (phonepeBtn) phonepeBtn.href = upiLink;
+    if (paytmBtn) paytmBtn.href = upiLink;
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const mobileView = document.getElementById("waiting-mobile-view");
+    const desktopView = document.getElementById("waiting-desktop-view");
+    const upiMobileLink = document.getElementById("waiting-upi-mobile-link");
+    const upiQrLink = document.getElementById("waiting-upi-qr-link");
+
+    // Always set interactive QR wrapper link href to the UPI intent link
+    if (upiQrLink) {
+      upiQrLink.href = upiLink;
+    }
+
+    // Always draw dynamic QR code to the canvas inside the modal
+    const upiCanvas = document.getElementById("waiting-upi-qr-canvas");
+    if (upiCanvas) {
+      new QRious({
+        element: upiCanvas,
+        value: upiLink,
+        size: 130,
+        background: "#FFFFFF",
+        foreground: "#080810",
+        level: "H"
       });
     }
 
-    showToast("Registration payment approved successfully!", "var(--success-color)");
+    if (isMobile) {
+      if (mobileView) mobileView.style.display = "flex";
+      if (desktopView) desktopView.style.display = "flex"; // Show QR code container on mobile so it is clickable!
+      if (upiMobileLink) {
+        upiMobileLink.href = upiLink;
+      }
+      window.location.href = upiLink;
+    } else {
+      if (mobileView) mobileView.style.display = "none";
+      if (desktopView) desktopView.style.display = "flex";
+    }
 
-  } catch (err) {
-    console.error("Approval transaction failed:", err);
-    showToast("Verification failed: " + err.message, "var(--error-color)");
+    // Show waiting verification overlay
+    const waitOverlay = document.getElementById("waiting-verification-overlay");
+    if (waitOverlay) {
+      waitOverlay.style.display = "flex";
+    }
+
+    // Watch pending verification status
+    watchPendingVerification(registrationId, registrationData);
+
+  } else {
+    // Free registration is immediate
+    await completeUpiRegistration(registrationData);
   }
 }
-window.approveStudent = approveStudent;
 
-// ==========================================================
-// 6. SIGN OUT SYSTEM HANDLES
-// ==========================================================
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', async () => {
-    await auth.signOut();
-    window.location.href = "login.html";
+function watchPendingVerification(registrationId, registrationData) {
+  if (currentVerificationUnsubscribe) {
+    currentVerificationUnsubscribe();
+    currentVerificationUnsubscribe = null;
+  }
+  if (simulatorPollingInterval) {
+    clearInterval(simulatorPollingInterval);
+    simulatorPollingInterval = null;
+  }
+
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      currentVerificationUnsubscribe = db.collection("registrations").doc(registrationId)
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.status === "Confirmed") {
+              if (currentVerificationUnsubscribe) {
+                currentVerificationUnsubscribe();
+                currentVerificationUnsubscribe = null;
+              }
+              handleVerificationSuccess(data);
+            }
+          }
+        }, (err) => {
+          console.error("Error watching registration status:", err);
+        });
+    } catch (e) {
+      console.error("Firebase watch failed:", e);
+    }
+  }
+
+  simulatorPollingInterval = setInterval(() => {
+    try {
+      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      const reg = mockRegs.find(r => r.registrationId === registrationId);
+      if (reg && reg.status === "Confirmed") {
+        clearInterval(simulatorPollingInterval);
+        simulatorPollingInterval = null;
+        handleVerificationSuccess(reg);
+      }
+    } catch (err) {
+      console.error("Local polling check error:", err);
+    }
+  }, 1000);
+}
+
+async function handleVerificationSuccess(registrationData) {
+  if (currentVerificationUnsubscribe) {
+    currentVerificationUnsubscribe();
+    currentVerificationUnsubscribe = null;
+  }
+  if (simulatorPollingInterval) {
+    clearInterval(simulatorPollingInterval);
+    simulatorPollingInterval = null;
+  }
+
+  const waitOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitOverlay) {
+    waitOverlay.style.display = "none";
+  }
+
+  triggerConfetti();
+  showToast("Payment Verified & Ticket Issued!", "var(--success)", "var(--success)");
+
+  const regForm = document.getElementById("registration-form");
+  const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  
+  if (regForm) regForm.style.display = "none";
+  if (upiCheckoutContainer) upiCheckoutContainer.style.display = "none";
+  if (stickyCta) stickyCta.style.display = "none";
+
+  const ticketContainer = document.getElementById("ticket-container");
+  if (ticketContainer) {
+    ticketContainer.style.display = "flex";
+  }
+
+  const canvas = document.getElementById("ticket-qr-canvas");
+  if (canvas) {
+    drawQRToCanvas(canvas, registrationData.registrationId, selectedEvent.color || "#8B6FD4", 180);
+  }
+
+  await syncRegistrations();
+}
+
+
+async function completeUpiRegistration(registrationData) {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+
+  // Confetti celebrations
+  triggerConfetti();
+
+  // Save registration ledger to Firestore / Simulator
+  // Mock registrations write
+  try {
+    let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    if (!mockRegs.some(r => r.registrationId === registrationData.registrationId)) {
+      mockRegs.push(registrationData);
+    } else {
+      const idx = mockRegs.findIndex(r => r.registrationId === registrationData.registrationId);
+      mockRegs[idx] = registrationData;
+    }
+    localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+
+    // Decrement seats locally
+    let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+    let evIdx = mockEvents.findIndex(e => e.id === registrationData.eventId);
+    if (evIdx !== -1) {
+      mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
+      localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+    }
+    
+    let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+    let tourIdx = mockTours.findIndex(t => t.id === registrationData.eventId);
+    if (tourIdx !== -1) {
+      mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
+      localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
+    }
+  } catch (e) {
+    console.error("Local mock registration write failed:", e);
+  }
+
+  // Firestore write
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      await db.collection("registrations").doc(registrationData.registrationId).set(registrationData);
+      
+      const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
+      await db.collection(targetCol).doc(registrationData.eventId).update({
+        seats: firebase.firestore.FieldValue.increment(-1)
+      });
+    } catch (err) {
+      console.error("Firestore registration ledger write failed:", err);
+    }
+  }
+
+  showToast("Registration Confirmed! Enjoy your event.", "var(--success)", "var(--success)");
+
+  // Hide checkout views and show success ticket block inside details modal
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("registration-form").style.display = "none";
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  if (stickyCta) stickyCta.style.display = "none";
+
+  document.getElementById("ticket-container").style.display = "flex";
+  
+  // Render canvas QR code on the spot
+  drawQRToCanvas(document.getElementById("ticket-qr-canvas"), registrationData.registrationId, selectedEvent.color || "#8B6FD4", 180);
+
+  // Sync state in background
+  await syncRegistrations();
+}
+
+function showTicket(registration) {
+  document.getElementById("ticket-event-name").textContent = registration.title;
+  document.getElementById("ticket-date").textContent = registration.date;
+  document.getElementById("ticket-loc").textContent = registration.location;
+  document.getElementById("ticket-id-text").textContent = `TICKET ID: ${registration.ticketId}`;
+  
+  const typeTag = document.getElementById("ticket-type-tag");
+  typeTag.textContent = registration.typeLabel;
+  typeTag.className = `ticket-event-type chip chip-${registration.type}`;
+
+  generateQRCode(registration.ticketId, registration.color);
+
+  document.getElementById("btn-ticket-download").onclick = () => {
+    showToast("Ticket downloaded successfully!", "var(--success)", "var(--success)");
+  };
+  document.getElementById("btn-ticket-share").onclick = () => {
+    showToast("Ticket share links compiled!", "var(--galactic-purple)", "var(--galactic-purple)");
+  };
+
+  navigateTo("ticket");
+}
+
+function encryptRegistrationId(id) {
+  try {
+    return CryptoJS.AES.encrypt(id, QR_SECRET_KEY).toString();
+  } catch (e) {
+    console.error("Encryption failed:", e);
+    return id;
+  }
+}
+
+function drawQRToCanvas(canvas, text, brandColor, size = 240) {
+  if (!canvas) return;
+  const encryptedText = encryptRegistrationId(text);
+  
+  new QRious({
+    element: canvas,
+    value: encryptedText,
+    size: size,
+    background: "#FFFFFF",
+    foreground: "#080810",
+    level: "H"
   });
 }
 
-const adminLogoutBtn = document.getElementById('admin-logout-btn');
-if (adminLogoutBtn) {
-  adminLogoutBtn.addEventListener('click', async () => {
-    await auth.signOut();
-    window.location.href = "login.html";
+function generateQRCode(text, brandColor) {
+  const canvas = document.getElementById("qr-canvas");
+  drawQRToCanvas(canvas, text, brandColor, 240);
+}
+
+// Draw QR inside stubs card inside wallet
+function drawTicketQRCode(canvasId, text, brandColor) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const encryptedText = encryptRegistrationId(text);
+
+  new QRious({
+    element: canvas,
+    value: encryptedText,
+    size: 72,
+    background: "#FFFFFF",
+    foreground: "#080810",
+    level: "H"
   });
 }
+
+// ==========================================
+// 08 — STUDENT DASHBOARD & TICKET WALLET
+// ==========================================
+
+function renderDashboard() {
+  const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+  document.querySelectorAll(".dashboard-current-date").forEach(el => {
+    el.textContent = new Date().toLocaleDateString('en-US', options);
+  });
+
+  // Profile details
+  document.getElementById("db-profile-avatar").src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
+  document.getElementById("db-profile-name").textContent = USER_PROFILE.name || "Student";
+  document.getElementById("db-profile-id").textContent = USER_PROFILE.id || "N/A";
+  document.getElementById("db-profile-email").textContent = USER_PROFILE.email || "N/A";
+  document.getElementById("db-profile-dept").textContent = USER_PROFILE.department || "N/A";
+  document.getElementById("db-profile-year").textContent = USER_PROFILE.yearOfStudy || "N/A";
+  document.getElementById("db-profile-phone").textContent = USER_PROFILE.phone || "N/A";
+  document.getElementById("db-profile-college").textContent = USER_PROFILE.collegeName || "N/A";
+
+  // Wallet stubs card shelf (Flipkart / BookMyShow styles)
+  const listContainer = document.getElementById("dashboard-list-container");
+  listContainer.innerHTML = "";
+
+  const completedCount = USER_REGISTRATIONS.filter(r => r.checkedIn === true).length;
+  const upcomingCount = USER_REGISTRATIONS.filter(r => r.checkedIn !== true).length;
+  
+  document.getElementById("stat-attended").textContent = completedCount;
+  document.getElementById("stat-upcoming").textContent = upcomingCount;
+  document.getElementById("stat-certs").textContent = completedCount;
+
+  if (USER_REGISTRATIONS.length === 0) {
+    listContainer.innerHTML = `
+      <div style="padding: var(--space-xl) 0; text-align: left; color: var(--muted-white);">
+        <p class="body-desc">Wallet is empty. You haven't booked any active event passes.</p>
+      </div>
+    `;
+  } else {
+    USER_REGISTRATIONS.forEach(reg => {
+      const card = document.createElement("div");
+      card.className = "ticket-wallet-card";
+      card.style.setProperty("--ticket-color", reg.color);
+      
+      const isPending = reg.status === "Pending";
+      const isChecked = reg.checkedIn === true;
+      
+      let badgeStyle = "background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.25); color: #22c55e; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
+      let statusText = "✅ Confirmed";
+      if (isPending) {
+        badgeStyle = "background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.25); color: #eab308; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
+        statusText = "⏳ Processing Payment...";
+      } else if (isChecked) {
+        badgeStyle = "background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #3b82f6; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
+        statusText = "Checked In";
+      }
+
+      const qrSection = isPending 
+        ? `<div style="font-size:9px; color:#eab308; font-weight:700; max-width:80px; text-align:center; line-height:1.3;">Pending Verification</div>`
+        : `<canvas id="qr-canvas-${reg.ticketId}"></canvas>`;
+
+      const footerAction = isPending 
+        ? `<span style="color:var(--muted-white); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Pending Verification</span>`
+        : `<span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>`;
+
+      card.innerHTML = `
+        <div class="ticket-wallet-header">
+          <span class="chip chip-${reg.type}" style="font-size:10px !important;">${reg.typeLabel}</span>
+          <span style="${badgeStyle}">${statusText}</span>
+        </div>
+        <div class="ticket-wallet-body">
+          <div class="ticket-wallet-info">
+            <h3 style="font-size: 15px !important; font-weight: 800; line-height:1.2; margin-bottom: 2px;">${reg.title}</h3>
+            <span style="font-size:12px; color:var(--muted-white);">${reg.date} • ${reg.time}</span>
+            <span style="font-size:11px; color:var(--soft-purple); font-weight:700;">📍 ${reg.location}</span>
+          </div>
+          <div class="ticket-wallet-qr" style="${isPending ? 'background:transparent; border:1.5px dashed rgba(234,179,8,0.3); padding:4px; display:flex; align-items:center; justify-content:center; border-radius:8px;' : ''}">
+            ${qrSection}
+          </div>
+        </div>
+        <div class="ticket-wallet-perf"></div>
+        <div class="ticket-wallet-footer">
+          <span style="font-family:monospace; color:var(--muted-white); font-size: 11px;">ID: ${reg.ticketId}</span>
+          ${footerAction}
+        </div>
+      `;
+      listContainer.appendChild(card);
+      
+      // Draw live canvas QR code inside card ONLY if confirmed
+      if (!isPending) {
+        drawTicketQRCode(`qr-canvas-${reg.ticketId}`, reg.ticketId, reg.color);
+      }
+    });
+  }
+
+  renderNotifications();
+}
+
+window.viewPassDetails = async function(ticketId) {
+  const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
+  if (reg) {
+    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+
+    let isSuccess = false;
+
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        const docSnap = await db.collection("registrations").doc(reg.registrationId || ticketId).get();
+        if (docSnap.exists) {
+          const docData = docSnap.data();
+          if (docData.payment_status === "Success" || docData.status === "Confirmed") {
+            isSuccess = true;
+          }
+        }
+      } catch (err) {
+        console.error("Firestore verification error:", err);
+      }
+    } else {
+      // Simulator Mode check
+      try {
+        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        const mockReg = mockRegs.find(r => r.registrationId === (reg.registrationId || ticketId));
+        if (mockReg && (mockReg.payment_status === "Success" || mockReg.status === "Confirmed")) {
+          isSuccess = true;
+        }
+      } catch (err) {
+        console.error("Simulator verification error:", err);
+      }
+    }
+
+    if (isSuccess) {
+      showTicket(reg);
+    } else {
+      showCustomAlert(
+        "Payment Pending",
+        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
+      );
+    }
+  }
+};
+
+// ==========================================
+// 09 — MOTION SYSTEMS & CONFETTI CELEBRATION
+// ==========================================
+
+function triggerConfetti() {
+  const canvas = document.getElementById("confetti-canvas");
+  const ctx = canvas.getContext("2d");
+  
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+
+  const colors = ["#E8614A", "#8B6FD4", "#C8E84A", "#F28070", "#B89EF0"];
+  const particles = [];
+
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -50,
+      r: Math.random() * 4 + 3,
+      d: Math.random() * canvas.height,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      tilt: Math.random() * 10 - 5,
+      tiltAngleIncremental: Math.random() * 0.07 + 0.02,
+      tiltAngle: 0,
+      velocity: {
+        x: Math.random() * 2 - 1,
+        y: Math.random() * 3 + 2
+      }
+    });
+  }
+
+  let animationFrame;
+  const start = Date.now();
+
+  function drawConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    let active = false;
+
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.lineWidth = p.r;
+      ctx.strokeStyle = p.color;
+      ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+      ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+      ctx.stroke();
+
+      p.y += p.velocity.y;
+      p.x += p.velocity.x;
+      p.tiltAngle += p.tiltAngleIncremental;
+      p.tilt = Math.sin(p.tiltAngle) * 12;
+
+      if (p.y < canvas.height) active = true;
+    });
+
+    if (active && Date.now() - start < 3000) {
+      animationFrame = requestAnimationFrame(drawConfetti);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cancelAnimationFrame(animationFrame);
+    }
+  }
+
+  drawConfetti();
+}
+
+function showToast(message, borderColor = "var(--galactic-purple)", iconColor = "var(--galactic-purple)") {
+  const toast = document.getElementById("app-toast");
+  const textSpan = document.getElementById("toast-text");
+  
+  textSpan.textContent = message;
+  toast.style.setProperty("--border-color", borderColor);
+  toast.style.setProperty("--icon-color", iconColor);
+
+  toast.classList.add("show");
+  
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2500);
+}
+
+window.showCustomAlert = function(title, message) {
+  const overlay = document.getElementById("custom-alert-overlay");
+  const titleEl = document.getElementById("custom-alert-title");
+  const msgEl = document.getElementById("custom-alert-message");
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  if (overlay) overlay.style.display = "flex";
+};
+
+window.closeCustomAlert = function() {
+  const overlay = document.getElementById("custom-alert-overlay");
+  if (overlay) overlay.style.display = "none";
+};
+
+// Update status bar time
+function updateStatusBarTime() {
+  const timeText = document.getElementById("status-time");
+  const now = new Date();
+  let hr = now.getHours();
+  let min = now.getMinutes();
+  
+  hr = hr < 10 ? '0' + hr : hr;
+  min = min < 10 ? '0' + min : min;
+  
+  timeText.textContent = `${hr}:${min}`;
+}
+setInterval(updateStatusBarTime, 60000);
+updateStatusBarTime();
+
+// ==========================================
+// 10 — FIREBASE SIMULATOR & SEEDING MODULES
+// ==========================================
+
+const FirebaseService = {
+  auth: {
+    createUserWithEmailAndPassword: async (email, password, profileData) => {
+      if (useRealFirebase) {
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
+        
+        await firebase.firestore().collection("students").doc(uid).set({
+          uid,
+          ...profileData,
+          email: email.toLowerCase()
+        });
+        
+        return { user: { uid, email } };
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+        if (users[email.toLowerCase()]) {
+          throw new Error("auth/email-already-in-use");
+        }
+        
+        const uid = "uid_" + Math.random().toString(36).substr(2, 9);
+        users[email.toLowerCase()] = {
+          uid,
+          email: email.toLowerCase(),
+          password,
+          profileData: {
+            ...profileData,
+            uid,
+            email: email.toLowerCase()
+          }
+        };
+        localStorage.setItem("firebase_mock_users", JSON.stringify(users));
+        return { user: { uid, email } };
+      }
+    },
+    
+    signInWithEmailAndPassword: async (email, password) => {
+      if (useRealFirebase) {
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        return { user: { uid: userCredential.user.uid, email: userCredential.user.email } };
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 400));
+        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+        const user = users[email.toLowerCase()];
+        if (!user || user.password !== password) {
+          throw new Error("auth/invalid-credential");
+        }
+        return { user: { uid: user.uid, email: user.email } };
+      }
+    },
+
+    signOut: async () => {
+      if (useRealFirebase) {
+        await firebase.auth().signOut();
+      }
+    },
+
+    sendPasswordResetEmail: async (email) => {
+      if (useRealFirebase) {
+        await firebase.auth().sendPasswordResetEmail(email);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+        if (!users[email.toLowerCase()]) {
+          throw new Error("auth/user-not-found");
+        }
+        console.log(`Password reset link sent to ${email} (Simulated).`);
+      }
+    },
+
+    signInWithGoogle: async () => {
+      if (useRealFirebase) {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebase.auth().signInWithPopup(provider);
+        return {
+          user: {
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName
+          }
+        };
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return {
+          user: {
+            uid: "uid_google123",
+            email: "google.student@rit.ac.in",
+            displayName: "GOOGLE TEST STUDENT"
+          }
+        };
+      }
+    }
+  },
+  
+  db: {
+    getStudentDoc: async (uid) => {
+      if (useRealFirebase) {
+        const doc = await firebase.firestore().collection("students").doc(uid).get();
+        return {
+          exists: () => doc.exists,
+          data: () => doc.data()
+        };
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+        for (const email in users) {
+          if (users[email].uid === uid) {
+            return { exists: () => true, data: () => users[email].profileData };
+          }
+        }
+        return { exists: () => false };
+      }
+    },
+    
+    saveStudentDoc: async (uid, data) => {
+      if (useRealFirebase) {
+        await firebase.firestore().collection("students").doc(uid).set(data, { merge: true });
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+        for (const email in users) {
+          if (users[email].uid === uid) {
+            users[email].profileData = { ...users[email].profileData, ...data };
+            localStorage.setItem("firebase_mock_users", JSON.stringify(users));
+            return;
+          }
+        }
+        throw new Error("firestore/document-not-found");
+      }
+    }
+  }
+};
+
+function seedMockDatabase() {
+  let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+  
+  if (!users["sirin@rit.ac.in"]) {
+    users["sirin@rit.ac.in"] = {
+      uid: "uid_sirin123",
+      email: "sirin@rit.ac.in",
+      password: "password123",
+      profileData: {
+        uid: "uid_sirin123",
+        name: "SIRIN MATHEWS",
+        email: "sirin@rit.ac.in",
+        id: "RIT22CS089",
+        registerNo: "RIT22CS089",
+        department: "Computer Science & Engineering",
+        year: "3rd Year",
+        yearOfStudy: "3rd Year",
+        phone: "+919876543210",
+        collegeName: "Rajiv Gandhi Institute of Technology",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+        approved: true
+      }
+    };
+  }
+
+  if (!users["admin@rit.ac.in"]) {
+    users["admin@rit.ac.in"] = {
+      uid: "uid_admin123",
+      email: "admin@rit.ac.in",
+      password: "admin123",
+      profileData: {
+        uid: "uid_admin123",
+        name: "ADMINISTRATOR",
+        email: "admin@rit.ac.in",
+        id: "ADMIN-01",
+        registerNo: "ADMIN-01",
+        department: "Administration",
+        year: "N/A",
+        yearOfStudy: "N/A",
+        phone: "+91 00000 00000",
+        collegeName: "IEDC RIT Admin",
+        avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80",
+        approved: true,
+        role: "admin"
+      }
+    };
+  }
+
+  localStorage.setItem("firebase_mock_users", JSON.stringify(users));
+
+  // Seed initial events and tournaments in localStorage
+  let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+  if (mockEvents.length === 0) {
+    mockEvents = [
+      {
+        id: "gen-ai-bootcamp-01",
+        eventId: "gen-ai-bootcamp-01",
+        title: "Generative AI Bootcamp",
+        type: "workshop",
+        typeLabel: "Workshop",
+        date: "24 June, 2026",
+        isoDate: "2026-06-24T10:00:00",
+        time: "10:00 AM",
+        seats: 25,
+        price: "₹150",
+        host: "Dr. Elizabeth George, AI Research lead at TechCorp",
+        speakerLinkedin: "https://linkedin.com",
+        location: "RIT CSE Seminar Hall",
+        mode: "offline",
+        description: "Hands-on engineering bootcamp on training, fine-tuning, and evaluating LLMs. Build complete systems.",
+        color: "#C8E84A",
+        hasTeam: false,
+        maxTeamSize: 1,
+        poster: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80",
+        upi: "iedcrit@okaxis"
+      },
+      {
+        id: "founder-stories-talk-02",
+        eventId: "founder-stories-talk-02",
+        title: "Scaling Fintech: Founder Stories",
+        type: "talk",
+        typeLabel: "Talk",
+        date: "25 June, 2026",
+        isoDate: "2026-06-25T14:30:00",
+        time: "02:30 PM",
+        seats: 120,
+        price: "Free",
+        host: "Arun Joy, CEO at FinNovate",
+        speakerLinkedin: "https://linkedin.com",
+        location: "https://meet.google.com/abc-def-ghi",
+        mode: "online",
+        description: "Learn what it takes to build, validate, scale and raise capital for a fintech venture in India.",
+        color: "#E8614A",
+        hasTeam: false,
+        maxTeamSize: 1,
+        poster: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80",
+        upi: "iedcrit@okaxis"
+      }
+    ];
+    localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+  }
+
+  let mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+  if (mockTournaments.length === 0) {
+    mockTournaments = [
+      {
+        id: "fifa-tournament-03",
+        eventId: "fifa-tournament-03",
+        title: "FIFA 2026 Arena",
+        type: "tournament",
+        typeLabel: "Tournament",
+        date: "26 June, 2026",
+        isoDate: "2026-06-26T09:00:00",
+        time: "09:00 AM",
+        seats: 64,
+        price: "₹50",
+        host: "RIT Sports Club, Organizing Committee",
+        speakerLinkedin: "https://linkedin.com",
+        location: "RIT Indoor Stadium",
+        mode: "offline",
+        description: "Standard single elimination FIFA 26 gaming bracket. Cash awards for top 3 champions.",
+        color: "#8B6FD4",
+        hasTeam: false,
+        maxTeamSize: 1,
+        poster: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=600&q=80",
+        upi: "iedcrit@okaxis"
+      }
+    ];
+    localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTournaments));
+  }
+}
+seedMockDatabase();
+
+// ==========================================
+// 11 — INTERACTION LOGIC & EVENT BINDINGS
+// ==========================================
+
+document.getElementById("profile-avatar-trigger").addEventListener("click", () => {
+  openProfileSetup(true);
+});
+
+document.getElementById("btn-upload-avatar").addEventListener("click", () => {
+  document.getElementById("setup-avatar-upload").click();
+});
+
+document.getElementById("setup-avatar-upload").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const type = file.type;
+  if (type !== "image/jpeg" && type !== "image/jpg") {
+    showToast("Avatar image must be in JPG/JPEG format.", "var(--error)", "var(--error)");
+    this.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const url = event.target.result;
+    document.getElementById("custom-avatar-preview").src = url;
+    const radio = document.getElementById("radio-custom-avatar");
+    radio.value = url;
+    radio.checked = true;
+    document.getElementById("custom-avatar-label").style.display = "block";
+    showToast("Custom avatar picture loaded!", "var(--success)", "var(--success)");
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("setup-email").addEventListener("input", function() {
+  this.value = this.value.toLowerCase();
+});
+document.getElementById("login-email").addEventListener("input", function() {
+  this.value = this.value.toLowerCase();
+});
+document.getElementById("setup-name").addEventListener("input", function() {
+  this.value = this.value.toUpperCase();
+});
+
+function switchAuthTab(mode) {
+  const loginTab = document.getElementById("auth-tab-login");
+  const registerTab = document.getElementById("auth-tab-register");
+  const loginForm = document.getElementById("auth-login-form");
+  const registerForm = document.getElementById("profile-setup-form");
+  const forgotForm = document.getElementById("auth-forgot-password-form");
+  const title = document.getElementById("setup-title");
+  const subtitle = document.getElementById("setup-subtitle");
+
+  if (forgotForm) forgotForm.style.display = "none";
+  document.getElementById("auth-tabs-container").style.display = "flex";
+
+  if (mode === "login") {
+    loginTab.classList.add("active");
+    registerTab.classList.remove("active");
+    loginForm.style.display = "block";
+    registerForm.style.display = "none";
+    title.textContent = "Welcome Back";
+    subtitle.textContent = "Sign in to discover and register for events.";
+  } else {
+    loginTab.classList.remove("active");
+    registerTab.classList.add("active");
+    loginForm.style.display = "none";
+    registerForm.style.display = "block";
+    title.textContent = "Create Profile";
+    subtitle.textContent = "Set up your credentials to access the IEDC event gateway.";
+  }
+}
+
+document.getElementById("auth-tab-login").addEventListener("click", () => switchAuthTab("login"));
+document.getElementById("auth-tab-register").addEventListener("click", () => switchAuthTab("register"));
+
+document.getElementById("btn-forgot-password").addEventListener("click", () => {
+  document.getElementById("auth-tabs-container").style.display = "none";
+  document.getElementById("auth-login-form").style.display = "none";
+  document.getElementById("auth-forgot-password-form").style.display = "block";
+  document.getElementById("setup-title").textContent = "Reset Password";
+  document.getElementById("setup-subtitle").textContent = "Enter your email to receive a password reset link.";
+});
+
+document.getElementById("btn-forgot-back").addEventListener("click", () => {
+  document.getElementById("auth-forgot-password-form").style.display = "none";
+  document.getElementById("auth-tabs-container").style.display = "flex";
+  document.getElementById("auth-login-form").style.display = "block";
+  document.getElementById("setup-title").textContent = "Welcome Back";
+  document.getElementById("setup-subtitle").textContent = "Sign in to discover and register for events.";
+});
+
+document.getElementById("auth-forgot-password-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("forgot-email").value.trim().toLowerCase();
+  
+  const submitBtn = e.target.querySelector("button[type='submit']");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending...";
+  
+  try {
+    await FirebaseService.auth.sendPasswordResetEmail(email);
+    showToast("Password reset email sent!", "var(--success)", "var(--success)");
+    document.getElementById("forgot-email").value = "";
+    document.getElementById("btn-forgot-back").click();
+  } catch (error) {
+    showToast("Error sending reset email.", "var(--error)", "var(--error)");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Send Reset Link";
+  }
+});
+
+function checkApprovalAndRoute(profileData) {
+  if (profileData.role === "admin" || profileData.email === "admin@rit.ac.in") {
+    window.location.href = "admin.html";
+  } else if (profileData.approved === true) {
+    navigateTo("home");
+    // Show promotional banner popup widget on homepage load!
+    if (typeof showAdOverlay !== "undefined") {
+      setTimeout(showAdOverlay, 1500);
+    }
+  } else {
+    document.getElementById("pending-student-name").textContent = profileData.name || "Student";
+    navigateTo("pending");
+  }
+}
+
+document.getElementById("auth-login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value.trim().toLowerCase();
+  const password = document.getElementById("login-password").value;
+  
+  const submitBtn = e.target.querySelector("button[type='submit']");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Verifying...";
+  
+  try {
+    let credentials;
+    let isMockAdmin = false;
+
+    if (email === "admin@rit.ac.in" && password === "admin123") {
+      isMockAdmin = true;
+      credentials = { user: { uid: "uid_admin123", email: "admin@rit.ac.in" } };
+    }
+
+    if (!isMockAdmin) {
+      credentials = await FirebaseService.auth.signInWithEmailAndPassword(email, password);
+    }
+
+    const docSnap = await FirebaseService.db.getStudentDoc(credentials.user.uid);
+    if (docSnap.exists()) {
+      USER_PROFILE = docSnap.data();
+      sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+      updateUserProfileUI();
+      checkApprovalAndRoute(USER_PROFILE);
+    } else {
+      if (email === "admin@rit.ac.in") {
+        USER_PROFILE = {
+          uid: credentials.user.uid,
+          name: "ADMINISTRATOR",
+          email: "admin@rit.ac.in",
+          id: "ADMIN-01",
+          registerNo: "ADMIN-01",
+          department: "Administration",
+          year: "N/A",
+          yearOfStudy: "N/A",
+          phone: "+91 00000 00000",
+          collegeName: "IEDC RIT Admin",
+          avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80",
+          approved: true,
+          role: "admin"
+        };
+        await FirebaseService.db.saveStudentDoc(credentials.user.uid, USER_PROFILE);
+        sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+        updateUserProfileUI();
+        checkApprovalAndRoute(USER_PROFILE);
+      } else {
+        throw new Error("auth/user-not-found");
+      }
+    }
+  } catch (error) {
+    showToast("Invalid credentials. Try again.", "var(--error)", "var(--error)");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Login & Enter";
+  }
+});
+
+document.getElementById("btn-google-auth").addEventListener("click", async () => {
+  try {
+    const credentials = await FirebaseService.auth.signInWithGoogle();
+    const uid = credentials.user.uid;
+    const docSnap = await FirebaseService.db.getStudentDoc(uid);
+
+    if (docSnap.exists()) {
+      USER_PROFILE = docSnap.data();
+      sessionStorage.setItem("loggedInUserUid", uid);
+      updateUserProfileUI();
+      checkApprovalAndRoute(USER_PROFILE);
+    } else {
+      sessionStorage.setItem("loggedInUserUid", uid);
+      switchAuthTab("register");
+
+      document.getElementById("setup-name").value = (credentials.user.displayName || "").toUpperCase();
+      document.getElementById("setup-email").value = (credentials.user.email || "").toLowerCase();
+      document.getElementById("setup-password").value = "GOOGLE_AUTH_USER";
+      document.getElementById("setup-confirm-password").value = "GOOGLE_AUTH_USER";
+
+      showToast("Authenticated! Setup profile details.", "var(--galactic-purple)", "var(--galactic-purple)");
+    }
+  } catch (e) {
+    showToast("Google Authentication failed.", "var(--error)", "var(--error)");
+  }
+});
+
+document.getElementById("profile-setup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("setup-name").value.trim();
+  const email = document.getElementById("setup-email").value.trim().toLowerCase();
+  const password = document.getElementById("setup-password").value;
+  const confirmPassword = document.getElementById("setup-confirm-password").value;
+  const id = document.getElementById("setup-id").value.trim();
+  const department = document.getElementById("setup-department").value;
+  const yearOfStudy = document.getElementById("setup-year").value;
+  const phone = document.getElementById("setup-phone").value.trim();
+  const college = document.getElementById("setup-college").value.trim();
+
+  let avatar = "";
+  document.getElementsByName("setup-avatar").forEach(radio => {
+    if (radio.checked) avatar = radio.value;
+  });
+
+  const isUpdating = sessionStorage.getItem("loggedInUserUid") !== null;
+
+  if (!isUpdating && password !== confirmPassword) {
+    showToast("Passwords do not match.", "var(--error)", "var(--error)");
+    return;
+  }
+
+  const submitBtn = document.getElementById("btn-setup-submit");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Processing...";
+
+  try {
+    const profileData = {
+      name,
+      email,
+      password,
+      registerNo: id,
+      id,
+      department,
+      year: yearOfStudy,
+      yearOfStudy,
+      phone,
+      collegeName: college,
+      avatar,
+      approved: isUpdating ? (USER_PROFILE.approved === true) : false,
+      createdAt: new Date().toISOString()
+    };
+
+    if (isUpdating) {
+      const uid = sessionStorage.getItem("loggedInUserUid");
+      await FirebaseService.db.saveStudentDoc(uid, profileData);
+      USER_PROFILE = { ...profileData, uid };
+      updateUserProfileUI();
+      
+      if (USER_PROFILE.approved === true) {
+        showToast("Profile settings saved!", "var(--success)", "var(--success)");
+        navigateTo("home");
+      } else {
+        showToast("Profile registered. Pending review.", "var(--warning)", "var(--warning)");
+        checkApprovalAndRoute(USER_PROFILE);
+      }
+    } else {
+      const credentials = await FirebaseService.auth.createUserWithEmailAndPassword(email, password, profileData);
+      USER_PROFILE = { ...profileData, uid: credentials.user.uid };
+      sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+      updateUserProfileUI();
+      showToast("Profile submitted for approval.", "var(--warning)", "var(--warning)");
+      checkApprovalAndRoute(USER_PROFILE);
+    }
+  } catch (err) {
+    showToast("Error processing registration.", "var(--error)", "var(--error)");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Register & Enter";
+  }
+});
+
+function updateUserProfileUI() {
+  const name = USER_PROFILE.name;
+  const email = USER_PROFILE.email;
+  const id = USER_PROFILE.id;
+  const college = USER_PROFILE.collegeName;
+  const avatar = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
+
+  document.querySelectorAll(".avatar-img").forEach(img => {
+    if (!img.closest(".avatar-option")) {
+      img.src = avatar;
+    }
+  });
+
+  document.querySelectorAll(".dashboard-greeting").forEach(greeting => {
+    greeting.textContent = `Hey ${name.split(" ")[0]} 👋`;
+  });
+}
+
+function openProfileSetup(isEditing = false) {
+  const title = document.getElementById("setup-title");
+  const subtitle = document.getElementById("setup-subtitle");
+  const submitBtn = document.getElementById("btn-setup-submit");
+  const backBtn = document.getElementById("setup-back-btn");
+  const tabsContainer = document.getElementById("auth-tabs-container");
+  const loginForm = document.getElementById("auth-login-form");
+  const registerForm = document.getElementById("profile-setup-form");
+
+  if (isEditing) {
+    tabsContainer.style.display = "none";
+    loginForm.style.display = "none";
+    registerForm.style.display = "block";
+
+    title.textContent = "Edit Profile";
+    subtitle.textContent = "Update your credentials for the IEDC event gateway.";
+    submitBtn.textContent = "Save Changes";
+    backBtn.style.display = "flex";
+
+    document.getElementById("setup-name").value = USER_PROFILE.name || "";
+    document.getElementById("setup-email").value = USER_PROFILE.email || "";
+    document.getElementById("setup-password").value = USER_PROFILE.password || "";
+    document.getElementById("setup-confirm-password").value = USER_PROFILE.password || "";
+    document.getElementById("setup-id").value = USER_PROFILE.id || "";
+    document.getElementById("setup-department").value = USER_PROFILE.department || "";
+    document.getElementById("setup-year").value = USER_PROFILE.yearOfStudy || "";
+    document.getElementById("setup-phone").value = USER_PROFILE.phone || "";
+    document.getElementById("setup-college").value = USER_PROFILE.collegeName || "";
+  } else {
+    tabsContainer.style.display = "flex";
+    backBtn.style.display = "none";
+    switchAuthTab("login");
+  }
+
+  navigateTo("auth");
+}
+
+async function handleSignOut() {
+  await FirebaseService.auth.signOut();
+  sessionStorage.removeItem("loggedInUserUid");
+  USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
+  navigateTo("auth");
+}
+
+document.querySelectorAll(".btn-logout-action").forEach(btn => {
+  btn.addEventListener("click", handleSignOut);
+});
+document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
+
+// Webhook wait screen Back/Dashboard action binder
+window.closeWaitingOverlayAndGoToWallet = function() {
+  const waitOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitOverlay) waitOverlay.style.display = "none";
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  switchTab("wallet");
+};
+
+document.getElementById("btn-waiting-back").addEventListener("click", () => {
+  const waitOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitOverlay) waitOverlay.style.display = "none";
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  switchTab("wallet");
+});
+
+/**
+ * Standalone batch cleanup utility to remove duplicate or orphaned registrations.
+ * Can be executed directly from the browser developer console (F12) by an administrator.
+ */
+window.cleanupOrphanedTickets = async function() {
+  if (!useRealFirebase) {
+    console.warn("Cleanup is only available in live Firestore mode.");
+    return "Failed: Not in Firestore mode.";
+  }
+
+  try {
+    const db = firebase.firestore();
+    console.log("Starting batch cleanup of duplicate/orphaned registrations...");
+    
+    // 1. Fetch all registrations
+    const regsSnap = await db.collection("registrations").get();
+    const allRegs = [];
+    regsSnap.forEach(doc => {
+      allRegs.push({ id: doc.id, ref: doc.ref, ...doc.data() });
+    });
+
+    console.log(`Retrieved ${allRegs.length} total registration records.`);
+
+    // 2. Identify duplicates (same studentUid and eventId)
+    const grouped = {};
+    allRegs.forEach(reg => {
+      const key = `${reg.studentUid}_${reg.eventId}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(reg);
+    });
+
+    const toDelete = [];
+    let keptConfirmed = 0;
+    let deletedDuplicates = 0;
+
+    Object.keys(grouped).forEach(key => {
+      const group = grouped[key];
+      if (group.length > 1) {
+        console.log(`Duplicate registrations found for student_event ${key} (${group.length} docs)`);
+        
+        // Sort group: Confirmed first, then oldest first
+        group.sort((a, b) => {
+          if (a.status === "Confirmed" && b.status !== "Confirmed") return -1;
+          if (a.status !== "Confirmed" && b.status === "Confirmed") return 1;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
+        // Keep the first one (confirmed, or oldest)
+        const primary = group[0];
+        console.log(`Keeping primary registration: ${primary.id} (status: ${primary.status})`);
+        if (primary.status === "Confirmed") keptConfirmed++;
+
+        // Delete the rest
+        for (let i = 1; i < group.length; i++) {
+          const duplicate = group[i];
+          toDelete.push(duplicate.ref.delete());
+          deletedDuplicates++;
+          console.log(`Marking duplicate for deletion: ${duplicate.id} (status: ${duplicate.status})`);
+        }
+      }
+    });
+
+    // 3. Delete orphaned registrations (where student doc does not exist)
+    let deletedOrphans = 0;
+    for (const reg of allRegs) {
+      if (reg.studentUid) {
+        const studentDoc = await db.collection("students").doc(reg.studentUid).get();
+        if (!studentDoc.exists) {
+          console.log(`Orphaned registration found (student account ${reg.studentUid} does not exist): ${reg.id}`);
+          toDelete.push(reg.ref.delete());
+          deletedOrphans++;
+        }
+      }
+    }
+
+    // Resolve delete operations
+    await Promise.all(toDelete);
+    
+    const summary = `Cleanup Completed Successfully!
+----------------------------------
+Duplicates Deleted: ${deletedDuplicates}
+Orphans Deleted: ${deletedOrphans}
+Total Cleaned: ${deletedDuplicates + deletedOrphans} records.`;
+    
+    console.log(summary);
+    return summary;
+
+  } catch (err) {
+    console.error("Batch cleanup failed:", err);
+    return `Error running cleanup: ${err.message}`;
+  }
+};
+
+// Dashboard tabs navigation
+function switchDashboardTab(tabId) {
+  const tabs = ["profile", "events", "notifications"];
+  tabs.forEach(t => {
+    const contentEl = document.getElementById(`db-content-${t}`);
+    if (contentEl) {
+      if (t === tabId) {
+        contentEl.style.display = "block";
+      } else {
+        contentEl.style.display = "none";
+      }
+    }
+  });
+
+  // Keep bottom navigation states synchronized
+  const bottomNavIds = {
+    profile: "nav-profile",
+    events: "nav-wallet",
+    notifications: "nav-news"
+  };
+
+  Object.entries(bottomNavIds).forEach(([subId, navId]) => {
+    const navEl = document.getElementById(navId);
+    const homeNavEl = document.getElementById("nav-home");
+    if (navEl) {
+      if (subId === tabId) {
+        navEl.classList.add("active");
+        if (homeNavEl) homeNavEl.classList.remove("active");
+      } else {
+        navEl.classList.remove("active");
+      }
+    }
+  });
+}
+
+const NOTIFICATIONS_DATA = [
+  { id: "1", title: "Welcome to IEDC RIT Gateway!", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", time: "Just Now" },
+  { id: "2", title: "InnovateRIT Hackathon Registration Open", body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", time: "2 Hours Ago" },
+  { id: "3", title: "AI/ML Bootcamp Registration Fee", body: "Please make sure to complete payment for AI/ML Hands-on Bootcamp (₹150) to secure your seat.", time: "1 Day Ago" }
+];
+
+function renderNotifications() {
+  const container = document.getElementById("notifications-list-container");
+  if (!container) return;
+  container.innerHTML = "";
+  NOTIFICATIONS_DATA.forEach(n => {
+    const card = document.createElement("div");
+    card.className = "notification-card";
+    card.innerHTML = `
+      <span class="notification-title">${n.title}</span>
+      <p class="notification-body">${n.body}</p>
+      <span class="notification-time">${n.time}</span>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// Session Initializer Gating check
+async function initSession() {
+  const cachedUid = sessionStorage.getItem("loggedInUserUid");
+  if (cachedUid) {
+    try {
+      const docSnap = await FirebaseService.db.getStudentDoc(cachedUid);
+      if (docSnap.exists()) {
+        USER_PROFILE = docSnap.data();
+        updateUserProfileUI();
+        checkApprovalAndRoute(USER_PROFILE);
+      } else {
+        sessionStorage.removeItem("loggedInUserUid");
+        openProfileSetup(false);
+      }
+    } catch (e) {
+      openProfileSetup(false);
+    }
+  } else {
+    openProfileSetup(false);
+  }
+}
+
+initSession();
