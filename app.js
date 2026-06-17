@@ -133,8 +133,14 @@ async function navigateTo(screenId) {
   }
 
   // Hide all screens (both overlay screens and nav-sections)
-  Object.values(screens).forEach(screen => {
+  Object.entries(screens).forEach(([id, screen]) => {
     if (screen) {
+      // Keep home section visible if details overlay (detail) is nested inside it
+      if (screenId === "detail" && id === "home") {
+        screen.style.display = "block";
+        screen.classList.add("active");
+        return;
+      }
       screen.style.display = "none";
       screen.classList.remove("active");
     }
@@ -484,21 +490,21 @@ function openEventDetail(event) {
   }
 
   // Online vs Offline Dynamic Adapters
-  const isOnline = event.mode === "online" || event.location.toLowerCase().includes("http");
+  const isOnline = event.mode === "online" || (event.location && event.location.toLowerCase().includes("http"));
   const mapLink = document.getElementById("detail-location-map-link");
   const meetDiv = document.getElementById("detail-location-meeting");
   const meetLink = document.getElementById("detail-meeting-link");
   const locationText = document.getElementById("detail-location-text");
 
-  locationText.textContent = isOnline ? "Virtual / Digital Room" : event.location;
+  locationText.textContent = isOnline ? "Virtual / Digital Room" : (event.location || "TBD");
 
   if (isOnline) {
     mapLink.style.display = "none";
     meetDiv.style.display = "flex";
-    meetLink.href = event.location.startsWith("http") ? event.location : "https://meet.google.com";
+    meetLink.href = (event.location && event.location.startsWith("http")) ? event.location : "https://meet.google.com";
   } else {
     mapLink.style.display = "inline-block";
-    mapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`;
+    mapLink.href = event.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}` : "#";
     meetDiv.style.display = "none";
   }
 
@@ -524,7 +530,7 @@ function openEventDetail(event) {
   startDetailCountdown(event.isoDate);
 
   // Reset payment checkout screen states
-  document.getElementById("detail-reg-form").style.display = "block";
+  document.getElementById("registration-form").style.display = "flex";
   document.getElementById("detail-upi-checkout-container").style.display = "none";
   document.getElementById("ticket-container").style.display = "none";
   
@@ -632,11 +638,11 @@ document.getElementById("detail-register-btn").addEventListener("click", () => {
   }
 
   // Trigger HTML5 validation and submit form
-  document.getElementById("detail-reg-form").requestSubmit();
+  document.getElementById("registration-form").requestSubmit();
 });
 
 // Bind form submit event
-document.getElementById("detail-reg-form").addEventListener("submit", (e) => {
+document.getElementById("registration-form").addEventListener("submit", (e) => {
   e.preventDefault();
   handleRegistrationCheckout();
 });
@@ -910,7 +916,7 @@ async function handleVerificationSuccess(registrationData) {
   triggerConfetti();
   showToast("Payment Verified & Ticket Issued!", "var(--success)", "var(--success)");
 
-  const regForm = document.getElementById("detail-reg-form");
+  const regForm = document.getElementById("registration-form");
   const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
   const stickyCta = document.querySelector(".sticky-cta-container");
   
@@ -987,7 +993,7 @@ async function completeUpiRegistration(registrationData) {
 
   // Hide checkout views and show success ticket block inside details modal
   document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("detail-reg-form").style.display = "none";
+  document.getElementById("registration-form").style.display = "none";
   const stickyCta = document.querySelector(".sticky-cta-container");
   if (stickyCta) stickyCta.style.display = "none";
 
