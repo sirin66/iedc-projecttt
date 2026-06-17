@@ -61,61 +61,90 @@ sessionStorage.setItem("useRealFirebase", useRealFirebase);
 const screens = {
   auth: document.getElementById("screen-auth"),
   pending: document.getElementById("screen-pending"),
-  home: document.getElementById("screen-home"),
+  home: document.getElementById("home-section"),
   detail: document.getElementById("screen-detail"),
   ticket: document.getElementById("screen-ticket"),
-  dashboard: document.getElementById("screen-dashboard")
+  profile: document.getElementById("profile-section"),
+  wallet: document.getElementById("wallet-section"),
+  news: document.getElementById("news-section")
 };
 
 const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
-
-const bottomNavItems = {
-  home: document.getElementById("nav-home"),
-  wallet: document.getElementById("nav-wallet"),
-  news: document.getElementById("nav-news"),
-  profile: document.getElementById("nav-profile")
-};
 
 // ==========================================
 // 03 — ROUTING & SCREEN TRANSITIONS
 // ==========================================
 
-async function switchTab(tabId) {
+async function switchTab(tabName) {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
-  // Update bottom navigation active class states
-  Object.entries(bottomNavItems).forEach(([id, el]) => {
-    if (el) {
-      if (id === tabId) {
-        el.classList.add("active");
-      } else {
-        el.classList.remove("active");
-      }
+  // 1. Hide all navigation sections completely
+  document.querySelectorAll('.nav-section').forEach(section => {
+      section.style.display = 'none';
+      section.classList.remove('active');
+  });
+  
+  // 2. Unhide the targeted section smoothly
+  const activeSection = document.getElementById(`${tabName}-section`);
+  if (activeSection) {
+      activeSection.style.display = 'block';
+      activeSection.classList.add('active');
+  }
+
+  // Hide any overlay screens if open (e.g. auth, pending, detail, ticket)
+  const overlayIds = ["auth", "pending", "detail", "ticket"];
+  overlayIds.forEach(id => {
+    if (screens[id]) {
+      screens[id].style.display = "none";
+      screens[id].classList.remove("active");
     }
   });
 
-  if (tabId === "home") {
-    await navigateTo("home");
+  // Ensure bottom navigation bar is visible when tab sections are active
+  const bottomNav = document.querySelector(".bottom-nav");
+  if (bottomNav) bottomNav.style.display = "flex";
+
+  // 3. Update active neon state on bottom icons
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+      btn.classList.remove('active-neon');
+  });
+  const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+  if (activeBtn) {
+      activeBtn.classList.add('active-neon');
+  }
+
+  // 4. Trigger data syncing and layout rendering
+  if (tabName === "home") {
+    await syncEvents();
+    renderHomeEvents();
   } else {
-    await navigateTo("dashboard");
-    if (tabId === "wallet") {
-      switchDashboardTab("events");
-    } else if (tabId === "news") {
-      switchDashboardTab("notifications");
-    } else if (tabId === "profile") {
-      switchDashboardTab("profile");
-    }
+    await syncEvents();
+    await syncRegistrations();
+    renderDashboard();
   }
 }
 window.switchTab = switchTab;
 
 async function navigateTo(screenId) {
+  // If the target is one of the bottom tab pages, run switchTab instead
+  if (["home", "wallet", "news", "profile"].includes(screenId)) {
+    await switchTab(screenId);
+    return;
+  }
+
+  // Hide all screens (both overlay screens and nav-sections)
   Object.values(screens).forEach(screen => {
-    if (screen) screen.classList.remove("active");
+    if (screen) {
+      screen.style.display = "none";
+      screen.classList.remove("active");
+    }
   });
 
-  if (screens[screenId]) {
-    screens[screenId].classList.add("active");
+  // Show targeted overlay screen
+  const targetScreen = screens[screenId];
+  if (targetScreen) {
+    targetScreen.style.display = "block";
+    targetScreen.classList.add("active");
   }
 
   const presentationContainer = document.querySelector(".presentation-container");
@@ -127,21 +156,17 @@ async function navigateTo(screenId) {
   } else {
     if (bottomNav) bottomNav.style.display = "flex";
   }
-
-  if (screenId === "home") {
-    await syncEvents();
-    renderHomeEvents();
-  } else if (screenId === "dashboard") {
-    await syncEvents();
-    await syncRegistrations();
-    renderDashboard();
-  }
 }
 
-if (bottomNavItems.home) bottomNavItems.home.addEventListener("click", () => switchTab("home"));
-if (bottomNavItems.wallet) bottomNavItems.wallet.addEventListener("click", () => switchTab("wallet"));
-if (bottomNavItems.news) bottomNavItems.news.addEventListener("click", () => switchTab("news"));
-if (bottomNavItems.profile) bottomNavItems.profile.addEventListener("click", () => switchTab("profile"));
+// Bind click event listeners dynamically to all bottom nav buttons
+document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tabName = btn.getAttribute("data-tab");
+    if (tabName) {
+      switchTab(tabName);
+    }
+  });
+});
 
 document.getElementById("detail-back-btn").addEventListener("click", () => {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -236,7 +261,7 @@ async function syncRegistrations() {
 
           // Re-render dashboard in real-time
           const activeScreen = document.querySelector(".screen.active");
-          if (activeScreen && activeScreen.id === "screen-dashboard") {
+          if (activeScreen && ["profile-section", "wallet-section", "news-section"].includes(activeScreen.id)) {
             renderDashboard();
           }
           
@@ -1039,7 +1064,9 @@ function drawTicketQRCode(canvasId, text, brandColor) {
 
 function renderDashboard() {
   const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-  document.getElementById("dashboard-current-date").textContent = new Date().toLocaleDateString('en-US', options);
+  document.querySelectorAll(".dashboard-current-date").forEach(el => {
+    el.textContent = new Date().toLocaleDateString('en-US', options);
+  });
 
   // Profile details
   document.getElementById("db-profile-avatar").src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
@@ -1826,10 +1853,9 @@ function updateUserProfileUI() {
     }
   });
 
-  const greetings = document.querySelector(".dashboard-greeting");
-  if (greetings) {
-    greetings.textContent = `Hey ${name.split(" ")[0]} 👋`;
-  }
+  document.querySelectorAll(".dashboard-greeting").forEach(greeting => {
+    greeting.textContent = `Hey ${name.split(" ")[0]} 👋`;
+  });
 }
 
 function openProfileSetup(isEditing = false) {
@@ -1876,7 +1902,9 @@ async function handleSignOut() {
   navigateTo("auth");
 }
 
-document.getElementById("btn-logout").addEventListener("click", handleSignOut);
+document.querySelectorAll(".btn-logout-action").forEach(btn => {
+  btn.addEventListener("click", handleSignOut);
+});
 document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
 
 // Webhook wait screen Back/Dashboard action binder
@@ -1884,16 +1912,14 @@ window.closeWaitingOverlayAndGoToWallet = function() {
   const waitOverlay = document.getElementById("waiting-verification-overlay");
   if (waitOverlay) waitOverlay.style.display = "none";
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  navigateTo("dashboard");
-  switchDashboardTab("events");
+  switchTab("wallet");
 };
 
 document.getElementById("btn-waiting-back").addEventListener("click", () => {
   const waitOverlay = document.getElementById("waiting-verification-overlay");
   if (waitOverlay) waitOverlay.style.display = "none";
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  navigateTo("dashboard");
-  switchDashboardTab("events");
+  switchTab("wallet");
 });
 
 /**

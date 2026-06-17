@@ -124,11 +124,11 @@
       transition: all 0.2s ease !important;
     }
 
-    .nav-item.active {
+    .nav-item.active, .nav-item.active-neon {
       color: var(--neon-yellow) !important;
     }
 
-    .nav-item.active svg {
+    .nav-item.active svg, .nav-item.active-neon svg {
       transform: translateY(-2px) !important;
       filter: drop-shadow(0 0 8px rgba(200, 232, 74, 0.5)) !important;
     }
@@ -146,7 +146,7 @@
       box-shadow: 0 0 8px var(--neon-yellow) !important;
     }
 
-    .nav-item.active .nav-dot {
+    .nav-item.active .nav-dot, .nav-item.active-neon .nav-dot {
       opacity: 1 !important;
       transform: scale(1) !important;
     }
@@ -721,7 +721,7 @@
           </div>
         </div>
 
-        <div id="screen-home" class="screen">
+        <div id="home-section" class="screen nav-section active">
           <!-- Horizontal Scrolling News Ticker Tape -->
           <div class="ticker-wrap">
             <div class="ticker">
@@ -1050,21 +1050,21 @@
           </div>
         </div>
 
-        <div id="screen-dashboard" class="screen">
+        <div id="profile-section" class="screen nav-section" style="display: none;">
           <div class="screen-content" style="padding-bottom: 100px;">
             <div class="dashboard-header"
               style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
               <div>
                 <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date" id="dashboard-current-date">Saturday, June 13, 2026</span>
+                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
               </div>
-              <button class="btn btn-secondary" id="btn-logout"
+              <button class="btn btn-secondary btn-logout-action"
                 style="padding: 8px 12px; border-radius: var(--radius-badge); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
                 Logout
               </button>
             </div>
 
-            <div id="db-content-profile" class="dashboard-tab-content">
+            <div id="db-content-profile">
               <div
                 style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); padding: var(--space-md) 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: var(--space-md);">
                 <div class="avatar-wrapper" style="width: 80px; height: 80px; border-color: var(--nova-yellow);">
@@ -1116,9 +1116,25 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Flipkart / BookMyShow My Tickets Hub Wallet View -->
-            <div id="db-content-events" class="dashboard-tab-content" style="display: none;">
+        <!-- Flipkart / BookMyShow My Tickets Hub Wallet View -->
+        <div id="wallet-section" class="screen nav-section" style="display: none;">
+          <div class="screen-content" style="padding-bottom: 100px;">
+            <div class="dashboard-header"
+              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
+              <div>
+                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
+                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+              </div>
+              <button class="btn btn-secondary btn-logout-action"
+                style="padding: 8px 12px; border-radius: var(--radius-badge); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
+                Logout
+              </button>
+            </div>
+
+            <div id="db-content-events">
               <div class="stats-row"
                 style="margin-bottom: var(--space-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm);">
                 <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
@@ -1140,41 +1156,56 @@
                 style="display: flex; flex-direction: column; gap: var(--space-md);">
               </div>
             </div>
+          </div>
+        </div>
 
-            <div id="db-content-notifications" class="dashboard-tab-content" style="display: none;">
+        <div id="news-section" class="screen nav-section" style="display: none;">
+          <div class="screen-content" style="padding-bottom: 100px;">
+            <div class="dashboard-header"
+              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
+              <div>
+                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
+                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+              </div>
+              <button class="btn btn-secondary btn-logout-action"
+                style="padding: 8px 12px; border-radius: var(--radius-badge); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
+                Logout
+              </button>
+            </div>
+
+            <div id="db-content-notifications">
               <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">
                 Recent Announcements</h2>
               <div class="dashboard-list" id="notifications-list-container"
                 style="display: flex; flex-direction: column; gap: var(--space-md);">
               </div>
             </div>
-
           </div>
         </div>
 
         <nav class="bottom-nav">
-          <div class="nav-item active" id="nav-home">
+          <div class="nav-item bottom-nav-btn active-neon" id="nav-home" data-tab="home">
             <svg viewBox="0 0 24 24">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
             <div class="nav-dot"></div>
           </div>
-          <div class="nav-item" id="nav-wallet">
+          <div class="nav-item bottom-nav-btn" id="nav-wallet" data-tab="wallet">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 12V8H4v4M4 12v6h16v-6M4 12h16" />
               <rect x="2" y="4" width="20" height="16" rx="2" />
             </svg>
             <div class="nav-dot"></div>
           </div>
-          <div class="nav-item" id="nav-news">
+          <div class="nav-item bottom-nav-btn" id="nav-news" data-tab="news">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
               <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
             </svg>
             <div class="nav-dot"></div>
           </div>
-          <div class="nav-item" id="nav-profile">
+          <div class="nav-item bottom-nav-btn" id="nav-profile" data-tab="profile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
