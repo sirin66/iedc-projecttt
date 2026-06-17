@@ -1548,8 +1548,8 @@
 
       if (typeof emailjs !== 'undefined') {
         try {
-          emailjs.init({ publicKey: "YOUR_EMAILJS_PUBLIC_KEY" });
-          const res = await emailjs.send("YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID", templateParams);
+          emailjs.init({ publicKey: "3eNLy2tU8mQEiQIqG" });
+          const res = await emailjs.send("service_u4ve6g2", "template_0zvf2rs", templateParams);
           console.log("EmailJS dispatch successful:", res.status, res.text);
         } catch (error) {
           console.warn("EmailJS real dispatcher skipped or failed (unconfigured credentials):", error);
