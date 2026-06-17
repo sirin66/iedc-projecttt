@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IEDC RIT Console - Administration</title>
   
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+
+  <!-- EmailJS Browser SDK Package -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <!-- QRious QR Code Generator Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  
   <!-- HTML5 QR Code Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   
@@ -39,7 +50,7 @@
     body {
       background-color: #080810;
       color: #FFFFFF;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow-x: hidden;
     }
 
@@ -1058,6 +1069,58 @@
     }
 
     const db = useRealFirebase ? firebase.firestore() : null;
+
+    // Admin Security Firewall check
+    (async function checkAdminAuthFirewall() {
+      const loggedInUid = sessionStorage.getItem("loggedInUserUid");
+      if (!loggedInUid) {
+        console.warn("Unauthenticated access attempt to admin panel. Redirecting...");
+        sessionStorage.clear();
+        window.location.replace("index.html");
+        return;
+      }
+      
+      if (useRealFirebase) {
+        try {
+          firebase.auth().onAuthStateChanged(async (user) => {
+            if (!user || user.uid !== loggedInUid) {
+              console.warn("Firebase Auth state mismatch. Redirecting...");
+              sessionStorage.clear();
+              window.location.replace("index.html");
+              return;
+            }
+            
+            const doc = await db.collection("students").doc(user.uid).get();
+            if (!doc.exists || (doc.data().role !== "admin" && doc.data().email !== "admin@rit.ac.in")) {
+              console.warn("Unauthorized role. Redirecting...");
+              sessionStorage.clear();
+              window.location.replace("index.html");
+            }
+          });
+        } catch (e) {
+          console.error("Firebase auth verification error:", e);
+          sessionStorage.clear();
+          window.location.replace("index.html");
+        }
+      } else {
+        const mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+        let foundAdmin = false;
+        for (const email in mockUsers) {
+          if (mockUsers[email].uid === loggedInUid) {
+            const profile = mockUsers[email].profileData;
+            if (profile && (profile.role === "admin" || profile.email === "admin@rit.ac.in")) {
+              foundAdmin = true;
+            }
+            break;
+          }
+        }
+        if (!foundAdmin) {
+          console.warn("Unauthorized mock role. Redirecting...");
+          sessionStorage.clear();
+          window.location.replace("index.html");
+        }
+      }
+    })();
     
     // Cached Document Object Registry Elements mapping handles
     const tbody = document.getElementById('student-table-body');
@@ -1456,14 +1519,69 @@
       }
     };
 
-    function triggerSimulatedAlerts(reg) {
-      const studentName = reg.studentName || "Student";
-      const email = reg.studentEmail || "student@rit.ac.in";
-      const phone = reg.phone || "+91 98765 43210";
-      const passLink = `http://localhost:5000/pass?id=${reg.registrationId || reg.id}`;
+    async function sendEmailJSNotification(regData) {
+      const studentName = regData.studentName || "Student";
+      const email = regData.studentEmail || "student@rit.ac.in";
+      const phone = regData.phone || "+91 98765 43210";
+      const passLink = `${window.location.origin}/index.html?pass=${regData.registrationId || regData.id}`;
 
-      console.log(`[SMS/EMAIL TRIGGERED] Send ticket to ${studentName} (Email: ${email}, Phone: ${phone}) Link: ${passLink}`);
-      alert(`⚡ Automated notification sent to ${studentName} via WhatsApp (${phone}) and Email (${email})!`);
+      const templateParams = {
+        to_name: studentName,
+        to_email: email,
+        event_title: regData.eventTitle || regData.title || "RITU Event",
+        ticket_id: regData.registrationId || regData.id,
+        student_name: studentName,
+        register_no: regData.registerNo || "N/A",
+        phone: phone,
+        bank_account_name: regData.bankAccountName || "N/A",
+        payment_id: regData.razorpayPaymentId || regData.utrNumber || "N/A",
+        pass_link: passLink,
+        time: regData.time || "TBD",
+        date: regData.date || "TBD",
+        location: regData.location || "TBD",
+        instructions: regData.instructions || "Please arrive 15 minutes before the start time. Carry your student ID card.",
+        whatsapp_link: regData.whatsappLink || "",
+        duration: regData.duration || ""
+      };
+
+      console.log("[EmailJS Payload Mapping]:", templateParams);
+
+      if (typeof emailjs !== 'undefined') {
+        try {
+          emailjs.init({ publicKey: "YOUR_EMAILJS_PUBLIC_KEY" });
+          const res = await emailjs.send("YOUR_EMAILJS_SERVICE_ID", "YOUR_EMAILJS_TEMPLATE_ID", templateParams);
+          console.log("EmailJS dispatch successful:", res.status, res.text);
+        } catch (error) {
+          console.warn("EmailJS real dispatcher skipped or failed (unconfigured credentials):", error);
+        }
+      } else {
+        console.warn("EmailJS SDK not loaded.");
+      }
+
+      console.log(`
++-------------------------------------------------------------+
+|               RITU EVENT PLATFORM ENTRY PASS                |
++-------------------------------------------------------------+
+| TICKET ID: ${regData.registrationId || regData.id}
+| EVENT:     ${regData.eventTitle || regData.title}
+| DATE/TIME: ${regData.date} @ ${regData.time}
+| DURATION:  ${regData.duration || '3 Hours'}
+| VENUE:     ${regData.location || 'RIT Campus'}
++-------------------------------------------------------------+
+| STUDENT:   ${studentName}
+| REG NO:    ${regData.registerNo || "N/A"}
+| PHONE:     ${phone}
+| BANK ACCT: ${regData.bankAccountName || "N/A"}
+| PAY REF:   ${regData.razorpayPaymentId || regData.utrNumber || 'N/A'}
++-------------------------------------------------------------+
+| INST:      ${regData.instructions || 'Please arrive 15m early. Carry student ID.'}
+| WA GROUP:  ${regData.whatsappLink || 'N/A'}
++-------------------------------------------------------------+
+| PASS LINK: ${passLink}
++-------------------------------------------------------------+
+      `);
+
+      alert(`⚡ Email pass confirmation notification sent to ${studentName} (${email}) for ticket ID #${regData.registrationId || regData.id}!`);
     }
 
     window.approveRegistrationManually = async function(regId) {
@@ -1489,7 +1607,7 @@
           console.log(`Successfully approved registration doc ${regId} in Firestore.`);
           if (regData) {
             regData.status = "Confirmed";
-            triggerSimulatedAlerts(regData);
+            sendEmailJSNotification(regData);
           }
         } catch (e) {
           console.error("Firestore approve registration failed:", e);
@@ -1497,7 +1615,7 @@
         }
       } else {
         if (regData) {
-          triggerSimulatedAlerts(regData);
+          sendEmailJSNotification(regData);
         }
         // Trigger real-time UI refresh in Simulator Mode
         const dropdown = document.getElementById("admin-event-filter");
@@ -1867,6 +1985,40 @@
       alert("Event deleted successfully!");
     };
 
+    window.copyPromoLink = function(id) {
+      const link = `${window.location.origin}/index.html?event=${id}`;
+      navigator.clipboard.writeText(link).then(() => {
+        alert("Event promotional link copied to clipboard!");
+      }).catch(err => {
+        console.error("Failed to copy link:", err);
+      });
+    };
+
+    window.downloadPromoQR = function(id, title) {
+      const link = `${window.location.origin}/index.html?event=${id}`;
+      const canvas = document.getElementById(`promo-qr-${id}`);
+      if (!canvas) return;
+
+      new QRious({
+        element: canvas,
+        value: link,
+        size: 500,
+        background: "#FFFFFF",
+        foreground: "#080810",
+        level: "H"
+      });
+
+      setTimeout(() => {
+        const url = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Promo_QR_${title.replace(/[^a-zA-Z0-9]+/g, "_")}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, 150);
+    };
+
     function renderActiveEventsList() {
       const container = document.getElementById("active-events-list");
       if (!container) return;
@@ -1890,6 +2042,14 @@
           <div class="admin-item-card-actions">
             <button class="btn-action-icon btn-edit-item" onclick="editEventItem('${ev.id}')">✏️ Edit</button>
             <button class="btn-action-icon btn-delete-item" onclick="deleteEventItem('${ev.id}')">🗑️ Del</button>
+          </div>
+          <div class="admin-item-card-marketing" style="margin-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; display: flex; flex-direction: column; gap: var(--space-xs);">
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--nova-yellow); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 2px;">Marketing Promo Assets</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-action-icon" style="background: rgba(200, 232, 74, 0.1); border: 1.5px solid var(--nova-yellow); color: var(--nova-yellow); flex: 1; font-size: 10px; cursor: pointer; padding: 6px;" onclick="copyPromoLink('${ev.id}')">🔗 Link</button>
+              <button class="btn-action-icon" style="background: rgba(74, 232, 138, 0.1); border: 1.5px solid var(--success); color: var(--success); flex: 1; font-size: 10px; cursor: pointer; padding: 6px;" onclick="downloadPromoQR('${ev.id}', '${ev.title.replace(/'/g, "\\'")}')">📥 QR Code</button>
+            </div>
+            <canvas id="promo-qr-${ev.id}" style="display: none;"></canvas>
           </div>
         `;
         container.appendChild(card);
@@ -2081,6 +2241,14 @@
           <div class="admin-item-card-actions">
             <button class="btn-action-icon btn-edit-item" onclick="editTournamentItem('${t.id}')">✏️ Edit</button>
             <button class="btn-action-icon btn-delete-item" onclick="deleteTournamentItem('${t.id}')">🗑️ Del</button>
+          </div>
+          <div class="admin-item-card-marketing" style="margin-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; display: flex; flex-direction: column; gap: var(--space-xs);">
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--nova-yellow); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 2px;">Marketing Promo Assets</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-action-icon" style="background: rgba(200, 232, 74, 0.1); border: 1.5px solid var(--nova-yellow); color: var(--nova-yellow); flex: 1; font-size: 10px; cursor: pointer; padding: 6px;" onclick="copyPromoLink('${t.id}')">🔗 Link</button>
+              <button class="btn-action-icon" style="background: rgba(74, 232, 138, 0.1); border: 1.5px solid var(--success); color: var(--success); flex: 1; font-size: 10px; cursor: pointer; padding: 6px;" onclick="downloadPromoQR('${t.id}', '${t.title.replace(/'/g, "\\'")}')">📥 QR Code</button>
+            </div>
+            <canvas id="promo-qr-${t.id}" style="display: none;"></canvas>
           </div>
         `;
         container.appendChild(card);

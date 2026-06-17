@@ -447,42 +447,7 @@
     </div>
 
     <div class="phone-frame">
-      <div class="status-bar">
-        <span id="status-time">14:00</span>
-        <div class="status-bar-icons">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 20V4" />
-          </svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.58 16.14a7 7 0 0 1 6.84 0M12 20h.01" />
-          </svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="16" height="10" rx="2" ry="2" />
-            <line x1="22" y1="11" x2="22" y2="13" />
-          </svg>
-        </div>
-      </div>
-
       <div class="screen-container">
-
-        <!-- Global news ticker -->
-        <div class="ticker-wrap" id="global-ticker-wrap" style="display: none;">
-          <div class="ticker">
-            <span class="ticker-item">📢 Loading live announcements...</span>
-          </div>
-        </div>
-
-        <!-- Initial In-App Mobile Advertisement/Alert Overlay -->
-        <div id="ad-overlay" class="ad-overlay">
-          <div class="ad-modal">
-            <button class="ad-close-btn" onclick="closeAdOverlay()">&times;</button>
-            <div class="ad-tag">Ad Spotlight</div>
-            <h3 style="font-family: var(--font-display); font-size: 20px !important; font-weight: 850; margin-bottom: var(--space-xs); line-height: 1.2;">InnovateRIT Summit '26</h3>
-            <p style="font-size: 12px; color: var(--muted-white); line-height: 1.4; margin-bottom: var(--space-md);">Join the flagship campus summit by RIT IEDC this weekend. Dynamic panels, incubator opportunities, and startup pitch awards!</p>
-            <div style="width: 100%; height: 110px; border-radius: 12px; background: url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80') center/cover no-repeat; border: 1px solid rgba(255,255,255,0.1); margin-bottom: var(--space-sm);"></div>
-            <button class="btn btn-primary" onclick="closeAdOverlay()" style="width: 100%; padding: 12px; font-size: 13px !important;">Explore Summit</button>
-          </div>
-        </div>
 
         <div id="screen-auth" class="screen full-height active">
           <div class="btn-back" id="setup-back-btn" style="display: none;">
@@ -702,7 +667,29 @@
           </div>
         </div>
 
-        <div id="screen-pending" class="screen full-height">
+        <!-- Secured Main App Layout -->
+        <div id="main-app-layout" style="display: none; width: 100%; height: 100%;">
+          
+          <!-- Global news ticker -->
+          <div class="ticker-wrap" id="global-ticker-wrap" style="display: none;">
+            <div class="ticker">
+              <span class="ticker-item">📢 Loading live announcements...</span>
+            </div>
+          </div>
+
+          <!-- Initial In-App Mobile Advertisement/Alert Overlay -->
+          <div id="ad-overlay" class="ad-overlay">
+            <div class="ad-modal">
+              <button class="ad-close-btn" onclick="closeAdOverlay()">&times;</button>
+              <div class="ad-tag">Ad Spotlight</div>
+              <h3 style="font-family: var(--font-display); font-size: 20px !important; font-weight: 850; margin-bottom: var(--space-xs); line-height: 1.2;">InnovateRIT Summit '26</h3>
+              <p style="font-size: 12px; color: var(--muted-white); line-height: 1.4; margin-bottom: var(--space-md);">Join the flagship campus summit by RIT IEDC this weekend. Dynamic panels, incubator opportunities, and startup pitch awards!</p>
+              <div style="width: 100%; height: 110px; border-radius: 12px; background: url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80') center/cover no-repeat; border: 1px solid rgba(255,255,255,0.1); margin-bottom: var(--space-sm);"></div>
+              <button class="btn btn-primary" onclick="closeAdOverlay()" style="width: 100%; padding: 12px; font-size: 13px !important;">Explore Summit</button>
+            </div>
+          </div>
+
+          <div id="screen-pending" class="screen full-height">
           <div class="screen-content"
             style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100%; padding: var(--space-xl); text-align: center;">
             <div class="pending-icon-wrapper"
@@ -1324,6 +1311,7 @@
 
     </div>
   </div>
+  </div> <!-- Closing main-app-layout -->
 </body>
 
 </html>

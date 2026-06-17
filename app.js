@@ -23,6 +23,23 @@ let pendingRegistration = null;
 let currentVerificationUnsubscribe = null;
 let simulatorPollingInterval = null;
 let pendingRegistrationId = null;
+let isUserLoggedIn = false;
+
+function sanitizeInput(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/[&<>"']/g, function(m) {
+      switch (m) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#039;';
+        default: return m;
+      }
+    })
+    .trim();
+}
 
 const PHONEPE_CONFIG = {
   MERCHANT_ID: "M222YFJEV26ZI_2606161742",
@@ -76,6 +93,10 @@ const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
 // ==========================================
 
 async function switchTab(tabName) {
+  if (!isUserLoggedIn) {
+    console.warn("Auth Guard: Blocked transition to tab", tabName);
+    return;
+  }
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
   // 1. Hide all navigation sections completely
@@ -130,6 +151,10 @@ async function switchTab(tabName) {
 window.switchTab = switchTab;
 
 async function navigateTo(screenId) {
+  if (!isUserLoggedIn && screenId !== "auth") {
+    console.warn("Auth Guard: Blocked transition to screen", screenId);
+    return;
+  }
   // If the target is one of the bottom tab pages, run switchTab instead
   if (["home", "wallet", "news", "profile"].includes(screenId)) {
     await switchTab(screenId);
@@ -181,6 +206,7 @@ async function navigateTo(screenId) {
 // Bind click event listeners dynamically to all bottom nav buttons
 document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    if (!isUserLoggedIn) return;
     const tabName = btn.getAttribute("data-tab");
     if (tabName) {
       switchTab(tabName);
@@ -673,13 +699,13 @@ async function handleRegistrationCheckout() {
   if (!selectedEvent) return;
 
   // ===== STRICT VALIDATION: Bank Account Owner Name =====
-  const bankAccountName = document.getElementById("detail-reg-bank-name").value.trim();
+  const bankAccountName = sanitizeInput(document.getElementById("detail-reg-bank-name").value);
   if (!bankAccountName) {
     alert("Please enter the Bank Account Owner's Full Name to proceed with the payment");
     return;
   }
 
-  const phone = document.getElementById("detail-reg-phone").value.trim();
+  const phone = sanitizeInput(document.getElementById("detail-reg-phone").value);
   if (!phone) {
     showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
     return;
@@ -763,12 +789,12 @@ async function handleRegistrationCheckout() {
     registrationId,
     eventId,
     eventTitle: selectedEvent.title,
-    studentName: USER_PROFILE.name,
-    studentEmail: USER_PROFILE.email,
-    registerNo: USER_PROFILE.id,
-    bankAccountName, // Save the bank account owner's name here!
-    phone,
-    teamMembers,
+    studentName: sanitizeInput(USER_PROFILE.name),
+    studentEmail: sanitizeInput(USER_PROFILE.email),
+    registerNo: sanitizeInput(USER_PROFILE.id),
+    bankAccountName: sanitizeInput(bankAccountName), // Save the bank account owner's name here!
+    phone: sanitizeInput(phone),
+    teamMembers: teamMembers.map(t => sanitizeInput(t)),
     amount,
     razorpayPaymentId: merchantTransactionId, // PhonePe Transaction ID mapped here
     checkedIn: false,
@@ -1047,11 +1073,60 @@ function showTicket(registration) {
     showToast("Ticket downloaded successfully!", "var(--success)", "var(--success)");
   };
   document.getElementById("btn-ticket-share").onclick = () => {
-    showToast("Ticket share links compiled!", "var(--galactic-purple)", "var(--galactic-purple)");
+    sharePass(registration.ticketId, registration.title);
   };
 
   navigateTo("ticket");
 }
+
+window.shareEvent = async function(eventId, eventTitle) {
+  const url = `https://iedc-projecttt.pages.dev/?event=${eventId}`;
+  const shareData = {
+    title: `Register for ${eventTitle}`,
+    text: `Join me at the ${eventTitle}! Register here:`,
+    url: url
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      showToast("Event shared successfully!", "var(--success)", "var(--success)");
+    } else {
+      await navigator.clipboard.writeText(url);
+      showToast("Link copied to clipboard!", "var(--nova-yellow)", "var(--nova-yellow)");
+    }
+  } catch (err) {
+    console.log("Share failed:", err);
+  }
+};
+
+window.sharePass = async function(ticketId, eventTitle) {
+  const shareData = {
+    title: `Confirmed pass for ${eventTitle}!`,
+    text: `I'm going to ${eventTitle}! Ticket ID: ${ticketId}. Get your passes here:`,
+    url: `https://iedc-projecttt.pages.dev/`
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      showToast("Pass shared successfully!", "var(--success)", "var(--success)");
+    } else {
+      await navigator.clipboard.writeText(`Confirmed pass for ${eventTitle}! Ticket ID: ${ticketId}`);
+      showToast("Pass details copied!", "var(--nova-yellow)", "var(--nova-yellow)");
+    }
+  } catch (err) {
+    console.log("Share failed:", err);
+  }
+};
+
+window.togglePassExpansion = function(detailsId) {
+  const el = document.getElementById(detailsId);
+  if (el) {
+    const isHidden = el.style.display === "none";
+    el.style.display = isHidden ? "flex" : "none";
+  }
+};
 
 function encryptRegistrationId(id) {
   try {
@@ -1138,82 +1213,107 @@ function renderDashboard() {
     USER_REGISTRATIONS.forEach(reg => {
       const card = document.createElement("div");
       card.className = "ticket-wallet-card";
-      card.style.setProperty("--ticket-color", reg.color);
       
       const isPending = reg.status === "Pending";
       const isChecked = reg.checkedIn === true;
       
-      let badgeStyle = "background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.25); color: #22c55e; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
-      let statusText = "✅ Confirmed";
       if (isPending) {
-        badgeStyle = "background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.25); color: #eab308; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
-        statusText = "⏳ Processing Payment...";
-      } else if (isChecked) {
-        badgeStyle = "background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #3b82f6; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
-        statusText = "Checked In";
-      }
-
-      const qrSection = isPending 
-        ? `<div style="font-size:9px; color:#eab308; font-weight:700; max-width:80px; text-align:center; line-height:1.3;">Pending Verification</div>`
-        : `<canvas id="qr-canvas-${reg.ticketId}"></canvas>`;
-
-      const footerAction = isPending 
-        ? `<span style="color:var(--muted-white); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Pending Verification</span>`
-        : `<span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>`;
-
-      const detailsId = `wallet-details-${reg.ticketId}`;
-      const isConfirmed = reg.status === "Confirmed";
-      const whatsappButton = (isConfirmed && reg.whatsappLink) 
-        ? `<a href="${reg.whatsappLink}" target="_blank" class="btn" style="background:#25D366 !important; color:white !important; font-size:11px; padding:8px 12px; border-radius:8px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; text-transform:uppercase; box-shadow:0 0 10px rgba(37,211,102,0.3); width: 100%;">💬 Join Official WhatsApp Group</a>` 
-        : "";
-
-      card.style.cursor = "pointer";
-      card.innerHTML = `
-        <div class="ticket-wallet-header">
-          <span class="chip chip-${reg.type}" style="font-size:10px !important;">${reg.typeLabel}</span>
-          <span style="${badgeStyle}">${statusText}</span>
-        </div>
-        <div class="ticket-wallet-body">
-          <div class="ticket-wallet-info">
-            <h3 style="font-size: 15px !important; font-weight: 800; line-height:1.2; margin-bottom: 2px;">${reg.title}</h3>
-            <span style="font-size:12px; color:var(--muted-white);">${reg.date} • ${reg.time}</span>
-            <span style="font-size:11px; color:var(--soft-purple); font-weight:700;">📍 ${reg.location}</span>
+        // Redacted pending placeholder layout (no QR or BookMyShow components render)
+        card.className = "ticket-wallet-card-pending";
+        card.style.cursor = "default";
+        card.innerHTML = `
+          <div class="pending-pass-placeholder" style="padding: 20px; text-align: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: var(--radius-card-std); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(234, 179, 8, 0.1); border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; color: #eab308; font-size: 20px; box-shadow: 0 0 15px rgba(234, 179, 8, 0.25); animation: pulseWarning 2s infinite;">⏳</div>
+            <h4 style="font-family: var(--font-display); font-size: 14px; font-weight: 800; color: white; margin: 0;">Verification in Progress</h4>
+            <p class="body-desc" style="font-size: 11px; line-height: 1.5; color: var(--muted-white); margin: 0; text-align: center;">
+              Your premium ticket pass will automatically unlock here once the admin verifies your registration.
+            </p>
+            <div style="font-size: 9px; color: var(--soft-purple); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Event: ${reg.title}</div>
           </div>
-          <div class="ticket-wallet-qr" style="${isPending ? 'background:transparent; border:1.5px dashed rgba(234,179,8,0.3); padding:4px; display:flex; align-items:center; justify-content:center; border-radius:8px;' : ''}">
-            ${qrSection}
-          </div>
-        </div>
+        `;
+      } else {
+        // High-Fidelity Unlocked BookMyShow cinema card wrapper
+        card.className = "bookmyshow-ticket";
+        card.style.setProperty("--ticket-color", reg.color);
         
-        <!-- Interactive Expandable Detail View -->
-        <div id="${detailsId}" style="display: none; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 4px; font-size: 12px; color: var(--muted-white); text-align: left;">
-          <div style="display:flex; justify-content:space-between; gap: 10px;">
-            <span>Start Time: <strong style="color:white;">${reg.time}</strong></span>
-            <span>Duration: <strong style="color:white;">${reg.duration || '3 Hours'}</strong></span>
-          </div>
-          <div>Location: <strong style="color:white;">${reg.location}</strong></div>
-          <div style="line-height:1.4;">Instructions: <span style="color:white;">${reg.instructions || 'Please arrive 15 minutes before the start time. Carry your student ID card.'}</span></div>
-          ${whatsappButton}
-        </div>
+        const detailsId = `wallet-details-${reg.ticketId}`;
+        const posterUrl = reg.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80";
+        
+        // WhatsApp Group link button (Neon Green)
+        const whatsappButton = reg.whatsappLink
+          ? `<a href="${reg.whatsappLink}" target="_blank" class="btn btn-whatsapp-pulsing" style="background: #25D366 !important; color: white !important; font-size: 11px; padding: 10px; border-radius: 10px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: none; text-transform: uppercase; box-shadow: 0 0 12px rgba(37, 211, 102, 0.3); margin-top: 8px;">💬 Join Official WhatsApp Group</a>`
+          : "";
 
-        <div class="ticket-wallet-perf"></div>
-        <div class="ticket-wallet-footer">
-          <span style="font-family:monospace; color:var(--muted-white); font-size: 11px;">ID: ${reg.ticketId}</span>
-          ${footerAction}
-        </div>
-      `;
-      listContainer.appendChild(card);
+        // Venue on Map button (Neon Blue)
+        const mapLink = reg.location && reg.location.startsWith("http") ? reg.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(reg.location)}`;
+        const mapButton = `<a href="${mapLink}" target="_blank" class="btn btn-map-neon" style="background: rgba(0, 180, 216, 0.1) !important; border: 1.5px solid var(--neon-blue) !important; color: var(--neon-blue) !important; font-size: 11px; padding: 10px; border-radius: 10px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 8px; text-transform: uppercase; box-shadow: 0 0 10px rgba(0, 180, 216, 0.25);">📍 View Venue on Map</a>`;
+
+        // Share My Pass button (Frosted Soft Purple)
+        const shareButton = `<button type="button" class="btn btn-share-pass" onclick="event.stopPropagation(); sharePass('${reg.ticketId}', '${reg.title}')" style="background: rgba(139, 111, 212, 0.1) !important; border: 1.5px solid var(--soft-purple) !important; color: var(--soft-purple) !important; font-size: 11px; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 8px; text-transform: uppercase; border: none;">📤 Share My Pass</button>`;
+
+        card.innerHTML = `
+          <!-- Event Branding Poster Image -->
+          <div class="ticket-poster-container">
+            <img src="${posterUrl}" alt="${reg.title}">
+            <div style="position: absolute; top: 12px; right: 12px; z-index: 3;">
+              <span class="chip chip-${reg.type}" style="font-size: 10px !important; text-transform: uppercase; font-weight: 900;">${reg.typeLabel}</span>
+            </div>
+            <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(to bottom, transparent, rgba(8, 8, 16, 0.95)); z-index: 2;"></div>
+          </div>
+
+          <div class="ticket-perforation-line"></div>
+
+          <div class="ticket-details-container">
+            <h3 style="font-family: var(--font-display); font-size: 18px !important; font-weight: 900; line-height: 1.2; color: white; margin: 0; text-align: left;">${reg.title}</h3>
+            
+            <div style="display: flex; gap: var(--space-md); font-size: 11px; color: var(--muted-white); justify-content: flex-start; align-items: center; margin-top: 4px;">
+              <span>📅 ${reg.date}</span>
+              <span>•</span>
+              <span>🕒 ${reg.time}</span>
+            </div>
+
+            <!-- Cryptographic Pass Block with canvas QR and Student Name -->
+            <div class="ticket-frosted-pass" style="background: rgba(255, 255, 255, 0.02) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; padding: 14px; border-radius: 14px; display: flex; align-items: center; gap: 14px; margin-top: 4px;">
+              <div style="background: white; padding: 6px; border-radius: 10px; width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <canvas id="qr-canvas-${reg.ticketId}" style="width: 100% !important; height: 100% !important;"></canvas>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 2px; text-align: left;">
+                <span style="font-size: 9px; font-weight: 900; color: var(--soft-purple); text-transform: uppercase; letter-spacing: 1px;">Verified Pass</span>
+                <span style="font-size: 13px; font-weight: 800; color: white; text-transform: uppercase; line-height: 1.2;">${reg.studentName || USER_PROFILE.name || 'Student'}</span>
+                <span style="font-family: monospace; font-size: 10px; color: var(--muted-white); margin-top: 2px;">ID: ${reg.ticketId}</span>
+              </div>
+            </div>
+
+            <!-- Expandable view target -->
+            <div id="${detailsId}" style="display: none; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); margin-top: 4px;">
+              <div style="font-size: 11px; color: var(--muted-white);">
+                <span>Duration: <strong style="color: white;">${reg.duration || '3 Hours'}</strong></span>
+              </div>
+              <div style="font-size: 11px; color: var(--muted-white); text-align: left; line-height: 1.4;">
+                Instructions: <span style="color: white;">${reg.instructions || 'Please arrive 15 minutes before the start time. Carry your student ID card.'}</span>
+              </div>
+              ${whatsappButton}
+              ${mapButton}
+              ${shareButton}
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span style="font-size: 10px; color: var(--muted-white); font-family: monospace;">STATUS: CONFIRMED</span>
+              <span style="font-family: var(--font-display); font-size: 11px; font-weight: 900; color: var(--nova-yellow); text-transform: uppercase; letter-spacing: 1px; cursor: pointer;" onclick="event.stopPropagation(); togglePassExpansion('${detailsId}')">Pass Info</span>
+            </div>
+          </div>
+        `;
+
+        // Bind click event to toggle details section on ticket wallet card
+        card.addEventListener("click", (e) => {
+          if (e.target.closest("a") || e.target.closest("button") || e.target.closest("span[onclick]") || e.target.closest("canvas")) {
+            return;
+          }
+          togglePassExpansion(detailsId);
+        });
+      }
       
-      // Bind click event to toggle details section on ticket wallet card
-      card.addEventListener("click", (e) => {
-        if (e.target.closest("a") || e.target.closest("span[onclick]") || e.target.closest("canvas")) {
-          return;
-        }
-        const detailsEl = document.getElementById(detailsId);
-        if (detailsEl) {
-          const isHidden = detailsEl.style.display === "none";
-          detailsEl.style.display = isHidden ? "flex" : "none";
-        }
-      });
+      listContainer.appendChild(card);
       
       // Draw live canvas QR code inside card ONLY if confirmed
       if (!isPending) {
@@ -1733,6 +1833,8 @@ document.getElementById("auth-forgot-password-form").addEventListener("submit", 
 });
 
 function checkApprovalAndRoute(profileData) {
+  isUserLoggedIn = true;
+  document.getElementById("main-app-layout").style.display = "block";
   if (profileData.role === "admin" || profileData.email === "admin@rit.ac.in") {
     window.location.href = "admin.html";
   } else if (profileData.approved === true) {
@@ -1844,9 +1946,9 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
   const confirmPassword = document.getElementById("setup-confirm-password").value;
   const id = document.getElementById("setup-id").value.trim();
   const department = document.getElementById("setup-department").value;
-  const yearOfStudy = document.getElementById("setup-year").value;
-  const phone = document.getElementById("setup-phone").value.trim();
-  const college = document.getElementById("setup-college").value.trim();
+  const yearOfStudy = sanitizeInput(document.getElementById("setup-year").value);
+  const phone = sanitizeInput(document.getElementById("setup-phone").value);
+  const college = sanitizeInput(document.getElementById("setup-college").value);
 
   let avatar = "";
   document.getElementsByName("setup-avatar").forEach(radio => {
@@ -1968,6 +2070,8 @@ function openProfileSetup(isEditing = false) {
 async function handleSignOut() {
   await FirebaseService.auth.signOut();
   sessionStorage.removeItem("loggedInUserUid");
+  isUserLoggedIn = false;
+  document.getElementById("main-app-layout").style.display = "none";
   USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
   navigateTo("auth");
 }
@@ -2257,6 +2361,8 @@ async function initSession() {
       if (docSnap.exists()) {
         USER_PROFILE = docSnap.data();
         updateUserProfileUI();
+        isUserLoggedIn = true;
+        document.getElementById("main-app-layout").style.display = "block";
         checkApprovalAndRoute(USER_PROFILE);
       } else {
         sessionStorage.removeItem("loggedInUserUid");
@@ -2269,5 +2375,6 @@ async function initSession() {
     openProfileSetup(false);
   }
 }
+initSession();
 
 initSession();
