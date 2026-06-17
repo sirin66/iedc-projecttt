@@ -1995,14 +1995,13 @@ Total Cleaned: ${deletedDuplicates + deletedOrphans} records.`;
 function switchDashboardTab(tabId) {
   const tabs = ["profile", "events", "notifications"];
   tabs.forEach(t => {
-    const tabEl = document.getElementById(`db-tab-${t}`);
     const contentEl = document.getElementById(`db-content-${t}`);
-    if (t === tabId) {
-      if (tabEl) tabEl.classList.add("active");
-      if (contentEl) contentEl.style.display = "block";
-    } else {
-      if (tabEl) tabEl.classList.remove("active");
-      if (contentEl) contentEl.style.display = "none";
+    if (contentEl) {
+      if (t === tabId) {
+        contentEl.style.display = "block";
+      } else {
+        contentEl.style.display = "none";
+      }
     }
   });
 
@@ -2026,9 +2025,6 @@ function switchDashboardTab(tabId) {
     }
   });
 }
-document.getElementById("db-tab-profile").addEventListener("click", () => switchDashboardTab("profile"));
-document.getElementById("db-tab-events").addEventListener("click", () => switchDashboardTab("events"));
-document.getElementById("db-tab-notifications").addEventListener("click", () => switchDashboardTab("notifications"));
 
 const NOTIFICATIONS_DATA = [
   { id: "1", title: "Welcome to IEDC RIT Gateway!", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", time: "Just Now" },
