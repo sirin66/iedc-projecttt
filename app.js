@@ -14,7 +14,7 @@ const firebaseConfig = {
 
 let useRealFirebase = false;
 try {
-  if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
+  if (typeof firebase !== "undefined" && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -87,10 +87,13 @@ function showToast(message, borderColor = "#8b6fd4") {
 function showCustomAlert(title, message) {
   const overlay = document.getElementById("custom-alert-overlay");
   if (!overlay) return;
-  document.getElementById("custom-alert-title").textContent = title;
-  document.getElementById("custom-alert-message").textContent = message;
+  const titleEl = document.getElementById("custom-alert-title");
+  const msgEl = document.getElementById("custom-alert-message");
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
   overlay.style.display = "flex";
 }
+
 window.closeCustomAlert = function() {
   const overlay = document.getElementById("custom-alert-overlay");
   if (overlay) overlay.style.display = "none";
@@ -101,6 +104,9 @@ window.closeCustomAlert = function() {
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Seed local storage with simulator mock data if empty
+  seedSimulatorDatabase();
+
   const pathname = window.location.pathname;
   
   if (pathname.includes("admin.html")) {
@@ -138,6 +144,8 @@ window.handleLoginSubmit = async function(event) {
   const emailInput = document.getElementById("student-email");
   const passwordInput = document.getElementById("student-password");
   const submitBtn = document.getElementById("login-btn");
+  
+  if (!emailInput || !passwordInput || !submitBtn) return;
   
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
@@ -221,8 +229,10 @@ window.handleRegisterSubmit = async function(event) {
   };
 
   const registerBtn = document.getElementById("btn-setup-submit");
-  registerBtn.disabled = true;
-  registerBtn.textContent = "REGISTERING...";
+  if (registerBtn) {
+    registerBtn.disabled = true;
+    registerBtn.textContent = "REGISTERING...";
+  }
 
   try {
     let uid = "";
@@ -250,8 +260,10 @@ window.handleRegisterSubmit = async function(event) {
     }
     alert("Registration Error: " + msg);
   } finally {
-    registerBtn.disabled = false;
-    registerBtn.textContent = "Register & Enter";
+    if (registerBtn) {
+      registerBtn.disabled = false;
+      registerBtn.textContent = "Register & Enter";
+    }
   }
 };
 
@@ -268,7 +280,7 @@ window.handleForgotPasswordSubmit = async function(event) {
       if (!mockUsers[email]) throw { code: "auth/user-not-found" };
     }
     alert("A password reset email has been sent. Please check your inbox!");
-    hideForgotPasswordForm();
+    if (typeof hideForgotPasswordForm === "function") hideForgotPasswordForm();
   } catch (e) {
     alert("Error: Student record matching email address not found.");
   }
@@ -278,51 +290,30 @@ window.handleForgotPasswordSubmit = async function(event) {
 window.handleGoogleSignIn = async function() {
   try {
     let uid = "";
-    let email = "";
-    let name = "";
     if (useRealFirebase) {
       const provider = new firebase.auth.GoogleAuthProvider();
-      const res = await firebase.auth().signInWithPopup(provider);
-      uid = res.user.uid;
-      email = res.user.email;
-      name = res.user.displayName;
-    } else {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      uid = "uid_google123";
-      email = "google.student@rit.ac.in";
-      name = "GOOGLE TEST USER";
-    }
-
-    // Check if doc exists
-    let exists = false;
-    let data = {};
-    if (useRealFirebase) {
-      const doc = await db.collection("students").doc(uid).get();
-      exists = doc.exists;
-      if (exists) data = doc.data();
-    } else {
-      const users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-      if (users[email]) {
-        exists = true;
-        data = users[email].profileData;
+      const credentials = await firebase.auth().signInWithPopup(provider);
+      uid = credentials.user.uid;
+      const userDoc = await db.collection("students").doc(uid).get();
+      if (userDoc.exists) {
+        sessionStorage.setItem("loggedInUserUid", uid);
+        window.location.href = "dashboard.html";
+      } else {
+        // Fill partial data
+        const name = credentials.user.displayName || "";
+        const email = credentials.user.email || "";
+        
+        document.getElementById("auth-tab-register").click();
+        document.getElementById("setup-name").value = name.toUpperCase();
+        document.getElementById("setup-email").value = email.toLowerCase();
+        document.getElementById("setup-password").value = "GOOGLE_AUTH_LOGIN";
+        document.getElementById("setup-confirm-password").value = "GOOGLE_AUTH_LOGIN";
+        document.getElementById("setup-title").textContent = "Google Profile Setup";
+        alert("Please fill in the remaining details to complete registration.");
       }
-    }
-
-    sessionStorage.setItem("loggedInUserUid", uid);
-
-    if (exists) {
-      window.location.href = "dashboard.html";
     } else {
-      // Direct them to setup profile
-      document.getElementById("auth-tabs-container").style.display = "none";
-      document.getElementById("auth-login-form").style.display = "none";
-      document.getElementById("profile-setup-form").style.display = "block";
-      document.getElementById("setup-name").value = name.toUpperCase();
-      document.getElementById("setup-email").value = email.toLowerCase();
-      document.getElementById("setup-password").value = "GOOGLE_AUTH_LOGIN";
-      document.getElementById("setup-confirm-password").value = "GOOGLE_AUTH_LOGIN";
-      document.getElementById("setup-title").textContent = "Google Profile Setup";
-      alert("Please fill in the remaining details to complete registration.");
+      // Mock Google Login
+      alert("Google Login is simulated. Please use normal registration/login.");
     }
   } catch (e) {
     console.error("Google Auth failed:", e);
@@ -338,6 +329,10 @@ async function initDashboardMode() {
   console.log("Student Dashboard Activated.");
   isUserLoggedIn = true;
   const uid = sessionStorage.getItem("loggedInUserUid");
+  if (!uid) {
+    window.location.href = "index.html";
+    return;
+  }
   
   // Bind category chips click handlers
   document.querySelectorAll(".chip-category").forEach(pill => {
@@ -350,9 +345,22 @@ async function initDashboardMode() {
   });
 
   // Search filter
-  document.getElementById("search-input").addEventListener("input", (e) => {
-    searchQuery = e.target.value;
-    renderHomeEvents();
+  const searchInput = document.getElementById("search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      searchQuery = e.target.value;
+      renderHomeEvents();
+    });
+  }
+
+  // Bind bottom navigation buttons click handlers
+  document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tabId = btn.getAttribute("data-tab");
+      if (tabId) {
+        switchTab(tabId);
+      }
+    });
   });
 
   // Load and sync dashboard records
@@ -360,9 +368,12 @@ async function initDashboardMode() {
     await fetchProfile(uid);
     
     if (USER_PROFILE.approved !== true) {
-      document.getElementById("pending-student-name").textContent = USER_PROFILE.name;
-      document.getElementById("screen-pending").style.display = "flex";
-      document.getElementById("main-app-layout").style.display = "none";
+      const pendingName = document.getElementById("pending-student-name");
+      if (pendingName) pendingName.textContent = USER_PROFILE.name;
+      const screenPending = document.getElementById("screen-pending");
+      if (screenPending) screenPending.style.display = "flex";
+      const appLayout = document.getElementById("main-app-layout");
+      if (appLayout) appLayout.style.display = "none";
       return;
     }
 
@@ -523,6 +534,7 @@ async function syncRegistrations() {
       }
     });
     USER_REGISTRATIONS = list;
+    renderDashboard();
     return Promise.resolve();
   }
 }
@@ -624,7 +636,7 @@ function renderHomeEvents() {
     }
     card.innerHTML = `
       <div class="card-featured-content">
-        <span class="chip" style="background:${featured.color || '#c8e84a'}; color:#030611; font-weight:800; border:none; margin-bottom:8px;">${featured.typeLabel.toUpperCase()}</span>
+        <span class="chip" style="background:${featured.color || '#c8e84a'}; color:#030611; font-weight:800; border:none; margin-bottom:8px;">${featured.typeLabel ? featured.typeLabel.toUpperCase() : 'EVENT'}</span>
         <h2 style="font-family: var(--font-display); font-size: 20px; font-weight:900; margin: 4px 0;">${featured.title}</h2>
         <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-bottom: 12px;">${featured.date} • ${featured.time}</div>
         <button type="button" class="card-btn-register" id="feat-reg-btn-${featured.id}">REGISTER NOW</button>
@@ -635,7 +647,8 @@ function renderHomeEvents() {
     });
     spotlightContainer.appendChild(card);
     
-    document.getElementById(`feat-reg-btn-${featured.id}`).addEventListener("click", () => openEventDetail(featured));
+    const fbtn = document.getElementById(`feat-reg-btn-${featured.id}`);
+    if (fbtn) fbtn.addEventListener("click", () => openEventDetail(featured));
   }
 
   // Grid cards list
@@ -650,7 +663,7 @@ function renderHomeEvents() {
     }
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="chip">${ev.typeLabel.toUpperCase()}</span>
+        <span class="chip">${ev.typeLabel ? ev.typeLabel.toUpperCase() : 'EVENT'}</span>
         <span style="color:#C8E84A; font-weight:800; font-size:11.5px;">${ev.price}</span>
       </div>
       <h3 style="font-family: var(--font-display); font-size: 15px; font-weight:800; margin: 10px 0 4px 0; line-height: 1.2;">${ev.title}</h3>
@@ -662,7 +675,8 @@ function renderHomeEvents() {
     });
     container.appendChild(card);
     
-    document.getElementById(`grid-reg-btn-${ev.id}`).addEventListener("click", () => openEventDetail(ev));
+    const gbtn = document.getElementById(`grid-reg-btn-${ev.id}`);
+    if (gbtn) gbtn.addEventListener("click", () => openEventDetail(ev));
   });
 }
 
@@ -683,11 +697,13 @@ window.openEventDetail = function(ev) {
   document.getElementById("detail-host-qual").textContent = ev.host.split(",").slice(1).join(",").trim() || "RIT Expert";
   
   const linkedin = document.getElementById("detail-host-linkedin");
-  if (ev.speakerLinkedin) {
-    linkedin.href = ev.speakerLinkedin;
-    linkedin.style.display = "flex";
-  } else {
-    linkedin.style.display = "none";
+  if (linkedin) {
+    if (ev.speakerLinkedin) {
+      linkedin.href = ev.speakerLinkedin;
+      linkedin.style.display = "flex";
+    } else {
+      linkedin.style.display = "none";
+    }
   }
 
   // Location display logic
@@ -697,60 +713,76 @@ window.openEventDetail = function(ev) {
   const locationText = document.getElementById("detail-location-text");
   
   const isOnline = ev.mode === "online" || ev.location.startsWith("http");
-  locationText.textContent = isOnline ? "Virtual Platform / Meeting Room" : ev.location;
+  if (locationText) {
+    locationText.textContent = isOnline ? "Virtual Platform / Meeting Room" : ev.location;
+  }
 
   if (isOnline) {
-    mapLink.style.display = "none";
-    meetDiv.style.display = "flex";
-    meetLink.href = ev.location.startsWith("http") ? ev.location : "https://meet.google.com";
+    if (mapLink) mapLink.style.display = "none";
+    if (meetDiv) meetDiv.style.display = "flex";
+    if (meetLink) meetLink.href = ev.location.startsWith("http") ? ev.location : "https://meet.google.com";
   } else {
-    mapLink.style.display = "inline-block";
-    mapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}`;
-    meetDiv.style.display = "none";
+    if (mapLink) {
+      mapLink.style.display = "inline-block";
+      mapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}`;
+    }
+    if (meetDiv) meetDiv.style.display = "none";
   }
 
   // Bind values
-  document.getElementById("detail-reg-name").value = USER_PROFILE.name;
-  document.getElementById("detail-reg-ktuid").value = USER_PROFILE.id;
-  document.getElementById("detail-reg-phone").value = USER_PROFILE.phone;
-  document.getElementById("detail-reg-bank-name").value = "";
+  const detailRegName = document.getElementById("detail-reg-name");
+  const detailRegKtuId = document.getElementById("detail-reg-ktuid");
+  const detailRegPhone = document.getElementById("detail-reg-phone");
+  const detailRegBank = document.getElementById("detail-reg-bank-name");
+
+  if (detailRegName) detailRegName.value = USER_PROFILE.name;
+  if (detailRegKtuId) detailRegKtuId.value = USER_PROFILE.id;
+  if (detailRegPhone) detailRegPhone.value = USER_PROFILE.phone;
+  if (detailRegBank) detailRegBank.value = "";
 
   // Team sections Setup
   const teamSection = document.getElementById("detail-team-section");
   const slotContainer = document.getElementById("detail-team-slots-container");
-  slotContainer.innerHTML = "";
+  if (slotContainer) slotContainer.innerHTML = "";
   teamMemberCount = 0;
   if (ev.hasTeam) {
-    teamSection.style.display = "flex";
+    if (teamSection) teamSection.style.display = "flex";
     addDetailTeamSlot();
   } else {
-    teamSection.style.display = "none";
+    if (teamSection) teamSection.style.display = "none";
   }
 
   // Initial forms visibility toggling
-  document.getElementById("registration-form").style.display = "block";
-  document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("ticket-container").style.display = "none";
+  const regForm = document.getElementById("registration-form");
+  const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
+  const ticketContainer = document.getElementById("ticket-container");
+
+  if (regForm) regForm.style.display = "block";
+  if (upiCheckoutContainer) upiCheckoutContainer.style.display = "none";
+  if (ticketContainer) ticketContainer.style.display = "none";
   
   const isRegistered = USER_REGISTRATIONS.some(r => r.id === ev.id);
   const regBtn = document.getElementById("detail-register-btn");
   
-  if (isRegistered) {
-    const reg = USER_REGISTRATIONS.find(r => r.id === ev.id);
-    if (reg.status === "Pending") {
-      regBtn.textContent = "VERIFICATION IN PROGRESS";
-      regBtn.disabled = true;
+  if (regBtn) {
+    if (isRegistered) {
+      const reg = USER_REGISTRATIONS.find(r => r.id === ev.id);
+      if (reg.status === "Pending") {
+        regBtn.textContent = "VERIFICATION IN PROGRESS";
+        regBtn.disabled = true;
+      } else {
+        regBtn.textContent = "VIEW ENTRY TICKET";
+        regBtn.disabled = false;
+        regBtn.onclick = () => showTicket(reg);
+      }
     } else {
-      regBtn.textContent = "VIEW ENTRY TICKET";
+      regBtn.textContent = ev.fee > 0 ? `PROCEED TO PAY (₹${ev.fee})` : "CONFIRM ENROLLMENT";
       regBtn.disabled = false;
-      regBtn.onclick = () => showTicket(reg);
+      regBtn.onclick = () => {
+        const registrationForm = document.getElementById("registration-form");
+        if (registrationForm) registrationForm.requestSubmit();
+      };
     }
-  } else {
-    regBtn.textContent = ev.fee > 0 ? `PROCEED TO PAY (₹${ev.fee})` : "CONFIRM ENROLLMENT";
-    regBtn.disabled = false;
-    regBtn.onclick = () => {
-      document.getElementById("registration-form").requestSubmit();
-    };
   }
 
   // Detail countdown timer
@@ -761,14 +793,14 @@ window.openEventDetail = function(ev) {
   function runTimer() {
     const diff = targetDate - new Date().getTime();
     if (diff <= 0) {
-      countdownSpan.textContent = "Event Live / Passed";
+      if (countdownSpan) countdownSpan.textContent = "Event Live / Passed";
       clearInterval(detailCountdownInterval);
     } else {
       const d = Math.floor(diff / (1000*60*60*24));
       const h = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
       const m = Math.floor((diff % (1000*60*60)) / (1000*60));
       const s = Math.floor((diff % (1000*60)) / 1000);
-      countdownSpan.textContent = `${d}d ${h}h ${m}m ${s}s remaining`;
+      if (countdownSpan) countdownSpan.textContent = `${d}d ${h}h ${m}m ${s}s remaining`;
     }
   }
   runTimer();
@@ -779,15 +811,19 @@ window.openEventDetail = function(ev) {
 };
 
 // Back button on details
-document.getElementById("detail-back-btn").addEventListener("click", () => {
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  navigateTo("home");
-});
+const detailBackBtn = document.getElementById("detail-back-btn");
+if (detailBackBtn) {
+  detailBackBtn.addEventListener("click", () => {
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+    navigateTo("home");
+  });
+}
 
 function addDetailTeamSlot() {
   if (!selectedEvent || teamMemberCount >= selectedEvent.maxTeamSize - 1) return;
   teamMemberCount++;
   const container = document.getElementById("detail-team-slots-container");
+  if (!container) return;
   const div = document.createElement("div");
   div.id = `detail-member-${teamMemberCount}`;
   div.style.display = "flex";
@@ -799,19 +835,30 @@ function addDetailTeamSlot() {
   `;
   container.appendChild(div);
 }
-document.getElementById("detail-btn-add-member").addEventListener("click", addDetailTeamSlot);
+
+const detailBtnAddMember = document.getElementById("detail-btn-add-member");
+if (detailBtnAddMember) {
+  detailBtnAddMember.addEventListener("click", addDetailTeamSlot);
+}
 
 // Submit form handles checkout initiation
-document.getElementById("registration-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  handleRegistrationCheckout();
-});
+const registrationFormElement = document.getElementById("registration-form");
+if (registrationFormElement) {
+  registrationFormElement.addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleRegistrationCheckout();
+  });
+}
 
 async function handleRegistrationCheckout() {
   if (!selectedEvent) return;
   
-  const bankName = sanitizeInput(document.getElementById("detail-reg-bank-name").value);
-  const phone = sanitizeInput(document.getElementById("detail-reg-phone").value);
+  const bankNameInput = document.getElementById("detail-reg-bank-name");
+  const phoneInput = document.getElementById("detail-reg-phone");
+  if (!bankNameInput || !phoneInput) return;
+
+  const bankName = sanitizeInput(bankNameInput.value);
+  const phone = sanitizeInput(phoneInput.value);
   
   if (!bankName || !phone) {
     alert("Please fill in both Bank Owner Name and contact WhatsApp phone number.");
@@ -877,39 +924,52 @@ async function handleRegistrationCheckout() {
     }
 
     // Display payments drawer details
-    document.getElementById("detail-upi-amount-label").textContent = `₹${amount}`;
+    const amtLabel = document.getElementById("detail-upi-amount-label");
+    if (amtLabel) amtLabel.textContent = `₹${amount}`;
     
     // Config intents
     const upiLink = `upi://pay?pa=${selectedEvent.upiId || 'iedcrit@okaxis'}&pn=${encodeURIComponent(selectedEvent.title)}&am=${amount}&cu=INR`;
     
     // Canvas QR Code
     const qrcanvas = document.getElementById("detail-upi-qr-canvas");
-    new QRious({
-      element: qrcanvas,
-      value: upiLink,
-      size: 140,
-      background: "#FFFFFF",
-      foreground: "#030611",
-      level: "H"
-    });
+    if (qrcanvas) {
+      new QRious({
+        element: qrcanvas,
+        value: upiLink,
+        size: 140,
+        background: "#FFFFFF",
+        foreground: "#030611",
+        level: "H"
+      });
+    }
 
-    document.getElementById("detail-upi-qr-wrapper-link").href = upiLink;
-    document.getElementById("detail-upi-mobile-intent-link").href = upiLink;
+    const qrLink = document.getElementById("detail-upi-qr-wrapper-link");
+    const mobileLink = document.getElementById("detail-upi-mobile-intent-link");
+    if (qrLink) qrLink.href = upiLink;
+    if (mobileLink) mobileLink.href = upiLink;
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile) {
-      document.getElementById("upi-mobile-view").style.display = "flex";
-      document.getElementById("upi-desktop-view").style.display = "none";
+      const mobileEl = document.getElementById("upi-mobile-view");
+      if (mobileEl) mobileEl.style.display = "flex";
+      const desktopEl = document.getElementById("upi-desktop-view");
+      if (desktopEl) desktopEl.style.display = "none";
       window.location.href = upiLink;
     } else {
-      document.getElementById("upi-desktop-view").style.display = "flex";
-      document.getElementById("upi-mobile-view").style.display = "none";
+      const desktopEl = document.getElementById("upi-desktop-view");
+      if (desktopEl) desktopEl.style.display = "flex";
+      const mobileEl = document.getElementById("upi-mobile-view");
+      if (mobileEl) mobileEl.style.display = "none";
     }
 
     // Toggle views inside details screen
-    document.getElementById("registration-form").style.display = "none";
-    document.getElementById("detail-upi-checkout-container").style.display = "flex";
-    document.getElementById("detail-register-btn").style.display = "none";
+    const regForm = document.getElementById("registration-form");
+    const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
+    const registerBtn = document.getElementById("detail-register-btn");
+
+    if (regForm) regForm.style.display = "none";
+    if (upiCheckoutContainer) upiCheckoutContainer.style.display = "flex";
+    if (registerBtn) registerBtn.style.display = "none";
 
     // Watch status polling/stream for payment verification
     watchPendingVerification(regId, registrationData);
@@ -926,22 +986,29 @@ function watchPendingVerification(regId, regData) {
   if (simulatorPollingInterval) clearInterval(simulatorPollingInterval);
   
   // Toggle overlay loading spinner modal
-  document.getElementById("waiting-amount-label").textContent = `Amount Due: ₹${regData.amount}`;
+  const waitingAmt = document.getElementById("waiting-amount-label");
+  if (waitingAmt) waitingAmt.textContent = `Amount Due: ₹${regData.amount}`;
   const qrCanvasOverlay = document.getElementById("waiting-upi-qr-canvas");
   const upiLink = `upi://pay?pa=${selectedEvent.upiId || 'iedcrit@okaxis'}&pn=${encodeURIComponent(selectedEvent.title)}&am=${regData.amount}&cu=INR`;
   
-  new QRious({
-    element: qrCanvasOverlay,
-    value: upiLink,
-    size: 130,
-    background: "#FFFFFF",
-    foreground: "#030611",
-    level: "H"
-  });
+  if (qrCanvasOverlay) {
+    new QRious({
+      element: qrCanvasOverlay,
+      value: upiLink,
+      size: 130,
+      background: "#FFFFFF",
+      foreground: "#030611",
+      level: "H"
+    });
+  }
 
-  document.getElementById("waiting-upi-qr-link").href = upiLink;
-  document.getElementById("waiting-upi-mobile-link").href = upiLink;
-  document.getElementById("waiting-verification-overlay").style.display = "flex";
+  const waitingQrLink = document.getElementById("waiting-upi-qr-link");
+  const waitingMobileLink = document.getElementById("waiting-upi-mobile-link");
+  if (waitingQrLink) waitingQrLink.href = upiLink;
+  if (waitingMobileLink) waitingMobileLink.href = upiLink;
+  
+  const waitingOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitingOverlay) waitingOverlay.style.display = "flex";
 
   if (useRealFirebase) {
     currentVerificationUnsubscribe = db.collection("registrations").doc(regId)
@@ -951,16 +1018,36 @@ function watchPendingVerification(regId, regData) {
           handleVerificationSuccess(doc.data());
         }
       });
+  } else {
+    // Simulator polling fallback
+    let count = 0;
+    simulatorPollingInterval = setInterval(() => {
+      count++;
+      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      const match = mockRegs.find(r => r.registrationId === regId);
+      if (match && match.status === "Confirmed") {
+        cleanupVerificationLoops();
+        handleVerificationSuccess(match);
+      } else if (count >= 15) {
+        // Auto-approve after 15 seconds in simulator mode just for convenience
+        if (match) {
+          match.status = "Confirmed";
+          const idx = mockRegs.findIndex(r => r.registrationId === regId);
+          mockRegs[idx] = match;
+          localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+          
+          let mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+          const user = mockUsers[USER_PROFILE.email];
+          if (user && user.profileData) {
+            user.profileData.approved = true;
+            localStorage.setItem("firebase_mock_users", JSON.stringify(mockUsers));
+          }
+          cleanupVerificationLoops();
+          handleVerificationSuccess(match);
+        }
+      }
+    }, 1000);
   }
-
-  simulatorPollingInterval = setInterval(() => {
-    const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-    const match = mockRegs.find(r => r.registrationId === regId);
-    if (match && match.status === "Confirmed") {
-      cleanupVerificationLoops();
-      handleVerificationSuccess(match);
-    }
-  }, 1000);
 }
 
 function cleanupVerificationLoops() {
@@ -976,21 +1063,25 @@ function cleanupVerificationLoops() {
 
 window.closeWaitingOverlayAndGoToWallet = function() {
   cleanupVerificationLoops();
-  document.getElementById("waiting-verification-overlay").style.display = "none";
+  const overlay = document.getElementById("waiting-verification-overlay");
+  if (overlay) overlay.style.display = "none";
   navigateTo("wallet");
 };
 
 function handleVerificationSuccess(reg) {
-  document.getElementById("waiting-verification-overlay").style.display = "none";
+  const waitingOverlay = document.getElementById("waiting-verification-overlay");
+  if (waitingOverlay) waitingOverlay.style.display = "none";
   showToast("Payment Verified! Ticket Issued.", "#4ae88a");
   triggerConfettiExplosion();
   
-  document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("ticket-container").style.display = "flex";
+  const checkoutContainer = document.getElementById("detail-upi-checkout-container");
+  if (checkoutContainer) checkoutContainer.style.display = "none";
+  const ticketContainer = document.getElementById("ticket-container");
+  if (ticketContainer) ticketContainer.style.display = "flex";
   
   // Render Success Ticket QR
   const targetCanvas = document.getElementById("ticket-qr-canvas");
-  drawQR(targetCanvas, reg.registrationId, reg.color || "#8b6fd4");
+  if (targetCanvas) drawQR(targetCanvas, reg.registrationId || reg.id, reg.color || "#8b6fd4");
   
   syncRegistrations();
 }
@@ -1019,13 +1110,17 @@ async function completeUpiEnrollment(reg) {
   showToast("Enrollment Confirmed successfully!", "#4ae88a");
   triggerConfettiExplosion();
 
-  document.getElementById("registration-form").style.display = "none";
-  document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("detail-register-btn").style.display = "none";
-  document.getElementById("ticket-container").style.display = "flex";
+  const regForm = document.getElementById("registration-form");
+  if (regForm) regForm.style.display = "none";
+  const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
+  if (upiCheckoutContainer) upiCheckoutContainer.style.display = "none";
+  const registerBtn = document.getElementById("detail-register-btn");
+  if (registerBtn) registerBtn.style.display = "none";
+  const ticketContainer = document.getElementById("ticket-container");
+  if (ticketContainer) ticketContainer.style.display = "flex";
   
   const targetCanvas = document.getElementById("ticket-qr-canvas");
-  drawQR(targetCanvas, reg.registrationId, selectedEvent.color || "#8b6fd4");
+  if (targetCanvas) drawQR(targetCanvas, reg.registrationId, selectedEvent.color || "#8b6fd4");
 
   await syncRegistrations();
 }
@@ -1104,16 +1199,25 @@ function triggerConfettiExplosion() {
 }
 
 // Confirm action overrides on UPI drawer buttons
-document.getElementById("detail-upi-confirm-btn").addEventListener("click", async () => {
-  // Manual check confirm
-  showToast("Awaiting admin SMS check...", "#C8E84A");
-});
-document.getElementById("detail-upi-cancel-btn").addEventListener("click", () => {
-  cleanupVerificationLoops();
-  document.getElementById("registration-form").style.display = "block";
-  document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("detail-register-btn").style.display = "block";
-});
+const detailUpiConfirmBtn = document.getElementById("detail-upi-confirm-btn");
+if (detailUpiConfirmBtn) {
+  detailUpiConfirmBtn.addEventListener("click", async () => {
+    // Manual check confirm
+    showToast("Awaiting admin SMS check...", "#C8E84A");
+  });
+}
+const detailUpiCancelBtn = document.getElementById("detail-upi-cancel-btn");
+if (detailUpiCancelBtn) {
+  detailUpiCancelBtn.addEventListener("click", () => {
+    cleanupVerificationLoops();
+    const regForm = document.getElementById("registration-form");
+    if (regForm) regForm.style.display = "block";
+    const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
+    if (upiCheckoutContainer) upiCheckoutContainer.style.display = "none";
+    const registerBtn = document.getElementById("detail-register-btn");
+    if (registerBtn) registerBtn.style.display = "block";
+  });
+}
 
 // ==========================================
 // 05 — Student Wallet Shelf View
@@ -1163,7 +1267,7 @@ function renderDashboard() {
       card.innerHTML = `
         <div class="ticket-poster-container" style="background-image: linear-gradient(to bottom, rgba(3, 6, 17, 0.1), rgba(3, 6, 17, 0.95)), url(${reg.poster || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80'}); height:120px; background-size:cover; background-position:center; position:relative;">
           <div style="position:absolute; top:10px; right:10px;">
-            <span class="chip">${reg.typeLabel.toUpperCase()}</span>
+            <span class="chip">${reg.typeLabel ? reg.typeLabel.toUpperCase() : 'EVENT'}</span>
           </div>
         </div>
         <div class="ticket-perforation-line"></div>
@@ -1189,21 +1293,37 @@ function renderDashboard() {
             <div>Instructions: <span>${reg.instructions || 'Please arrive 15 minutes before the start time. Carry your student ID.'}</span></div>
             ${waLink}
             <a href="${mapsLink}" target="_blank" class="btn" style="background:rgba(0, 180, 216, 0.1) !important; border:1px solid #00b4d8 !important; color:#00b4d8 !important; font-size:11px; padding:10px; border-radius:8px; font-weight:800; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">📍 View Map Location</a>
-            <button type="button" class="btn" onclick="event.stopPropagation(); shareTicketPass('${reg.registrationId}', '${reg.title}')" style="background:#8b6fd4; color:white; font-size:11px; padding:10px; border:none; font-weight:800;">📤 Share Pass</button>
+            <button type="button" class="btn btn-share-pass" style="background:#8b6fd4; color:white; font-size:11px; padding:10px; border:none; font-weight:800;">📤 Share Pass</button>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
             <span style="font-size:9px; font-family:monospace; color:rgba(255,255,255,0.4);">STATUS: CONFIRMED</span>
-            <span style="font-size:10.5px; font-weight:800; color:#C8E84A; cursor:pointer;" onclick="event.stopPropagation(); toggleWalletPassDrawer('${drawerId}')">Pass Info</span>
+            <span style="font-size:10.5px; font-weight:800; color:#C8E84A; cursor:pointer;" class="info-toggle-btn">Pass Info</span>
           </div>
         </div>
       `;
       
       card.addEventListener("click", (e) => {
-        if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A" && !e.target.onclick) {
+        if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A" && !e.target.classList.contains("info-toggle-btn") && !e.target.classList.contains("btn-share-pass")) {
           toggleWalletPassDrawer(drawerId);
         }
       });
+
+      const infoToggle = card.querySelector(".info-toggle-btn");
+      if (infoToggle) {
+        infoToggle.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleWalletPassDrawer(drawerId);
+        });
+      }
+
+      const shareBtn = card.querySelector(".btn-share-pass");
+      if (shareBtn) {
+        shareBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          shareTicketPass(reg.registrationId, reg.title);
+        });
+      }
     }
 
     container.appendChild(card);
@@ -1242,16 +1362,73 @@ window.shareTicketPass = async function(ticketId, title) {
   }
 };
 
+// Open Confirmed Event Details Float Modal
+window.showTicket = function(reg) {
+  const poster = document.getElementById("ticket-poster-img");
+  const typeTag = document.getElementById("ticket-type-tag");
+  const eventName = document.getElementById("ticket-event-name");
+  const ticketDate = document.getElementById("ticket-date");
+  const qrCanvas = document.getElementById("qr-canvas");
+  const attendee = document.getElementById("ticket-attendee");
+  const studentId = document.getElementById("ticket-student-id");
+  const loc = document.getElementById("ticket-loc");
+  const ticketIdText = document.getElementById("ticket-id-text");
+  const waBtn = document.getElementById("ticket-whatsapp-btn");
+
+  if (poster && reg.poster) {
+    poster.style.backgroundImage = `linear-gradient(to bottom, rgba(3, 6, 17, 0.1), rgba(3, 6, 17, 0.95)), url(${reg.poster})`;
+  }
+  if (typeTag) typeTag.textContent = (reg.typeLabel || reg.type || "Event").toUpperCase();
+  if (eventName) eventName.textContent = reg.title;
+  if (ticketDate) ticketDate.textContent = `${reg.date} • ${reg.time}`;
+  if (attendee) attendee.textContent = reg.studentName;
+  if (studentId) studentId.textContent = `ID: ${reg.registerNo}`;
+  if (loc) loc.textContent = reg.location;
+  if (ticketIdText) ticketIdText.textContent = `TICKET ID: ${reg.registrationId}`;
+  
+  if (waBtn) {
+    if (reg.whatsappLink) {
+      waBtn.href = reg.whatsappLink;
+      waBtn.style.display = "inline-flex";
+    } else {
+      waBtn.style.display = "none";
+    }
+  }
+
+  // Draw QR
+  if (qrCanvas) {
+    drawQR(qrCanvas, reg.registrationId, reg.color || "#8b6fd4");
+  }
+
+  // Bind share and download button actions
+  const shareBtn = document.getElementById("btn-ticket-share");
+  if (shareBtn) {
+    shareBtn.onclick = () => shareTicketPass(reg.registrationId, reg.title);
+  }
+
+  // Navigate to ticket view
+  navigateTo("ticket");
+};
+
 // Profile settings loading UI
 function updateUserProfileUI() {
-  document.getElementById("db-profile-avatar").src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80";
-  document.getElementById("db-profile-name").textContent = USER_PROFILE.name;
-  document.getElementById("db-profile-id").textContent = USER_PROFILE.id;
-  document.getElementById("db-profile-email").textContent = USER_PROFILE.email;
-  document.getElementById("db-profile-dept").textContent = USER_PROFILE.department;
-  document.getElementById("db-profile-year").textContent = USER_PROFILE.yearOfStudy;
-  document.getElementById("db-profile-phone").textContent = USER_PROFILE.phone;
-  document.getElementById("db-profile-college").textContent = USER_PROFILE.collegeName;
+  const avatar = document.getElementById("db-profile-avatar");
+  const name = document.getElementById("db-profile-name");
+  const id = document.getElementById("db-profile-id");
+  const email = document.getElementById("db-profile-email");
+  const dept = document.getElementById("db-profile-dept");
+  const year = document.getElementById("db-profile-year");
+  const phone = document.getElementById("db-profile-phone");
+  const college = document.getElementById("db-profile-college");
+
+  if (avatar) avatar.src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80";
+  if (name) name.textContent = USER_PROFILE.name;
+  if (id) id.textContent = USER_PROFILE.id;
+  if (email) email.textContent = USER_PROFILE.email;
+  if (dept) dept.textContent = USER_PROFILE.department;
+  if (year) year.textContent = USER_PROFILE.yearOfStudy;
+  if (phone) phone.textContent = USER_PROFILE.phone;
+  if (college) college.textContent = USER_PROFILE.collegeName;
   
   const headerAvatar = document.getElementById("app-header-avatar");
   if (headerAvatar) headerAvatar.src = USER_PROFILE.avatar;
@@ -1331,10 +1508,12 @@ window.loadAdminDashboard = async function() {
     });
   } else {
     // Simulator mock loads
-    setInterval(() => {
+    const loadMock = () => {
       const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
       renderAdminTable(mockRegs, tbody);
-    }, 1500);
+    };
+    loadMock();
+    setInterval(loadMock, 2500);
   }
 };
 
@@ -1348,24 +1527,35 @@ function renderAdminTable(list, tbody) {
   list.forEach(reg => {
     const row = document.createElement("tr");
     const statusClass = reg.status === "Confirmed" ? "badge-approved" : "badge-pending";
-    const approveBtn = reg.status !== "Confirmed" 
-      ? `<button class="admin-table-btn admin-table-btn-approve" onclick="triggerApprovalAction('${reg.registrationId || reg.id}', '${reg.studentEmail}', ${JSON.stringify(reg).replace(/"/g, '&quot;')})">APPROVE</button>` 
-      : `<span style="color:#4ae88a; font-weight:800; font-size:10px;">AUTHORIZED ✔️</span>`;
-
+    
     row.innerHTML = `
       <td>
-        <div style="font-weight:700; color:white; text-transform:uppercase;">${reg.studentName}</div>
-        <div style="font-size:10.5px; color:rgba(255,255,255,0.6);">${reg.studentEmail}</div>
+        <div style="font-weight:700; color:white; text-transform:uppercase;">${reg.studentName || 'Unknown'}</div>
+        <div style="font-size:10.5px; color:rgba(255,255,255,0.6);">${reg.studentEmail || ''}</div>
       </td>
-      <td style="font-family:monospace; color:#E8614A; font-weight:700;">${reg.registerNo}</td>
+      <td style="font-family:monospace; color:#E8614A; font-weight:700;">${reg.registerNo || ''}</td>
       <td>
-        <div>${reg.phone}</div>
-        <div style="font-size:11px; color:#C8E84A; font-weight:700;">Bank: ${reg.bankAccountName}</div>
+        <div>${reg.phone || ''}</div>
+        <div style="font-size:11px; color:#C8E84A; font-weight:700;">Bank: ${reg.bankAccountName || ''}</div>
       </td>
       <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${reg.eventTitle || "RITU Event"}</td>
-      <td><span class="badge-status ${statusClass}">${reg.status}</span></td>
-      <td style="text-align:right;">${approveBtn}</td>
+      <td><span class="badge-status ${statusClass}">${reg.status || 'Pending'}</span></td>
+      <td style="text-align:right;" class="action-cell"></td>
     `;
+    
+    const actionCell = row.querySelector(".action-cell");
+    if (reg.status === "Confirmed") {
+      actionCell.innerHTML = `<span style="color:#4ae88a; font-weight:800; font-size:10px;">AUTHORIZED ✔️</span>`;
+    } else {
+      const btn = document.createElement("button");
+      btn.className = "admin-table-btn admin-table-btn-approve";
+      btn.textContent = "APPROVE";
+      btn.addEventListener("click", () => {
+        window.triggerApprovalAction(reg.registrationId || reg.id, reg.studentEmail, reg);
+      });
+      actionCell.appendChild(btn);
+    }
+
     tbody.appendChild(row);
   });
 }
@@ -1446,3 +1636,85 @@ window.approveStudent = async function(studentId, studentEmail, studentData) {
     alert(`Authorized payment successfully (Console mock dispatcher logged details).`);
   }
 };
+
+// Database seeding helper for Simulator Mode
+function seedSimulatorDatabase() {
+  if (!localStorage.getItem("firebase_mock_events")) {
+    const mockEvents = [
+      {
+        id: "ev-zero-g",
+        title: "Zero Gravity Coding Challenge",
+        type: "workshop",
+        typeLabel: "Workshop",
+        description: "Solve complex algorithmic questions in a simulated anti-gravity sandbox env. Test your limits under extreme code conditions.",
+        date: "June 25, 2026",
+        time: "10:00 AM",
+        seats: 45,
+        price: "₹150",
+        fee: 150,
+        host: "Dr. Alexander Brand, Senior Research Scientist at IEDC",
+        location: "IEDC Innovation Lab, Block A",
+        upiId: "iedcrit@okaxis",
+        color: "#c8e84a",
+        poster: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=400&q=80",
+        duration: "3 Hours",
+        instructions: "Bring a fully charged laptop and an active GitHub account.",
+        whatsappLink: "https://chat.whatsapp.com/GzB96zW2Z2"
+      },
+      {
+        id: "ev-cyber-sentinel",
+        title: "Cyber Sentinel Hackathon",
+        type: "hackathon",
+        typeLabel: "Hackathon",
+        description: "A 24-hour intense capture-the-flag and software development competition. Develop cybersecurity firewalls and robust web architectures.",
+        date: "June 26, 2026",
+        time: "09:00 AM",
+        seats: 20,
+        price: "₹250",
+        fee: 250,
+        host: "Prof. Sarah Jenkins, Cybersecurity Lead",
+        location: "Main Auditorium, RIT Kottayam",
+        upiId: "iedcrit@okaxis",
+        color: "#8b6fd4",
+        poster: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80",
+        duration: "24 Hours",
+        instructions: "Teams of 2-4 members. Meals and energy drinks provided.",
+        whatsappLink: "https://chat.whatsapp.com/GzB96zW2Z2"
+      }
+    ];
+    localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+  }
+
+  if (!localStorage.getItem("firebase_mock_tournaments")) {
+    const mockTournaments = [
+      {
+        id: "ev-robo-cup",
+        title: "RITU Robotics Soccer Cup",
+        type: "tournament",
+        typeLabel: "Tournament",
+        description: "Program and customize autonomous soccer bots. Face off against competing campuses in a high-speed robotics tournament.",
+        date: "June 27, 2026",
+        time: "11:30 AM",
+        seats: 12,
+        price: "₹500",
+        fee: 500,
+        host: "Engr. David Miller, Robotics Architect",
+        location: "Campus Sports Hub",
+        upiId: "iedcrit@okaxis",
+        color: "#E8614A",
+        poster: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=400&q=80",
+        duration: "6 Hours",
+        instructions: "Bring your custom autonomous bot. Bots must conform to the 30x30cm size limit.",
+        maxTeamSize: 4,
+        whatsappLink: "https://chat.whatsapp.com/GzB96zW2Z2"
+      }
+    ];
+    localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTournaments));
+  }
+
+  if (!localStorage.getItem("firebase_mock_config_ticker")) {
+    localStorage.setItem("firebase_mock_config_ticker", JSON.stringify({
+      text: "⚡ Welcome to RITU 2026! | 📢 Registrations for Zero Gravity Coding are now open! | 🏆 Prize pools up to ₹50,000 for tournaments!"
+    }));
+  }
+}

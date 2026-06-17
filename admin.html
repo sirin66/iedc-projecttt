@@ -10,11 +10,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Helper Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
   <style>
     :root {
       --font-sans: 'Plus Jakarta Sans', sans-serif;
@@ -308,7 +303,7 @@
                   <th>Phone & Payment Ref</th>
                   <th>Event Title</th>
                   <th>Status</th>
-                  <th style="text-align: right;">Action Actions</th>
+                  <th style="text-align: right;">Action</th>
                 </tr>
               </thead>
               <tbody id="student-table-body">
@@ -325,10 +320,19 @@
     </main>
   </div>
 
-  <!-- Firebase Scripts dependencies -->
+  <!-- Firebase Scripts & EmailJS CDN dependencies at the bottom of the body -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Helper Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+  <!-- EmailJS Browser SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <!-- Core Controller Script -->
   <script src="app.js"></script>
 
 </body>
