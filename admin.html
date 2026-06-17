@@ -647,6 +647,65 @@
             </table>
           </div>
         </section>
+
+        <!-- Section A: News Ticker Control -->
+        <section class="admin-data-section" id="news-ticker-control-section">
+          <div class="admin-data-header">
+            <span class="section-eyebrow">News Ticker Control</span>
+          </div>
+          <div class="event-studio-container" style="max-width: 100%; margin: 0;">
+            <form id="newsTickerForm" onsubmit="handleNewsTickerUpdate(event)">
+              <div class="form-group">
+                <label for="newsTickerInput">Live Scrolling Text (Separate items with | )</label>
+                <input type="text" id="newsTickerInput" placeholder="📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000!" required style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+              </div>
+              <button type="submit" class="btn-submit" id="btn-ticker-submit" style="width: auto; padding: 12px 24px; cursor: pointer;">Update News Ticker</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Section B: Recent Announcements Manager -->
+        <section class="admin-data-section" id="announcements-manager-section">
+          <div class="admin-data-header">
+            <span class="section-eyebrow">Recent Announcements Manager</span>
+          </div>
+          <div class="event-studio-container" style="max-width: 100%; margin: 0;">
+            <form id="announcementsForm" onsubmit="handleAnnouncementAdd(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="announcementTitle">Announcement Title</label>
+                  <input type="text" id="announcementTitle" placeholder="Eg: AI/ML Bootcamp Fee" required style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+                </div>
+                <div class="form-group">
+                  <label for="announcementContent">Content Details</label>
+                  <input type="text" id="announcementContent" placeholder="Eg: Complete payment to secure your seat." required style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+                </div>
+              </div>
+              <button type="submit" class="btn-submit" id="btn-announcement-submit" style="width: auto; padding: 12px 24px; margin-bottom: 24px; cursor: pointer;">Add Announcement</button>
+            </form>
+
+            <h3 class="section-eyebrow" style="margin-bottom: var(--space-md); margin-top: var(--space-md);">Active Announcements List</h3>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Content</th>
+                    <th>Date / Time</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-announcements-list">
+                  <tr>
+                    <td colspan="4" style="text-align: center; color: var(--muted-white); padding: 16px;">
+                      Loading announcements...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!-- Attendee Auditing Workspace View -->
@@ -2010,7 +2069,161 @@
       }
     };
 
+    // News Ticker & Announcements Management Logic
+    window.handleNewsTickerUpdate = async function(event) {
+      event.preventDefault();
+      const text = document.getElementById("newsTickerInput").value.trim();
+      const submitBtn = document.getElementById("btn-ticker-submit");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Updating...";
+
+      try {
+        if (useRealFirebase) {
+          await db.collection("news_ticker").doc("current").set({ text });
+        } else {
+          localStorage.setItem("mock_news_ticker", text);
+        }
+        alert("News ticker updated successfully!");
+      } catch (err) {
+        console.error("Error updating news ticker:", err);
+        alert("Error updating news ticker: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Update News Ticker";
+      }
+    };
+
+    window.handleAnnouncementAdd = async function(event) {
+      event.preventDefault();
+      const title = document.getElementById("announcementTitle").value.trim();
+      const content = document.getElementById("announcementContent").value.trim();
+      const submitBtn = document.getElementById("btn-announcement-submit");
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Adding...";
+
+      const newAnnouncement = {
+        title,
+        body: content,
+        content,
+        timestamp: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        if (useRealFirebase) {
+          await db.collection("announcements").add(newAnnouncement);
+        } else {
+          let mock = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
+          newAnnouncement.id = "ann-" + Math.floor(Math.random() * 900000 + 100000);
+          mock.unshift(newAnnouncement);
+          localStorage.setItem("mock_announcements", JSON.stringify(mock));
+        }
+        document.getElementById("announcementsForm").reset();
+        alert("Announcement added successfully!");
+      } catch (err) {
+        console.error("Error adding announcement:", err);
+        alert("Error adding announcement: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Add Announcement";
+      }
+    };
+
+    window.deleteAnnouncement = async function(id) {
+      if (!confirm("Are you sure you want to delete this announcement?")) return;
+
+      try {
+        if (useRealFirebase) {
+          await db.collection("announcements").doc(id).delete();
+        } else {
+          let mock = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
+          mock = mock.filter(a => a.id !== id);
+          localStorage.setItem("mock_announcements", JSON.stringify(mock));
+        }
+        alert("Announcement deleted successfully!");
+      } catch (err) {
+        console.error("Error deleting announcement:", err);
+        alert("Error deleting announcement: " + err.message);
+      }
+    };
+
+    function syncAdminNewsTickerAndAnnouncements() {
+      if (useRealFirebase) {
+        db.collection("news_ticker").doc("current").onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            const input = document.getElementById("newsTickerInput");
+            if (input && data && data.text) {
+              input.value = data.text;
+            }
+          }
+        });
+
+        db.collection("announcements").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+          const list = [];
+          snapshot.forEach(doc => {
+            list.push({ id: doc.id, ...doc.data() });
+          });
+          renderAdminAnnouncementsTable(list);
+        });
+      } else {
+        syncMockNewsTickerAndAnnouncements();
+      }
+    }
+
+    function syncMockNewsTickerAndAnnouncements() {
+      function updateMockData() {
+        const mockTicker = localStorage.getItem("mock_news_ticker") || "";
+        const input = document.getElementById("newsTickerInput");
+        if (input && mockTicker) {
+          input.value = mockTicker;
+        }
+
+        const mockAnnouncements = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
+        renderAdminAnnouncementsTable(mockAnnouncements);
+      }
+      updateMockData();
+      setInterval(updateMockData, 1500);
+    }
+
+    function renderAdminAnnouncementsTable(list) {
+      const tbody = document.getElementById("admin-announcements-list");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align: center; color: var(--muted-white); padding: 16px;">
+              No announcements found.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      list.forEach(item => {
+        const row = document.createElement("tr");
+        let dateStr = "Just Now";
+        if (item.timestamp) {
+          dateStr = new Date(item.timestamp).toLocaleString();
+        }
+        row.innerHTML = `
+          <td><div style="font-weight: 700; color: white;">${item.title}</div></td>
+          <td><div style="color: var(--muted-white); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.body || item.content}</div></td>
+          <td><div>${dateStr}</div></td>
+          <td style="text-align: right;">
+            <button class="admin-table-btn admin-table-btn-reject" onclick="deleteAnnouncement('${item.id}')" style="background: rgba(232, 74, 74, 0.15); border: 1px solid var(--error); color: var(--error);">
+              Delete
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
     verifyAdminAccess();
+    syncAdminNewsTickerAndAnnouncements();
   </script>
 </body>
 </html>

@@ -2145,35 +2145,154 @@ function switchDashboardTab(tabId) {
   });
 }
 
-const NOTIFICATIONS_DATA = [
-  { id: "1", title: "Welcome to IEDC RIT Gateway!", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", time: "Just Now" },
-  { id: "2", title: "InnovateRIT Hackathon Registration Open", body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", time: "2 Hours Ago" },
-  { id: "3", title: "AI/ML Bootcamp Registration Fee", body: "Please make sure to complete payment for AI/ML Hands-on Bootcamp (₹150) to secure your seat.", time: "1 Day Ago" }
-];
+let newsTickerUnsubscribe = null;
+let announcementsUnsubscribe = null;
 
-function renderNotifications() {
+function initDynamicContentListeners() {
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      
+      // 1. News Ticker real-time listener
+      newsTickerUnsubscribe = db.collection("news_ticker").doc("current")
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            if (data && data.text) {
+              renderNewsTicker(data.text);
+            }
+          } else {
+            console.log("News ticker document does not exist in Firestore. Seeding default text.");
+            db.collection("news_ticker").doc("current").set({
+              text: "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!"
+            }).catch(e => console.error("Error seeding news ticker:", e));
+          }
+        }, (err) => {
+          console.error("News ticker snapshot error:", err);
+        });
+
+      // 2. Announcements real-time listener
+      announcementsUnsubscribe = db.collection("announcements")
+        .orderBy("timestamp", "desc")
+        .onSnapshot((snapshot) => {
+          const liveAnnouncements = [];
+          snapshot.forEach((doc) => {
+            liveAnnouncements.push({ id: doc.id, ...doc.data() });
+          });
+          renderLiveAnnouncements(liveAnnouncements);
+        }, (err) => {
+          console.error("Announcements snapshot error:", err);
+        });
+    } catch (e) {
+      console.error("Error setting up dynamic content listeners:", e);
+      initMockDynamicContentListeners();
+    }
+  } else {
+    initMockDynamicContentListeners();
+  }
+}
+
+function initMockDynamicContentListeners() {
+  console.log("Setting up simulator fallback for news ticker and announcements...");
+  
+  function checkMockTicker() {
+    let mockTicker = localStorage.getItem("mock_news_ticker");
+    if (!mockTicker) {
+      mockTicker = "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!";
+      localStorage.setItem("mock_news_ticker", mockTicker);
+    }
+    renderNewsTicker(mockTicker);
+  }
+  
+  function checkMockAnnouncements() {
+    let mockAnnouncements = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
+    if (mockAnnouncements.length === 0) {
+      mockAnnouncements = [
+        { id: "1", title: "Welcome to IEDC RIT Gateway!", body: "Your profile is active. Discover upcoming workshops, hackathons, and talks, and manage your tickets instantly.", time: "Just Now", timestamp: new Date().toISOString() },
+        { id: "2", title: "InnovateRIT Hackathon Registration Open", body: "Build a prototype in 24 hours. The flagship hackathon has registration slots open for team registrations.", time: "2 Hours Ago", timestamp: new Date().toISOString() },
+        { id: "3", title: "AI/ML Bootcamp Registration Fee", body: "Please make sure to complete payment for AI/ML Hands-on Bootcamp (₹150) to secure your seat.", time: "1 Day Ago", timestamp: new Date().toISOString() }
+      ];
+      localStorage.setItem("mock_announcements", JSON.stringify(mockAnnouncements));
+    }
+    renderLiveAnnouncements(mockAnnouncements);
+  }
+  
+  checkMockTicker();
+  checkMockAnnouncements();
+  
+  setInterval(() => {
+    checkMockTicker();
+    checkMockAnnouncements();
+  }, 1500);
+}
+
+function renderNewsTicker(text) {
+  const tickerContainer = document.querySelector(".ticker");
+  if (!tickerContainer) return;
+  tickerContainer.innerHTML = "";
+  
+  const items = text.split("|").map(i => i.trim()).filter(Boolean);
+  items.forEach(item => {
+    const span = document.createElement("span");
+    span.className = "ticker-item";
+    span.textContent = item;
+    tickerContainer.appendChild(span);
+  });
+}
+
+function renderLiveAnnouncements(announcementsList) {
   const container = document.getElementById("notifications-list-container");
   if (!container) return;
   container.innerHTML = "";
-  NOTIFICATIONS_DATA.forEach(n => {
+  
+  announcementsList.forEach(n => {
     const card = document.createElement("div");
     card.className = "notification-card";
+    
+    let timeLabel = n.time || "Just Now";
+    if (n.timestamp && !n.time) {
+      timeLabel = new Date(n.timestamp).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
     card.innerHTML = `
       <span class="notification-title">${n.title}</span>
-      <p class="notification-body">${n.body}</p>
-      <span class="notification-time">${n.time}</span>
+      <p class="notification-body">${n.body || n.content || ''}</p>
+      <span class="notification-time">${timeLabel}</span>
     `;
     container.appendChild(card);
   });
 }
 
+function renderNotifications() {
+  // Maintaining compatibility if external triggers invoke renderNotifications directly
+  const mockAnnouncements = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
+  if (useRealFirebase) {
+    const db = firebase.firestore();
+    db.collection("announcements").orderBy("timestamp", "desc").get().then(snap => {
+      const live = [];
+      snap.forEach(doc => live.push({ id: doc.id, ...doc.data() }));
+      renderLiveAnnouncements(live);
+    }).catch(() => {
+      renderLiveAnnouncements(mockAnnouncements);
+    });
+  } else {
+    renderLiveAnnouncements(mockAnnouncements);
+  }
+}
+
 // Session Initializer Gating check
 async function initSession() {
+  initDynamicContentListeners();
   const cachedUid = sessionStorage.getItem("loggedInUserUid");
   if (cachedUid) {
     try {
       const docSnap = await FirebaseService.db.getStudentDoc(cachedUid);
-      if (docSnap.exists()) {
+      if (docSnap.exists) {
         USER_PROFILE = docSnap.data();
         updateUserProfileUI();
         checkApprovalAndRoute(USER_PROFILE);
