@@ -67,14 +67,47 @@ const screens = {
   dashboard: document.getElementById("screen-dashboard")
 };
 
-const navItems = {
+const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
+
+const bottomNavItems = {
   home: document.getElementById("nav-home"),
-  dashboard: document.getElementById("nav-dashboard")
+  wallet: document.getElementById("nav-wallet"),
+  news: document.getElementById("nav-news"),
+  profile: document.getElementById("nav-profile")
 };
 
 // ==========================================
 // 03 — ROUTING & SCREEN TRANSITIONS
 // ==========================================
+
+async function switchTab(tabId) {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+
+  // Update bottom navigation active class states
+  Object.entries(bottomNavItems).forEach(([id, el]) => {
+    if (el) {
+      if (id === tabId) {
+        el.classList.add("active");
+      } else {
+        el.classList.remove("active");
+      }
+    }
+  });
+
+  if (tabId === "home") {
+    await navigateTo("home");
+  } else {
+    await navigateTo("dashboard");
+    if (tabId === "wallet") {
+      switchDashboardTab("events");
+    } else if (tabId === "news") {
+      switchDashboardTab("notifications");
+    } else if (tabId === "profile") {
+      switchDashboardTab("profile");
+    }
+  }
+}
+window.switchTab = switchTab;
 
 async function navigateTo(screenId) {
   Object.values(screens).forEach(screen => {
@@ -96,31 +129,26 @@ async function navigateTo(screenId) {
   }
 
   if (screenId === "home") {
-    navItems.home.classList.add("active");
-    navItems.dashboard.classList.remove("active");
     await syncEvents();
     renderHomeEvents();
   } else if (screenId === "dashboard") {
-    navItems.home.classList.remove("active");
-    navItems.dashboard.classList.add("active");
     await syncEvents();
     await syncRegistrations();
     renderDashboard();
-  } else {
-    navItems.home.classList.remove("active");
-    navItems.dashboard.classList.remove("active");
   }
 }
 
-navItems.home.addEventListener("click", () => navigateTo("home"));
-navItems.dashboard.addEventListener("click", () => navigateTo("dashboard"));
+if (bottomNavItems.home) bottomNavItems.home.addEventListener("click", () => switchTab("home"));
+if (bottomNavItems.wallet) bottomNavItems.wallet.addEventListener("click", () => switchTab("wallet"));
+if (bottomNavItems.news) bottomNavItems.news.addEventListener("click", () => switchTab("news"));
+if (bottomNavItems.profile) bottomNavItems.profile.addEventListener("click", () => switchTab("profile"));
 
 document.getElementById("detail-back-btn").addEventListener("click", () => {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  navigateTo("home");
+  switchTab("home");
 });
-document.getElementById("ticket-back-btn").addEventListener("click", () => navigateTo("dashboard"));
-document.getElementById("setup-back-btn").addEventListener("click", () => navigateTo("home"));
+document.getElementById("ticket-back-btn").addEventListener("click", () => switchTab("wallet"));
+document.getElementById("setup-back-btn").addEventListener("click", () => switchTab("home"));
 
 // ==========================================
 // 04 — DATABASE SYNCHRONIZATION (Firestore / Simulator)
@@ -728,12 +756,21 @@ async function handleRegistrationCheckout() {
 
     // Construct dynamic UPI deep-link intent using eventData
     const eventData = selectedEvent;
-    const upiLink = `upi://pay?pa=${eventData.upiId}&pn=${eventData.title}&am=150&cu=INR`;
+    const upiId = eventData.upiId || eventData.upi || "iedcrit@okaxis";
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(eventData.title)}&am=${amount}&cu=INR`;
+
+    // Bind Direct UPI App Button links
+    const gpayBtn = document.getElementById("upi-gpay-btn");
+    const phonepeBtn = document.getElementById("upi-phonepe-btn");
+    const paytmBtn = document.getElementById("upi-paytm-btn");
+    if (gpayBtn) gpayBtn.href = upiLink;
+    if (phonepeBtn) phonepeBtn.href = upiLink;
+    if (paytmBtn) paytmBtn.href = upiLink;
+
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const mobileView = document.getElementById("waiting-mobile-view");
     const desktopView = document.getElementById("waiting-desktop-view");
     const upiMobileLink = document.getElementById("waiting-upi-mobile-link");
-    const upiQrImage = document.getElementById("waiting-upi-qr-image");
 
     if (isMobile) {
       if (mobileView) mobileView.style.display = "flex";
@@ -745,8 +782,17 @@ async function handleRegistrationCheckout() {
     } else {
       if (mobileView) mobileView.style.display = "none";
       if (desktopView) desktopView.style.display = "flex";
-      if (upiQrImage) {
-        upiQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+      
+      const upiCanvas = document.getElementById("waiting-upi-qr-canvas");
+      if (upiCanvas) {
+        new QRious({
+          element: upiCanvas,
+          value: upiLink,
+          size: 150,
+          background: "#FFFFFF",
+          foreground: "#080810",
+          level: "H"
+        });
       }
     }
 
@@ -943,48 +989,27 @@ function showTicket(registration) {
   navigateTo("ticket");
 }
 
+function encryptRegistrationId(id) {
+  try {
+    return CryptoJS.AES.encrypt(id, QR_SECRET_KEY).toString();
+  } catch (e) {
+    console.error("Encryption failed:", e);
+    return id;
+  }
+}
+
 function drawQRToCanvas(canvas, text, brandColor, size = 240) {
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
+  const encryptedText = encryptRegistrationId(text);
   
-  canvas.width = size;
-  canvas.height = size;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = "#080810";
-
-  const moduleSize = size / 30;
-
-  function drawFinderPattern(x, y) {
-    ctx.fillRect(x, y, 60 * (size / 240), 60 * (size / 240));
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x + 10 * (size / 240), y + 10 * (size / 240), 40 * (size / 240), 40 * (size / 240));
-    ctx.fillStyle = "#080810";
-    ctx.fillRect(x + 20 * (size / 240), y + 20 * (size / 240), 20 * (size / 240), 20 * (size / 240));
-  }
-
-  drawFinderPattern(10 * (size / 240), 10 * (size / 240));
-  drawFinderPattern(170 * (size / 240), 10 * (size / 240));
-  drawFinderPattern(10 * (size / 240), 170 * (size / 240));
-
-  let seed = 0;
-  for (let i = 0; i < text.length; i++) {
-    seed += text.charCodeAt(i);
-  }
-  function seededRandom() {
-    let x = Math.sin(seed++) * 10000;
-    return x - Math.floor(x);
-  }
-
-  for (let r = 0; r < 30; r++) {
-    for (let c = 0; c < 30; c++) {
-      if ((r < 8 && c < 8) || (r < 8 && c >= 22) || (r >= 22 && c < 8)) continue;
-      if (seededRandom() > 0.45) {
-        ctx.fillStyle = seededRandom() > 0.90 ? brandColor : "#080810";
-        ctx.fillRect(c * moduleSize, r * moduleSize, moduleSize, moduleSize);
-      }
-    }
-  }
+  new QRious({
+    element: canvas,
+    value: encryptedText,
+    size: size,
+    background: "#FFFFFF",
+    foreground: "#080810",
+    level: "H"
+  });
 }
 
 function generateQRCode(text, brandColor) {
@@ -996,45 +1021,16 @@ function generateQRCode(text, brandColor) {
 function drawTicketQRCode(canvasId, text, brandColor) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  
-  canvas.width = 72;
-  canvas.height = 72;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, 72, 72);
-  ctx.fillStyle = "#080810";
+  const encryptedText = encryptRegistrationId(text);
 
-  function drawFinderPattern(x, y) {
-    ctx.fillRect(x, y, 18, 18);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x + 3, y + 3, 12, 12);
-    ctx.fillStyle = "#080810";
-    ctx.fillRect(x + 6, y + 6, 6, 6);
-  }
-
-  drawFinderPattern(2, 2);
-  drawFinderPattern(52, 2);
-  drawFinderPattern(2, 52);
-
-  let seed = 0;
-  for (let i = 0; i < text.length; i++) {
-    seed += text.charCodeAt(i);
-  }
-  function seededRandom() {
-    let x = Math.sin(seed++) * 10000;
-    return x - Math.floor(x);
-  }
-
-  const moduleSize = 3;
-  for (let r = 0; r < 24; r++) {
-    for (let c = 0; c < 24; c++) {
-      if ((r < 8 && c < 8) || (r < 8 && c >= 16) || (r >= 16 && c < 8)) continue;
-      if (seededRandom() > 0.45) {
-        ctx.fillStyle = seededRandom() > 0.90 ? brandColor : "#080810";
-        ctx.fillRect(c * moduleSize, r * moduleSize, moduleSize, moduleSize);
-      }
-    }
-  }
+  new QRious({
+    element: canvas,
+    value: encryptedText,
+    size: 72,
+    background: "#FFFFFF",
+    foreground: "#080810",
+    level: "H"
+  });
 }
 
 // ==========================================
@@ -2007,6 +2003,26 @@ function switchDashboardTab(tabId) {
     } else {
       if (tabEl) tabEl.classList.remove("active");
       if (contentEl) contentEl.style.display = "none";
+    }
+  });
+
+  // Keep bottom navigation states synchronized
+  const bottomNavIds = {
+    profile: "nav-profile",
+    events: "nav-wallet",
+    notifications: "nav-news"
+  };
+
+  Object.entries(bottomNavIds).forEach(([subId, navId]) => {
+    const navEl = document.getElementById(navId);
+    const homeNavEl = document.getElementById("nav-home");
+    if (navEl) {
+      if (subId === tabId) {
+        navEl.classList.add("active");
+        if (homeNavEl) homeNavEl.classList.remove("active");
+      } else {
+        navEl.classList.remove("active");
+      }
     }
   });
 }

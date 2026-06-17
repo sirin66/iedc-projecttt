@@ -7,7 +7,184 @@
   <title>IEDC RIT Event Platform</title>
   <link rel="stylesheet" href="style.css">
   
-  <!-- Embedding Razorpay Checkout SDK globally -->
+  <!-- Premium Dark Neon Glassmorphic Theme Overrides -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap');
+
+    :root {
+      --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --void-black: #06060c;
+      --glass-bg: rgba(255, 255, 255, 0.02);
+      --glass-border: rgba(255, 255, 255, 0.07);
+      --glass-glow: rgba(200, 232, 74, 0.1);
+      
+      --neon-yellow: #c8e84a;
+      --neon-purple: #8b6fd4;
+      --neon-coral: #e8614a;
+      --neon-blue: #00b4d8;
+      --neon-green: #4ae88a;
+      
+      --muted-white: rgba(255, 255, 255, 0.55);
+      --white-pure: #ffffff;
+      
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+    }
+
+    body {
+      background-color: var(--void-black) !important;
+      font-family: var(--font-sans) !important;
+      color: var(--white-pure) !important;
+    }
+
+    /* Premium Neon Glassmorphic Card styles */
+    .card-event, .card-featured, .ticket-wallet-card, .detail-feature-card, .stat-card, .notification-card, .detail-reg-box {
+      background: var(--glass-bg) !important;
+      border: 1px solid var(--glass-border) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    .card-event:hover, .card-featured:hover, .ticket-wallet-card:hover {
+      transform: translateY(-4px) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+      box-shadow: 0 12px 40px 0 rgba(200, 232, 74, 0.15) !important;
+    }
+
+    /* Glow overlays */
+    .bg-glow-purple, .bg-glow-coral {
+      filter: blur(120px) !important;
+      opacity: 0.35 !important;
+    }
+
+    /* Button modern designs */
+    .btn, .card-btn-register, .btn-primary, .btn-secondary, .btn-submit, .sticky-cta-btn {
+      font-family: var(--font-display) !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.5px !important;
+      border-radius: 12px !important;
+      transition: all 0.2s ease-in-out !important;
+      text-transform: uppercase !important;
+    }
+
+    .btn-primary, .btn-submit, .card-btn-register, .sticky-cta-btn {
+      background: var(--neon-yellow) !important;
+      color: #06060c !important;
+      box-shadow: 0 0 15px rgba(200, 232, 74, 0.3) !important;
+      border: none !important;
+    }
+
+    .btn-primary:hover, .btn-submit:hover, .card-btn-register:hover, .sticky-cta-btn:hover {
+      box-shadow: 0 0 25px rgba(200, 232, 74, 0.5) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    /* Bottom Nav design */
+    .bottom-nav {
+      background: rgba(8, 8, 16, 0.75) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      height: 72px !important;
+      padding: 0 var(--space-md) !important;
+      align-items: center !important;
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      z-index: 100 !important;
+    }
+
+    .nav-item {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      color: var(--muted-white) !important;
+      transition: all 0.2s ease !important;
+      cursor: pointer !important;
+      height: 100% !important;
+    }
+
+    .nav-item svg {
+      width: 20px !important;
+      height: 20px !important;
+      stroke-width: 2.2 !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .nav-item.active {
+      color: var(--neon-yellow) !important;
+    }
+
+    .nav-item.active svg {
+      transform: translateY(-2px) !important;
+      filter: drop-shadow(0 0 8px rgba(200, 232, 74, 0.5)) !important;
+    }
+
+    .nav-dot {
+      width: 4px !important;
+      height: 4px !important;
+      background: var(--neon-yellow) !important;
+      border-radius: 50% !important;
+      position: absolute !important;
+      bottom: 12px !important;
+      opacity: 0 !important;
+      transform: scale(0.5) !important;
+      transition: all 0.2s ease !important;
+      box-shadow: 0 0 8px var(--neon-yellow) !important;
+    }
+
+    .nav-item.active .nav-dot {
+      opacity: 1 !important;
+      transform: scale(1) !important;
+    }
+
+    /* Styled input fields */
+    .input-field {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 10px !important;
+      color: white !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .input-field:focus {
+      border-color: var(--neon-yellow) !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      box-shadow: 0 0 10px rgba(200, 232, 74, 0.1) !important;
+    }
+
+    /* Modal dialog overrides */
+    #waiting-verification-overlay > div, #custom-alert-overlay > div, .ad-modal {
+      background: rgba(10, 10, 20, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 111, 212, 0.1) !important;
+      border-radius: 24px !important;
+    }
+
+    /* Styled upi app buttons */
+    .upi-app-btn:hover {
+      transform: scale(1.04);
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.2) !important;
+      box-shadow: 0 4px 15px rgba(255,255,255,0.05);
+    }
+  </style>
+  
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <style>
@@ -777,7 +954,7 @@
                 <canvas id="ticket-qr-canvas" style="display: block; width: 180px; height: 180px;"></canvas>
               </div>
               <p class="body-desc" style="font-size: 12px; color: var(--muted-white); margin-top: 4px;">Present this Canvas QR code at the check-in gate.</p>
-              <button type="button" onclick="navigateTo('dashboard')" class="btn" style="background: var(--galactic-purple); color: var(--white-pure); width: 100%;">Open Ticket Wallet</button>
+              <button type="button" onclick="switchTab('wallet')" class="btn" style="background: var(--galactic-purple); color: var(--white-pure); width: 100%;">Open Ticket Wallet</button>
             </div>
 
           </div>
@@ -989,12 +1166,24 @@
             </svg>
             <div class="nav-dot"></div>
           </div>
-          <div class="nav-item" id="nav-dashboard">
-            <svg viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
+          <div class="nav-item" id="nav-wallet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 12V8H4v4M4 12v6h16v-6M4 12h16" />
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+            </svg>
+            <div class="nav-dot"></div>
+          </div>
+          <div class="nav-item" id="nav-news">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
+              <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
+            </svg>
+            <div class="nav-dot"></div>
+          </div>
+          <div class="nav-item" id="nav-profile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
             </svg>
             <div class="nav-dot"></div>
           </div>
@@ -1018,6 +1207,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="app.js"></script>
   
   <script>
@@ -1087,7 +1277,7 @@
       <div id="waiting-desktop-view" style="display: none; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px;">
         <span class="section-eyebrow" style="color: var(--nova-yellow); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">Scan UPI QR to Pay</span>
         <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-          <img id="waiting-upi-qr-image" src="" alt="Dynamic UPI QR Code" style="width: 150px; height: 150px; display: block; object-fit: contain;">
+          <canvas id="waiting-upi-qr-canvas" style="display: block; width: 150px; height: 150px;"></canvas>
         </div>
       </div>
 
@@ -1096,6 +1286,35 @@
         <a id="waiting-upi-mobile-link" href="#" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--nova-yellow); color: var(--nova-yellow); font-size: 12px; padding: 10px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-decoration: none;">
           ⚡ Launch UPI App Again
         </a>
+      </div>
+
+      <!-- Direct UPI Apps Section -->
+      <div style="width: 100%; margin: 8px 0; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px;">Or Pay Directly Via Mobile Apps:</div>
+        <div style="display: flex; justify-content: center; gap: 8px; width: 100%;">
+          <a id="upi-gpay-btn" href="#" class="upi-app-btn" style="flex: 1; text-decoration: none; background: rgba(66, 133, 244, 0.1); border: 1px solid rgba(66, 133, 244, 0.3); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.2s;">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 1.56-1.56 2.95-3.24 3.5v2.9h5.18c3.07-2.83 4.83-7 4.83-11.97 0-.74-.07-1.48-.11-2.16z" fill="#4285F4"/>
+              <path d="M12.18 20.43c2.73 0 5.06-.9 6.75-2.43l-5.18-2.9c-.83.56-1.92.93-3.24.93-2.51 0-4.63-1.69-5.39-3.96H1.94v3.07c1.71 3.4 5.22 5.69 9.38 5.69z" fill="#34A853"/>
+              <path d="M6.79 12.07c-.19-.57-.3-1.17-.3-1.79s.11-1.22.3-1.79V5.42H1.94A10.15 10.15 0 0 0 0 10.28c0 1.8.47 3.48 1.94 4.86l4.85-3.07z" fill="#FBBC05"/>
+              <path d="M12.18 3.86c1.55 0 2.94.53 4.03 1.57l3.02-3.02C17.42.99 15.08 0 12.18 0c-4.16 0-7.67 2.29-9.38 5.69l4.85 3.07c.76-2.27 2.88-3.9 5.39-3.9z" fill="#EA4335"/>
+            </svg>
+            <span style="font-size: 10px; font-weight: 700;">Google Pay</span>
+          </a>
+          <a id="upi-phonepe-btn" href="#" class="upi-app-btn" style="flex: 1; text-decoration: none; background: rgba(139, 111, 212, 0.1); border: 1px solid rgba(139, 111, 212, 0.3); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.2s;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v4H9V7h6v2z" fill="#8B6FD4"/>
+            </svg>
+            <span style="font-size: 10px; font-weight: 700;">PhonePe</span>
+          </a>
+          <a id="upi-paytm-btn" href="#" class="upi-app-btn" style="flex: 1; text-decoration: none; background: rgba(0, 180, 216, 0.1); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.2s;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M1 5h22v14H1z" fill="#00b4d8" opacity="0.1"/>
+              <path d="M2 3h20c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H2c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm3 4v3h2V7h2V5H3v2h2zm8 0h3c1.1 0 2-.9 2-2V3h-7v2h2v2zm-4 6h4v2h-4v2h4v2H9v-8h4v2h-4z" fill="#00b4d8"/>
+            </svg>
+            <span style="font-size: 10px; font-weight: 700;">Paytm</span>
+          </a>
+        </div>
       </div>
 
       <div style="font-size: 9px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">

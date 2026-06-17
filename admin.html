@@ -7,6 +7,9 @@
   
   <!-- HTML5 QR Code Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode"></script>
+  
+  <!-- CryptoJS Library for secure decrypting of scanned QR tickets -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
   <style>
     /* Design System Configuration Variables */
@@ -1872,8 +1875,21 @@
       }
     };
 
-    window.processVolunteerScan = async function(registrationId) {
-      console.log(`Scan captured ticket ID: ${registrationId}`);
+    window.processVolunteerScan = async function(scannedText) {
+      console.log(`Scan captured raw code: ${scannedText}`);
+      
+      let registrationId = scannedText;
+      // Securely decrypt scanned text using CryptoJS AES with the same campus-wide key
+      try {
+        const decryptedBytes = CryptoJS.AES.decrypt(scannedText, "RITU_GATEWAY_SECURE_2026_KEY");
+        const decryptedId = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        if (decryptedId && decryptedId.startsWith("reg-")) {
+          registrationId = decryptedId;
+          console.log(`Decrypted scanned ticket ID: ${registrationId}`);
+        }
+      } catch (e) {
+        console.warn("Direct ID scan or decryption bypass, using raw text:", e);
+      }
       
       let attendeeRecord = null;
       let isMock = false;
