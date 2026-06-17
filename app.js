@@ -626,12 +626,6 @@ window.removeDetailTeamSlot = function(id) {
 
 document.getElementById("detail-btn-add-member").addEventListener("click", addDetailTeamSlot);
 
-// EmailJS Credentials safely mapping in the background for admin approval use later
-const EMAILJS_CONFIG = {
-  SERVICE_ID: "service_u4ve6g2",
-  TEMPLATE_ID: "template_jla3p4e"
-};
-
 // Hooking Register & Pay Click Event
 document.getElementById("detail-register-btn").addEventListener("click", async () => {
   if (!selectedEvent) return;
@@ -641,7 +635,7 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
     const reg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
     if (!reg) return;
 
-    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+    showToast("Verifying payment status...", "var(--galactic-purple)", "var(--galactic-purple)");
 
     let isSuccess = false;
 
@@ -651,7 +645,7 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
         const docSnap = await db.collection("registrations").doc(reg.registrationId).get();
         if (docSnap.exists) {
           const docData = docSnap.data();
-          if (docData.payment_status === "Success" || docData.status === "Confirmed") {
+          if (docData.payment_status === "Success") {
             isSuccess = true;
           }
         }
@@ -663,7 +657,7 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
       try {
         const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
         const mockReg = mockRegs.find(r => r.registrationId === reg.registrationId);
-        if (mockReg && (mockReg.payment_status === "Success" || mockReg.status === "Confirmed")) {
+        if (mockReg && mockReg.payment_status === "Success") {
           isSuccess = true;
         }
       } catch (err) {
@@ -674,10 +668,7 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
     if (isSuccess) {
       showTicket(reg);
     } else {
-      showCustomAlert(
-        "Payment Pending",
-        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
-      );
+      alert("🔒 Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass.");
     }
     return;
   }
@@ -1218,7 +1209,7 @@ function renderDashboard() {
 window.viewPassDetails = async function(ticketId) {
   const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
   if (reg) {
-    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+    showToast("Verifying payment status...", "var(--galactic-purple)", "var(--galactic-purple)");
 
     let isSuccess = false;
 
@@ -1228,7 +1219,7 @@ window.viewPassDetails = async function(ticketId) {
         const docSnap = await db.collection("registrations").doc(reg.registrationId || ticketId).get();
         if (docSnap.exists) {
           const docData = docSnap.data();
-          if (docData.payment_status === "Success" || docData.status === "Confirmed") {
+          if (docData.payment_status === "Success") {
             isSuccess = true;
           }
         }
@@ -1240,7 +1231,7 @@ window.viewPassDetails = async function(ticketId) {
       try {
         const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
         const mockReg = mockRegs.find(r => r.registrationId === (reg.registrationId || ticketId));
-        if (mockReg && (mockReg.payment_status === "Success" || mockReg.status === "Confirmed")) {
+        if (mockReg && mockReg.payment_status === "Success") {
           isSuccess = true;
         }
       } catch (err) {
@@ -1251,10 +1242,7 @@ window.viewPassDetails = async function(ticketId) {
     if (isSuccess) {
       showTicket(reg);
     } else {
-      showCustomAlert(
-        "Payment Pending",
-        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
-      );
+      alert("🔒 Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass.");
     }
   }
 };
@@ -1797,7 +1785,11 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
       USER_PROFILE = docSnap.data();
       sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
       updateUserProfileUI();
-      checkApprovalAndRoute(USER_PROFILE);
+      if (USER_PROFILE.role === "admin" || USER_PROFILE.email === "admin@rit.ac.in") {
+        window.location.href = "admin.html";
+      } else {
+        window.location.href = "index.html";
+      }
     } else {
       if (email === "admin@rit.ac.in") {
         USER_PROFILE = {
@@ -1818,7 +1810,7 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
         await FirebaseService.db.saveStudentDoc(credentials.user.uid, USER_PROFILE);
         sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
         updateUserProfileUI();
-        checkApprovalAndRoute(USER_PROFILE);
+        window.location.href = "admin.html";
       } else {
         throw new Error("auth/user-not-found");
       }
@@ -1912,10 +1904,10 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
       
       if (USER_PROFILE.approved === true) {
         showToast("Profile settings saved!", "var(--success)", "var(--success)");
-        navigateTo("home");
+        window.location.href = "index.html";
       } else {
         showToast("Profile registered. Pending review.", "var(--warning)", "var(--warning)");
-        checkApprovalAndRoute(USER_PROFILE);
+        window.location.href = "index.html";
       }
     } else {
       const credentials = await FirebaseService.auth.createUserWithEmailAndPassword(email, password, profileData);
@@ -1923,7 +1915,7 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
       sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
       updateUserProfileUI();
       showToast("Profile submitted for approval.", "var(--warning)", "var(--warning)");
-      checkApprovalAndRoute(USER_PROFILE);
+      window.location.href = "index.html";
     }
   } catch (err) {
     showToast("Error processing registration.", "var(--error)", "var(--error)");
