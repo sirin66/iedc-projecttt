@@ -1,536 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IEDC RIT Event Platform</title>
+  <title>RITU 2026 - Event Gateway Portal</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Premium Dark Neon Glassmorphic Theme Overrides -->
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap');
-
     :root {
-      --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --void-black: #06060c;
-      --glass-bg: rgba(255, 255, 255, 0.02);
-      --glass-border: rgba(255, 255, 255, 0.07);
-      --glass-glow: rgba(200, 232, 74, 0.1);
-      
-      --neon-yellow: #c8e84a;
-      --neon-purple: #8b6fd4;
-      --neon-coral: #e8614a;
-      --neon-blue: #00b4d8;
-      --neon-green: #4ae88a;
-      
-      --muted-white: rgba(255, 255, 255, 0.55);
-      --white-pure: #ffffff;
-      
-      --space-xs: 4px;
-      --space-sm: 8px;
-      --space-md: 16px;
-      --space-lg: 24px;
-      --space-xl: 32px;
+      --font-display: 'Outfit', sans-serif;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
     }
-
     body {
-      background-color: var(--void-black) !important;
-      font-family: var(--font-sans) !important;
-      color: var(--white-pure) !important;
-    }
-
-    /* Premium Neon Glassmorphic Card styles */
-    .card-event, .card-featured, .ticket-wallet-card, .detail-feature-card, .stat-card, .notification-card, .detail-reg-box {
-      background: var(--glass-bg) !important;
-      border: 1px solid var(--glass-border) !important;
-      backdrop-filter: blur(16px) !important;
-      -webkit-backdrop-filter: blur(16px) !important;
-      border-radius: 16px !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-
-    .card-event:hover, .card-featured:hover, .ticket-wallet-card:hover {
-      transform: translateY(-4px) !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
-      box-shadow: 0 12px 40px 0 rgba(200, 232, 74, 0.15) !important;
-    }
-
-    /* Glow overlays */
-    .bg-glow-purple, .bg-glow-coral {
-      filter: blur(120px) !important;
-      opacity: 0.35 !important;
-    }
-
-    /* Button modern designs */
-    .btn, .card-btn-register, .btn-primary, .btn-secondary, .btn-submit, .sticky-cta-btn {
-      font-family: var(--font-display) !important;
-      font-weight: 700 !important;
-      letter-spacing: 0.5px !important;
-      border-radius: 12px !important;
-      transition: all 0.2s ease-in-out !important;
-      text-transform: uppercase !important;
-    }
-
-    .btn-primary, .btn-submit, .card-btn-register, .sticky-cta-btn {
-      background: var(--neon-yellow) !important;
-      color: #06060c !important;
-      box-shadow: 0 0 15px rgba(200, 232, 74, 0.3) !important;
-      border: none !important;
-    }
-
-    .btn-primary:hover, .btn-submit:hover, .card-btn-register:hover, .sticky-cta-btn:hover {
-      box-shadow: 0 0 25px rgba(200, 232, 74, 0.5) !important;
-      transform: translateY(-1px) !important;
-    }
-
-    /* Bottom Nav design */
-    .bottom-nav {
-      background: rgba(8, 8, 16, 0.75) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-      border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-      display: grid !important;
-      grid-template-columns: repeat(4, 1fr) !important;
-      height: 72px !important;
-      padding: 0 var(--space-md) !important;
-      align-items: center !important;
-      position: absolute !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-      z-index: 100 !important;
-    }
-
-    .nav-item {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      position: relative !important;
-      color: var(--muted-white) !important;
-      transition: all 0.2s ease !important;
-      cursor: pointer !important;
-      height: 100% !important;
-    }
-
-    .nav-item svg {
-      width: 20px !important;
-      height: 20px !important;
-      stroke-width: 2.2 !important;
-      transition: all 0.2s ease !important;
-    }
-
-    .nav-item.active, .nav-item.active-neon {
-      color: var(--neon-yellow) !important;
-    }
-
-    .nav-item.active svg, .nav-item.active-neon svg {
-      transform: translateY(-2px) !important;
-      filter: drop-shadow(0 0 8px rgba(200, 232, 74, 0.5)) !important;
-    }
-
-    .nav-dot {
-      width: 4px !important;
-      height: 4px !important;
-      background: var(--neon-yellow) !important;
-      border-radius: 50% !important;
-      position: absolute !important;
-      bottom: 12px !important;
-      opacity: 0 !important;
-      transform: scale(0.5) !important;
-      transition: all 0.2s ease !important;
-      box-shadow: 0 0 8px var(--neon-yellow) !important;
-    }
-
-    .nav-item.active .nav-dot, .nav-item.active-neon .nav-dot {
-      opacity: 1 !important;
-      transform: scale(1) !important;
-    }
-
-    /* Styled input fields */
-    .input-field {
-      background: rgba(255, 255, 255, 0.02) !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
-      border-radius: 10px !important;
-      color: white !important;
-      transition: all 0.2s ease !important;
-    }
-
-    .input-field:focus {
-      border-color: var(--neon-yellow) !important;
-      background: rgba(255, 255, 255, 0.05) !important;
-      box-shadow: 0 0 10px rgba(200, 232, 74, 0.1) !important;
-    }
-
-    /* Modal dialog overrides */
-    #waiting-verification-overlay > div, #custom-alert-overlay > div, .ad-modal {
-      background: rgba(10, 10, 20, 0.8) !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
-      backdrop-filter: blur(24px) !important;
-      -webkit-backdrop-filter: blur(24px) !important;
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 111, 212, 0.1) !important;
-      border-radius: 24px !important;
-    }
-
-    /* Styled upi app buttons */
-    .upi-app-btn:hover {
-      transform: scale(1.04);
-      background: rgba(255,255,255,0.05) !important;
-      border-color: rgba(255,255,255,0.2) !important;
-      box-shadow: 0 4px 15px rgba(255,255,255,0.05);
-    }
-  </style>
-  
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-  <style>
-    /* In-App Promotions & Ticker Tape Styles */
-    .ticker-wrap {
-      width: 100%;
-      overflow: hidden;
-      background: rgba(232, 97, 74, 0.12);
-      border-bottom: 1.5px solid rgba(232, 97, 74, 0.25);
-      padding: 6px 0;
-      z-index: 9;
-      position: relative;
-    }
-    .ticker {
-      display: flex;
-      white-space: nowrap;
-      animation: marquee 25s linear infinite;
-    }
-    .ticker-item {
-      display: inline-block;
-      padding: 0 2.5rem;
-      font-size: 10px !important;
-      font-weight: 700 !important;
-      color: var(--white-pure);
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-    @keyframes marquee {
-      0% { transform: translate3d(0, 0, 0); }
-      100% { transform: translate3d(-50%, 0, 0); }
-    }
-
-    /* Ad Banner Pop-up Overlay styles */
-    .ad-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(8, 8, 16, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .ad-overlay.show {
-      opacity: 1;
-      visibility: visible;
-    }
-    .ad-modal {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: var(--space-lg);
-      width: calc(100% - 40px);
-      max-width: 320px;
-      position: relative;
-      box-shadow: var(--shadow-level-3);
-      text-align: left;
-      transform: scale(0.9);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .ad-overlay.show .ad-modal {
-      transform: scale(1);
-    }
-    .ad-close-btn {
-      position: absolute;
-      top: 14px;
-      right: 16px;
-      background: transparent;
-      border: none;
-      color: var(--white-pure);
-      font-size: 22px;
-      cursor: pointer;
-      line-height: 1;
-    }
-    .ad-tag {
-      font-family: var(--font-display);
-      font-size: 9px !important;
-      font-weight: 950 !important;
-      letter-spacing: 2.5px;
-      color: var(--nova-yellow);
-      margin-bottom: var(--space-xs);
-      text-transform: uppercase;
-    }
-
-    /* Flipkart & BookMyShow Ticket Wallet Pass styles */
-    .ticket-wallet-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1.5px solid rgba(255, 255, 255, 0.06);
-      border-radius: var(--radius-card-std);
-      padding: 16px;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      box-shadow: var(--shadow-level-2);
-      border-left: 4px solid var(--ticket-color, var(--galactic-purple));
-    }
-    .ticket-wallet-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-    .ticket-wallet-body {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-    .ticket-wallet-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .ticket-wallet-qr {
-      width: 76px;
-      height: 76px;
-      background: #FFFFFF;
-      padding: 4px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .ticket-wallet-qr canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
-    .ticket-wallet-perf {
-      border-top: 1.5px dashed rgba(255, 255, 255, 0.12);
-      margin: 4px 0;
-      position: relative;
-    }
-    .ticket-wallet-perf::before,
-    .ticket-wallet-perf::after {
-      content: '';
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      background: var(--void-black);
-      border-radius: 50%;
-      top: -8px;
-    }
-    .ticket-wallet-perf::before { left: -24px; }
-    .ticket-wallet-perf::after { right: -24px; }
-    
-    .ticket-wallet-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px !important;
-      font-weight: 700 !important;
-    }
-
-    /* Embedded registration styling in details page */
-    .detail-reg-box {
-      margin-top: var(--space-md);
-      border-top: 1.5px dashed rgba(255, 255, 255, 0.08);
-      padding-top: var(--space-md);
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-    .team-member-input-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-    .btn-remove-member {
-      background: transparent;
-      border: 1.5px solid rgba(232, 74, 74, 0.3);
-      color: var(--error);
-      padding: 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-    .btn-remove-member:hover {
-      background: rgba(232, 74, 74, 0.1);
-      border-color: var(--error);
-    }
-
-    /* Glassmorphic card action buttons */
-    .card-btn-register {
-      margin-top: 12px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      color: var(--white-pure);
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: 11px !important;
-      font-weight: 700 !important;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s ease;
-      width: 100%;
-    }
-    .card-btn-register:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: var(--nova-yellow);
-      color: var(--nova-yellow);
+      background-color: #030611;
+      font-family: var(--font-sans);
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
     }
   </style>
 </head>
-
 <body>
 
   <div class="presentation-container">
     <div class="bg-glow-purple"></div>
     <div class="bg-glow-coral"></div>
 
+    <!-- Left Brand Sidebar for Large Screen Desktops -->
     <div class="presentation-sidebar">
       <div class="brand-eyebrow">IEDC RIT Presents</div>
-      <h1 class="brand-title">IEDC RIT<br><span>Event Platform</span></h1>
+      <h1 class="brand-title">RITU 2026<br><span>Event Gateway</span></h1>
       <p class="brand-tagline">
-        Where Innovation Begins. Experience IEDC RIT's flagship events, workshops, hackathons, and tournaments on a
-        mobile-first platform built for the next generation of innovators.
+        Where Innovation Begins. Experience RIT Kottayam's flagship technocultural events, workshops, hackathons, and tournaments. Sign in to reserve your spots and access confirmed passes.
       </p>
 
       <div class="brand-features">
         <div class="feature-item">
-          <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <div>
-            <div class="feature-text">Behance-Grade Aesthetics</div>
-            <div class="feature-desc">Vibrant dark mode palette, holographic elements, and micro-animations.</div>
-          </div>
+          <div class="feature-text">Behance-Grade Aesthetics</div>
+          <div class="feature-desc">Vibrant dark mode palette, holographic elements, and glassmorphic layouts.</div>
         </div>
 
         <div class="feature-item">
-          <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <div class="feature-text">Interactive Workflows</div>
-            <div class="feature-desc">Real-time search, category queries, Razorpay integration, and BookMyShow tickets shelf.
-            </div>
-          </div>
+          <div class="feature-text">Unified Verification</div>
+          <div class="feature-desc">Interactive mobile deep-linking, UPI payments, and automatic ticket deliveries.</div>
         </div>
       </div>
     </div>
 
+    <!-- Mobile Screen Frame Viewport -->
     <div class="phone-frame">
       <div class="screen-container">
 
+        <!-- Screen: Auth Gateway (Login & Register) -->
         <div id="screen-auth" class="screen full-height active">
-          <div class="btn-back" id="setup-back-btn" style="display: none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </div>
-
-          <div class="screen-content"
-            style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; padding-top: var(--space-xl);">
+          
+          <div class="screen-content" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; padding-top: var(--space-xl);">
+            
+            <!-- Branding Header -->
             <div style="text-align: left; margin-bottom: var(--space-md);">
-              <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
-                style="margin-bottom: var(--space-md);">
+              <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 16px;">
                 <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
                 <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
-                <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(255,255,255,0.4)" />
-                <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
-                  fill="#FFFFFF" letter-spacing="-0.5">IEDC</text>
-                <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
-                  fill="#FFFFFF" letter-spacing="-0.5">RIT</text>
-                <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
-                  stroke-linejoin="round" />
-                <circle cx="74" cy="32" r="3" fill="#E8614A" />
+                <text x="10" y="19" font-family="'Outfit', sans-serif" font-weight="900" font-size="18" fill="#FFFFFF" letter-spacing="-0.5">IEDC</text>
+                <text x="10" y="36" font-family="'Outfit', sans-serif" font-weight="900" font-size="18" fill="#FFFFFF" letter-spacing="-0.5">RIT</text>
               </svg>
-              <h1 class="h2-title" id="setup-title" style="margin-bottom: var(--space-xs);">Welcome</h1>
-              <p class="body-desc" id="setup-subtitle" style="color: var(--muted-white);">Sign in to discover and
-                register for events.</p>
+              <h1 class="h2-title" id="setup-title" style="margin-bottom: 4px;">Welcome</h1>
+              <p class="body-desc" id="setup-subtitle" style="color: rgba(255,255,255,0.6);">Sign in to discover and register for events.</p>
             </div>
 
+            <!-- Tab Switchers -->
             <div class="auth-tabs" id="auth-tabs-container">
-              <span class="auth-tab active" id="auth-tab-login">Login</span>
-              <span class="auth-tab" id="auth-tab-register">Register</span>
+              <span class="auth-tab active" id="auth-tab-login" onclick="switchAuthTab('login')">Login</span>
+              <span class="auth-tab" id="auth-tab-register" onclick="switchAuthTab('register')">Register</span>
             </div>
 
-            <form class="registration-form" id="auth-login-form">
+            <!-- Login Form -->
+            <form class="registration-form" id="auth-login-form" onsubmit="handleLoginSubmit(event)">
               <div class="input-group">
-                <label class="input-label" for="login-email">Student Email</label>
-                <input type="email" id="login-email" class="input-field" placeholder="username@rit.ac.in" required>
+                <label class="input-label" for="student-email">Student Email</label>
+                <input type="email" id="student-email" class="input-field" placeholder="username@rit.ac.in" required>
               </div>
 
               <div class="input-group">
-                <label class="input-label" for="login-password">Password</label>
-                <input type="password" id="login-password" class="input-field" placeholder="••••••••" required>
+                <label class="input-label" for="student-password">Password</label>
+                <input type="password" id="student-password" class="input-field" placeholder="••••••••" required>
               </div>
 
               <div style="text-align: right; margin-top: -4px; margin-bottom: var(--space-md);">
-                <span id="btn-forgot-password"
-                  style="font-size: 11px; color: var(--nova-yellow); cursor: pointer; text-decoration: underline; font-weight: 600; letter-spacing: 0.5px;">Forgot
-                  Password?</span>
+                <span id="btn-forgot-password" onclick="showForgotPasswordForm()" style="font-size: 11px; color: var(--nova-yellow); cursor: pointer; text-decoration: underline; font-weight: 600; letter-spacing: 0.5px;">Forgot Password?</span>
               </div>
 
-              <button type="submit" class="btn btn-primary" style="width: 100%;">
-                Login & Enter
+              <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%;">
+                LOGIN & ENTER
               </button>
 
-              <div
-                style="display: flex; align-items: center; justify-content: center; gap: var(--space-sm); margin: var(--space-md) 0; color: var(--muted-white); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: var(--space-md) 0; color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
                 <span style="height: 1px; flex: 1; background: rgba(255,255,255,0.08);"></span>
                 <span>or</span>
                 <span style="height: 1px; flex: 1; background: rgba(255,255,255,0.08);"></span>
               </div>
 
-              <button type="button" class="btn btn-secondary" id="btn-google-auth"
-                style="width: 100%; display: flex; align-items: center; justify-content: center; gap: var(--space-sm);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 2px;">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4" />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853" />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    fill="#FBBC05" />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    fill="#EA4335" />
-                </svg>
+              <button type="button" class="btn btn-secondary" id="btn-google-auth" onclick="handleGoogleSignIn()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 Sign in with Google
               </button>
             </form>
 
-            <form class="registration-form" id="auth-forgot-password-form" style="display: none;">
+            <!-- Forgot Password Form -->
+            <form class="registration-form" id="auth-forgot-password-form" style="display: none;" onsubmit="handleForgotPasswordSubmit(event)">
               <div class="input-group">
                 <label class="input-label" for="forgot-email">Student Email</label>
                 <input type="email" id="forgot-email" class="input-field" placeholder="username@rit.ac.in" required>
@@ -541,36 +121,30 @@
               </button>
 
               <div style="text-align: center; margin-top: var(--space-md);">
-                <span id="btn-forgot-back"
-                  style="font-size: 12px; color: var(--muted-white); cursor: pointer; text-decoration: underline; font-weight: 500;">Back
-                  to Login</span>
+                <span id="btn-forgot-back" onclick="hideForgotPasswordForm()" style="font-size: 12px; color: rgba(255,255,255,0.6); cursor: pointer; text-decoration: underline; font-weight: 500;">Back to Login</span>
               </div>
             </form>
 
-            <form class="registration-form" id="profile-setup-form" style="display: none;">
+            <!-- Registration Form -->
+            <form class="registration-form" id="profile-setup-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
               <div class="input-group">
                 <label class="input-label" for="setup-name">Full Name (Capital Letters)</label>
-                <input type="text" id="setup-name" class="input-field" placeholder="ENTER YOUR FULL NAME" required
-                  pattern="[A-Z\s]+" title="Name must contain only capital letters.">
+                <input type="text" id="setup-name" class="input-field" placeholder="ENTER YOUR FULL NAME" required pattern="[A-Z\s]+" title="Name must contain only capital letters.">
               </div>
 
               <div class="input-group">
                 <label class="input-label" for="setup-email">Student Email</label>
-                <input type="email" id="setup-email" class="input-field" placeholder="username@rit.ac.in" required
-                  pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}"
-                  title="Email address must be in all lowercase letters.">
+                <input type="email" id="setup-email" class="input-field" placeholder="username@rit.ac.in" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}" title="Email address must be in all lowercase letters.">
               </div>
 
               <div class="input-group">
                 <label class="input-label" for="setup-password">Password</label>
-                <input type="password" id="setup-password" class="input-field"
-                  placeholder="Create a password (min 6 chars)" minlength="6" required>
+                <input type="password" id="setup-password" class="input-field" placeholder="Create a password (min 6 chars)" minlength="6" required>
               </div>
 
               <div class="input-group">
                 <label class="input-label" for="setup-confirm-password">Confirm Password</label>
-                <input type="password" id="setup-confirm-password" class="input-field" placeholder="Re-enter password"
-                  minlength="6" required>
+                <input type="password" id="setup-confirm-password" class="input-field" placeholder="Re-enter password" minlength="6" required>
               </div>
 
               <div class="input-group">
@@ -580,8 +154,7 @@
 
               <div class="input-group">
                 <label class="input-label" for="setup-department">Department</label>
-                <input type="text" id="setup-department" class="input-field" placeholder="e.g. Computer Science"
-                  required>
+                <input type="text" id="setup-department" class="input-field" placeholder="e.g. Computer Science" required>
               </div>
 
               <div class="input-group">
@@ -602,716 +175,140 @@
 
               <div class="input-group">
                 <label class="input-label" for="setup-college">College Name</label>
-                <input type="text" id="setup-college" class="input-field" placeholder="Enter your college name"
-                  required>
+                <input type="text" id="setup-college" class="input-field" placeholder="Enter your college name" required>
               </div>
 
+              <!-- Avatar Selection -->
               <div class="input-group">
-                <label class="input-label">Select Avatar (Pick or Upload JPG)</label>
-                <div
-                  style="display: flex; gap: var(--space-md); margin-top: var(--space-xs); align-items: center; flex-wrap: wrap;">
+                <label class="input-label">Select Avatar Picture</label>
+                <div style="display: flex; gap: var(--space-md); margin-top: 4px; align-items: center; flex-wrap: wrap;">
                   <label class="avatar-option">
-                    <input type="radio" name="setup-avatar"
-                      value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                      checked style="display: none;">
-                    <img class="avatar-img"
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                      alt="Avatar 1">
+                    <input type="radio" name="setup-avatar" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" checked style="display: none;">
+                    <img class="avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar 1">
                   </label>
                   <label class="avatar-option">
-                    <input type="radio" name="setup-avatar"
-                      value="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80"
-                      style="display: none;">
-                    <img class="avatar-img"
-                      src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80"
-                      alt="Avatar 2">
+                    <input type="radio" name="setup-avatar" value="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" style="display: none;">
+                    <img class="avatar-img" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" alt="Avatar 2">
                   </label>
                   <label class="avatar-option">
-                    <input type="radio" name="setup-avatar"
-                      value="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80"
-                      style="display: none;">
-                    <img class="avatar-img"
-                      src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80"
-                      alt="Avatar 3">
+                    <input type="radio" name="setup-avatar" value="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80" style="display: none;">
+                    <img class="avatar-img" src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80" alt="Avatar 3">
                   </label>
                   <label class="avatar-option">
-                    <input type="radio" name="setup-avatar"
-                      value="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-                      style="display: none;">
-                    <img class="avatar-img"
-                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-                      alt="Avatar 4">
+                    <input type="radio" name="setup-avatar" value="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" style="display: none;">
+                    <img class="avatar-img" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt="Avatar 4">
                   </label>
-
+                  
                   <label class="avatar-option" id="custom-avatar-label" style="display: none;">
                     <input type="radio" name="setup-avatar" id="radio-custom-avatar" value="" style="display: none;">
                     <img class="avatar-img" id="custom-avatar-preview" src="" alt="Custom Avatar">
                   </label>
 
-                  <button type="button" class="avatar-upload-btn" id="btn-upload-avatar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                      stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <input type="file" id="setup-avatar-upload" accept="image/jpeg, image/jpg" style="display: none;">
+                  <button type="button" class="avatar-upload-btn" id="btn-upload-avatar" onclick="triggerAvatarUpload()">
+                    +
+                    <input type="file" id="setup-avatar-upload" accept="image/jpeg, image/jpg" style="display: none;" onchange="handleAvatarUploadChange(event)">
                   </button>
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary" id="btn-setup-submit"
-                style="margin-top: var(--space-md); width: 100%;">
+              <button type="submit" class="btn btn-primary" id="btn-setup-submit" style="margin-top: var(--space-md); width: 100%;">
                 Register & Enter
               </button>
             </form>
+
           </div>
         </div>
-
-        <!-- Secured Main App Layout -->
-        <div id="main-app-layout" style="display: none; width: 100%; height: 100%;">
-          
-          <!-- Global news ticker -->
-          <div class="ticker-wrap" id="global-ticker-wrap" style="display: none;">
-            <div class="ticker">
-              <span class="ticker-item">📢 Loading live announcements...</span>
-            </div>
-          </div>
-
-          <!-- Initial In-App Mobile Advertisement/Alert Overlay -->
-          <div id="ad-overlay" class="ad-overlay">
-            <div class="ad-modal">
-              <button class="ad-close-btn" onclick="closeAdOverlay()">&times;</button>
-              <div class="ad-tag">Ad Spotlight</div>
-              <h3 style="font-family: var(--font-display); font-size: 20px !important; font-weight: 850; margin-bottom: var(--space-xs); line-height: 1.2;">InnovateRIT Summit '26</h3>
-              <p style="font-size: 12px; color: var(--muted-white); line-height: 1.4; margin-bottom: var(--space-md);">Join the flagship campus summit by RIT IEDC this weekend. Dynamic panels, incubator opportunities, and startup pitch awards!</p>
-              <div style="width: 100%; height: 110px; border-radius: 12px; background: url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80') center/cover no-repeat; border: 1px solid rgba(255,255,255,0.1); margin-bottom: var(--space-sm);"></div>
-              <button class="btn btn-primary" onclick="closeAdOverlay()" style="width: 100%; padding: 12px; font-size: 13px !important;">Explore Summit</button>
-            </div>
-          </div>
-
-          <div id="screen-pending" class="screen full-height">
-          <div class="screen-content"
-            style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100%; padding: var(--space-xl); text-align: center;">
-            <div class="pending-icon-wrapper"
-              style="width: 80px; height: 80px; border-radius: var(--radius-avatar); background: rgba(200, 232, 74, 0.1); border: 2px solid var(--nova-yellow); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-lg); color: var(--nova-yellow); box-shadow: 0 0 20px rgba(200, 232, 74, 0.2);">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </div>
-
-            <h1 class="h2-title" style="margin-bottom: var(--space-xs); font-size: 24px;">Approval Pending</h1>
-            <p class="body-desc"
-              style="color: var(--muted-white); margin-bottom: var(--space-xl); max-width: 280px; line-height: 1.5; font-size: 13px;">
-              Welcome, <span id="pending-student-name"
-                style="color: var(--white-pure); font-weight: 700;">Student</span>!<br>
-              Your registration has been received. Please wait for an administrator to approve your account.
-            </p>
-
-            <button class="btn btn-secondary" id="btn-pending-logout" style="width: 100%;">
-              Log Out
-            </button>
-          </div>
-        </div>
-
-        <div id="home-section" class="screen nav-section active">
-          <div class="app-header">
-            <div class="logo-wrapper">
-              <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
-                style="display: block;">
-                <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
-                <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
-                <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(255,255,255,0.4)" />
-                <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
-                  fill="#FFFFFF" letter-spacing="-0.5">IEDC</text>
-                <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
-                  fill="#FFFFFF" letter-spacing="-0.5">RIT</text>
-                <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
-                  stroke-linejoin="round" />
-                <circle cx="74" cy="32" r="3" fill="#E8614A" />
-              </svg>
-            </div>
-            <div class="avatar-wrapper" id="profile-avatar-trigger" style="width: 32px; height: 32px; cursor: pointer;">
-              <img class="avatar-img"
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                alt="Sirin Profile">
-            </div>
-          </div>
-
-          <div class="search-wrapper">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="search-input" class="search-input" placeholder="Search hackathons, talks..."
-              autocomplete="off">
-          </div>
-
-          <!-- Category Pills Navigation including Tournaments -->
-          <div class="categories-scroll" id="categories-scroll">
-            <span class="chip chip-category active" data-category="all">All</span>
-            <span class="chip chip-category" data-category="workshop">Workshops</span>
-            <span class="chip chip-category" data-category="talk">Talks</span>
-            <span class="chip chip-category" data-category="hackathon">Hackathons</span>
-            <span class="chip chip-category" data-category="tournament">Tournaments</span>
-          </div>
-
-          <div class="screen-content">
-            <div class="section-eyebrow">Featured Spotlight</div>
-            <div id="featured-card-container">
-            </div>
-
-            <div class="home-section-title">
-              <span class="section-eyebrow">Discover Events</span>
-            </div>
-
-            <div class="home-list-container" id="events-list-container">
-            </div>
-          </div>
-
-          <!-- Glassmorphic Details Overlay Modal Screen -->
-          <div id="screen-detail" class="screen full-height" style="background: rgba(8, 8, 16, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-            <div class="btn-back" id="detail-back-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </div>
-
-            <div class="hero-section" id="detail-hero">
-              <div class="hero-shape"></div>
-              <div class="hero-chip-wrapper" id="detail-type-chip-container"></div>
-              <h1 class="hero-title" id="detail-title">Dynamic Event Title</h1>
-              <div class="hero-meta-row" id="detail-meta-row">
-              </div>
-            </div>
-
-            <div class="screen-content detail-content">
-              <div>
-                <span class="section-eyebrow">About Event</span>
-                <p class="body-desc" id="detail-description">
-                  Dynamic body description text goes here. Content details will be loaded based on the selected card from
-                  home.
-                </p>
-              </div>
-
-              <!-- Schedule Countdown Timer Widget -->
-              <div id="detail-countdown-container" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(255,255,255,0.08); font-size: 13px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="detail-countdown-timer">Ticking clock starting...</span>
-              </div>
-
-              <div class="detail-features-grid">
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-date">24 June</div>
-                  <div class="detail-feature-lbl">Date</div>
-                </div>
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-time">10:00 AM</div>
-                  <div class="detail-feature-lbl">Time</div>
-                </div>
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-seats">15 Seats</div>
-                  <div class="detail-feature-lbl">Seats Left</div>
-                </div>
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-price">Free</div>
-                  <div class="detail-feature-lbl">Entry Fee</div>
-                </div>
-              </div>
-
-              <!-- Speaker Profile & LinkedIn Anchor -->
-              <div>
-                <span class="section-eyebrow">Speaker / Host Profile</span>
-                <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-                  <div id="detail-speaker-info">
-                    <p class="body-desc" id="detail-host" style="font-weight: 700; color: var(--soft-purple); font-size: 14px; margin-bottom: 2px;">Speaker Name</p>
-                    <p id="detail-host-qual" style="font-size: 11px; color: var(--muted-white);">Speaker Qualification</p>
-                  </div>
-                  <a id="detail-host-linkedin" href="#" target="_blank" style="margin-left: auto; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: #0077b5; color: white; text-decoration: none;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              <!-- Dynamic Online vs Offline UI Adapters -->
-              <div id="detail-location-container">
-                <span class="section-eyebrow">Venue / Portal</span>
-                <div id="detail-venue-info" style="display: flex; flex-direction: column; gap: 6px;">
-                  <div style="display: flex; align-items: center; gap: 8px; color: var(--white-pure);">
-                    <span>📍</span>
-                    <span id="detail-location-text" style="font-size: 13px; font-weight: 700;">Seminar Hall</span>
-                  </div>
-                  <a id="detail-location-map-link" href="#" target="_blank" style="font-size: 12px; color: var(--nova-yellow); text-decoration: underline; font-weight: 700; margin-left: 24px;">View Location in Google Maps</a>
-                  
-                  <div id="detail-location-meeting" style="display: none; flex-direction: column; gap: 4px; margin-left: 24px;">
-                    <span style="font-size: 11px; color: var(--success); font-weight: 700; letter-spacing: 0.5px;">SECURE MEETING LINK:</span>
-                    <a id="detail-meeting-link" href="#" target="_blank" style="font-size: 13px; color: var(--info); text-decoration: underline; font-weight: 700;">
-                      Join Virtual Room (Zoom/Meet)
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Single-Page Checkout inputs embedded directly inside details view -->
-              <form id="registration-form" class="detail-reg-box" onsubmit="event.preventDefault();">
-                <span class="section-eyebrow" id="detail-reg-eyebrow">Confirm Your Registration</span>
-                
-                <div class="input-group">
-                  <label class="input-label">Student Name</label>
-                  <input type="text" id="detail-reg-name" class="input-field" disabled>
-                </div>
-                <div class="input-group">
-                  <label class="input-label">KTU ID / Register No</label>
-                  <input type="text" id="detail-reg-ktuid" class="input-field" disabled>
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="detail-reg-bank-name">Bank Account Owner's Full Name (As shown in GPay/PhonePe)</label>
-                  <input type="text" id="detail-reg-bank-name" class="input-field" placeholder="FULL NAME AS PER BANK RECORDS" required>
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="detail-reg-phone">Contact Phone</label>
-                  <input type="tel" id="detail-reg-phone" class="input-field" placeholder="+91 98765 43210" required>
-                </div>
-
-                <!-- Dynamic Team section for detail modal -->
-                <div id="detail-team-section" style="display: none; flex-direction: column; gap: var(--space-sm);">
-                  <span class="section-eyebrow" style="margin-bottom: 0;">Team Registrations</span>
-                  <div id="detail-team-slots-container"></div>
-                  <button type="button" class="btn-add-member" id="detail-btn-add-member" style="font-size: 11px; padding: 10px; width: 100%; border: 1.5px dashed var(--nova-yellow); color: var(--nova-yellow); background: transparent; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                    + Add Team Member
-                  </button>
-                </div>
-
-                <div class="input-group" style="margin-top: var(--space-md);">
-                  <button type="submit" id="modal-pay-btn" class="card-btn-register" style="width: 100%;">Proceed to Pay</button>
-                </div>
-              </form>
-
-              <!-- Dynamic UPI Checkout Container -->
-              <div id="detail-upi-checkout-container" style="display: none; flex-direction: column; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
-                
-                <!-- Desktop View: QR Code -->
-                <div id="upi-desktop-view" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm);">
-                  <span class="section-eyebrow" style="color: var(--nova-yellow); font-weight: 700;">Scan QR to Pay</span>
-                  <p class="body-desc" style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.4; color: var(--muted-white);">
-                    Scan this dynamic UPI QR code with GPay, PhonePe, Paytm, or BHIM.
-                  </p>
-                  <div style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin: 10px 0;">
-                    <img id="detail-upi-qr-image" src="" alt="Dynamic UPI QR Code" style="width: 180px; height: 180px; display: block; object-fit: contain;">
-                  </div>
-                </div>
-
-                <!-- Mobile View: Intent Anchor -->
-                <div id="upi-mobile-view" style="display: none; flex-direction: column; align-items: center; gap: var(--space-sm);">
-                  <span class="section-eyebrow" style="color: var(--nova-yellow); font-weight: 700;">Pay with UPI App</span>
-                  <p class="body-desc" style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.4; color: var(--muted-white);">
-                    We are launching Google Pay / PhonePe...
-                  </p>
-                  <a id="detail-upi-mobile-link" href="#" class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid var(--nova-yellow); color: var(--nova-yellow); font-size: 13px; padding: 12px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; text-decoration: none; margin: 10px 0;">
-                    ⚡ Click to Open UPI App Again
-                  </a>
-                </div>
-
-                <div style="font-size: 16px; font-weight: 800; color: var(--white-pure);">
-                  Amount Due: <span id="detail-upi-amount-label" style="color: var(--nova-yellow);">₹0</span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-                  <button type="button" id="detail-upi-confirm-btn" class="btn" style="background: var(--success); color: #080810; font-size: 13px; padding: 14px; border-radius: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; width: 100%; border: none; cursor: pointer; transition: all 0.2s ease;">
-                    I Have Paid (Confirm Enrollment)
-                  </button>
-                  <button type="button" id="detail-upi-cancel-btn" class="btn" style="background: transparent; color: var(--muted-white); font-size: 11px; padding: 8px; border-radius: 8px; font-weight: 600; text-transform: uppercase; width: 100%; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s ease;">
-                    Cancel & Go Back
-                  </button>
-                </div>
-              </div>
-
-              <!-- Ticket Success Container (Dynamic QR canvas target) -->
-              <div id="ticket-container" style="display: none; flex-direction: column; align-items: center; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
-                <span class="section-eyebrow" style="color: var(--success); font-weight: 700;">Enrollment Confirmed</span>
-                <div style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
-                  <canvas id="ticket-qr-canvas" style="display: block; width: 180px; height: 180px;"></canvas>
-                </div>
-                <p class="body-desc" style="font-size: 12px; color: var(--muted-white); margin-top: 4px;">Present this Canvas QR code at the check-in gate.</p>
-                <button type="button" onclick="switchTab('wallet')" class="btn" style="background: var(--galactic-purple); color: var(--white-pure); width: 100%;">Open Ticket Wallet</button>
-              </div>
-
-            </div>
-
-            <div class="sticky-cta-container">
-              <button class="btn btn-primary sticky-cta-btn" id="detail-register-btn" style="width: 100%;">Register & Pay</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="screen-ticket" class="screen full-height" style="background: rgba(8, 8, 16, 0.98); backdrop-filter: blur(20px); display: none;">
-          <div class="btn-back" id="ticket-back-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </div>
-          <div class="screen-content" style="padding: 24px 16px 100px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; height: 100%;">
-            <div class="poster-ticket-card" id="poster-ticket-card" style="position: relative; width: 100%; max-width: 320px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(10, 10, 20, 0.85); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(200, 232, 74, 0.15); overflow: hidden; display: flex; flex-direction: column; margin-top: 10px;">
-              
-              <!-- Backdrop/Header Image -->
-              <div id="ticket-poster-img" style="width: 100%; height: 160px; background-size: cover; background-position: center; position: relative;">
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(8,8,16,0.1), rgba(10,10,20,0.9));"></div>
-                <div style="position: absolute; top: 12px; right: 12px;">
-                  <span id="ticket-type-tag" class="chip" style="font-size: 10px; font-weight: 800; border: none;">WORKSHOP</span>
-                </div>
-              </div>
-
-              <!-- Content Area -->
-              <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; margin-top: -30px; z-index: 2;">
-                <h2 id="ticket-event-name" style="font-family: var(--font-display); font-size: 22px; font-weight: 900; line-height: 1.2; color: #fff; margin: 0;">Event Name</h2>
-                
-                <!-- QR Code Canvas -->
-                <div style="background: white; padding: 12px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: inline-block; margin: 8px 0;">
-                  <canvas id="qr-canvas" style="display: block; width: 150px; height: 150px;"></canvas>
-                </div>
-                
-                <!-- Attendee Info -->
-                <div style="width: 100%; display: flex; flex-direction: column; gap: 4px; border-top: 1px dashed rgba(255, 255, 255, 0.15); border-bottom: 1px dashed rgba(255, 255, 255, 0.15); padding: 12px 0;">
-                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-white);">
-                    <span>ATTENDEE</span>
-                    <span>REGISTER ID</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #fff;">
-                    <span id="ticket-attendee">Student Name</span>
-                    <span id="ticket-student-id" style="font-family: monospace; color: var(--neon-yellow);">RIT22CS089</span>
-                  </div>
-                  
-                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-white); margin-top: 8px;">
-                    <span>DATE & TIME</span>
-                    <span>VENUE / LOCATION</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #fff; text-align: left;">
-                    <span id="ticket-date">June 24, 2026 - 10:00 AM</span>
-                    <span id="ticket-loc" style="text-align: right; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Seminar Hall</span>
-                  </div>
-                </div>
-
-                <!-- Ticket ID Footer -->
-                <div id="ticket-id-text" style="font-family: monospace; font-size: 11px; color: var(--muted-white); letter-spacing: 0.5px;">TICKET ID: reg-123456</div>
-
-                <!-- Conditional WhatsApp button inside pass -->
-                <a id="ticket-whatsapp-btn" href="#" target="_blank" class="btn" style="display: none; background: #25D366 !important; color: #fff !important; width: 100%; padding: 12px; font-size: 12px; border-radius: 12px; font-weight: 800; border: none; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-shadow: 0 0 15px rgba(37, 211, 102, 0.4); text-transform: uppercase;">
-                  💬 Join Official WhatsApp Group
-                </a>
-              </div>
-
-            </div>
-
-            <div class="ticket-actions" style="display: flex; gap: 12px; margin-top: 20px; width: 100%; max-width: 320px;">
-              <button class="btn btn-secondary" id="btn-ticket-download" style="flex: 1; font-size: 12px; padding: 12px;">Download</button>
-              <button class="btn btn-ghost" id="btn-ticket-share" style="flex: 1; font-size: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.1); color: white;">Share Pass</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="profile-section" class="screen nav-section" style="display: none;">
-          <div class="screen-content" style="padding-bottom: 100px;">
-            <div class="dashboard-header"
-              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
-              <div>
-                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
-              </div>
-              <button class="btn btn-secondary btn-logout-action"
-                style="padding: 8px 12px; border-radius: var(--radius-badge); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
-                Logout
-              </button>
-            </div>
-
-            <div id="db-content-profile">
-              <div
-                style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); padding: var(--space-md) 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: var(--space-md);">
-                <div class="avatar-wrapper" style="width: 80px; height: 80px; border-color: var(--nova-yellow);">
-                  <img class="avatar-img" id="db-profile-avatar" src="" alt="Profile Picture">
-                </div>
-                <h2 class="h3-title" id="db-profile-name"
-                  style="margin-top: var(--space-xs); margin-bottom: 0; font-size: 18px;">Student</h2>
-                <span class="chip"
-                  style="background: rgba(200,232,74,0.1); border-color: var(--nova-yellow); color: var(--nova-yellow);">Student
-                  Account</span>
-              </div>
-
-              <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">KTU ID / Reg No</span>
-                  <span class="ticket-detail-val" id="db-profile-id"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Email Address</span>
-                  <span class="ticket-detail-val" id="db-profile-email"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Department</span>
-                  <span class="ticket-detail-val" id="db-profile-dept"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Year of Study</span>
-                  <span class="ticket-detail-val" id="db-profile-year"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Phone Number</span>
-                  <span class="ticket-detail-val" id="db-profile-phone"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">College</span>
-                  <span class="ticket-detail-val" id="db-profile-college"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Flipkart / BookMyShow My Tickets Hub Wallet View -->
-        <div id="wallet-section" class="screen nav-section" style="display: none;">
-          <div class="screen-content" style="padding-bottom: 100px;">
-            <div class="dashboard-header"
-              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
-              <div>
-                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
-              </div>
-              <button class="btn btn-secondary btn-logout-action"
-                style="padding: 8px 12px; border-radius: var(--radius-badge); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
-                Logout
-              </button>
-            </div>
-
-            <div id="db-content-events">
-              <div class="stats-row"
-                style="margin-bottom: var(--space-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm);">
-                <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
-                  <span class="stat-num" id="stat-attended" style="font-size: 20px;">0</span>
-                  <span class="stat-lbl" style="font-size: 9px;">Attended</span>
-                </div>
-                <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
-                  <span class="stat-num" id="stat-upcoming" style="font-size: 20px;">0</span>
-                  <span class="stat-lbl" style="font-size: 9px;">Active</span>
-                </div>
-                <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
-                  <span class="stat-num" id="stat-certs" style="font-size: 20px;">0</span>
-                  <span class="stat-lbl" style="font-size: 9px;">Certs</span>
-                </div>
-              </div>
-
-              <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">My Tickets & Passes Wallet</h2>
-              <div class="dashboard-list" id="dashboard-list-container"
-                style="display: flex; flex-direction: column; gap: var(--space-md);">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="news-section" class="screen nav-section" style="display: none;">
-          <div class="screen-content" style="padding-bottom: 100px;">
-            <div class="dashboard-header"
-              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
-              <div>
-                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
-              </div>
-              <button class="btn btn-secondary btn-logout-action"
-                style="padding: 8px 12px; border-radius: var(--radius-badge); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
-                Logout
-              </button>
-            </div>
-
-            <div id="db-content-notifications">
-              <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">
-                Recent Announcements</h2>
-              <div class="dashboard-list" id="notifications-list-container"
-                style="display: flex; flex-direction: column; gap: var(--space-md);">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <nav class="bottom-nav">
-          <div class="nav-item bottom-nav-btn active-neon" id="nav-home" data-tab="home">
-            <svg viewBox="0 0 24 24">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-          <div class="nav-item bottom-nav-btn" id="nav-wallet" data-tab="wallet">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 12V8H4v4M4 12v6h16v-6M4 12h16" />
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-          <div class="nav-item bottom-nav-btn" id="nav-news" data-tab="news">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
-              <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-          <div class="nav-item bottom-nav-btn" id="nav-profile" data-tab="profile">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-        </nav>
-
-        <canvas id="confetti-canvas"></canvas>
 
         <div id="app-toast" class="toast">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
-          </svg>
-          <span id="toast-text">Registration Success!</span>
+          <span id="toast-text">Toast Alert!</span>
         </div>
 
       </div>
     </div>
   </div>
 
+  <!-- Firebase compatibility client scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
+  
+  <!-- Helper Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="app.js"></script>
   
-  <script>
-    // Initial Ad Overlay Popup controller
-    window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        // Show Ad only if user is on authentication/home screen on load
-        const authScreen = document.getElementById("screen-auth");
-        if (authScreen && authScreen.classList.contains("active")) {
-          // If on auth, wait until they log in (handled inside app.js)
-        } else {
-          showAdOverlay();
-        }
-      }, 1500);
-    });
+  <!-- EmailJS Browser SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  
+  <!-- Core Script Link -->
+  <script src="app.js"></script>
 
-    function showAdOverlay() {
-      const ad = document.getElementById("ad-overlay");
-      if (ad) ad.classList.add("show");
+  <script>
+    function switchAuthTab(mode) {
+      const loginTab = document.getElementById("auth-tab-login");
+      const registerTab = document.getElementById("auth-tab-register");
+      const loginForm = document.getElementById("auth-login-form");
+      const registerForm = document.getElementById("profile-setup-form");
+      const title = document.getElementById("setup-title");
+      const subtitle = document.getElementById("setup-subtitle");
+
+      if (mode === "login") {
+        loginTab.classList.add("active");
+        registerTab.classList.remove("active");
+        loginForm.style.display = "block";
+        registerForm.style.display = "none";
+        title.textContent = "Welcome Back";
+        subtitle.textContent = "Sign in to discover and register for events.";
+      } else {
+        loginTab.classList.remove("active");
+        registerTab.classList.add("active");
+        loginForm.style.display = "none";
+        registerForm.style.display = "block";
+        title.textContent = "Create Profile";
+        subtitle.textContent = "Set up your credentials to access the IEDC event gateway.";
+      }
     }
 
-    function closeAdOverlay() {
-      const ad = document.getElementById("ad-overlay");
-      if (ad) ad.classList.remove("show");
+    function showForgotPasswordForm() {
+      document.getElementById("auth-tabs-container").style.display = "none";
+      document.getElementById("auth-login-form").style.display = "none";
+      document.getElementById("auth-forgot-password-form").style.display = "block";
+      document.getElementById("setup-title").textContent = "Reset Password";
+      document.getElementById("setup-subtitle").textContent = "Enter your email to receive a password reset link.";
+    }
+
+    function hideForgotPasswordForm() {
+      document.getElementById("auth-forgot-password-form").style.display = "none";
+      document.getElementById("auth-tabs-container").style.display = "flex";
+      document.getElementById("auth-login-form").style.display = "block";
+      document.getElementById("setup-title").textContent = "Welcome Back";
+      document.getElementById("setup-subtitle").textContent = "Sign in to discover and register for events.";
+    }
+
+    function triggerAvatarUpload() {
+      document.getElementById("setup-avatar-upload").click();
+    }
+
+    function handleAvatarUploadChange(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.type !== "image/jpeg" && file.type !== "image/jpg") {
+        alert("Avatar image must be in JPG/JPEG format.");
+        e.target.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const url = event.target.result;
+        document.getElementById("custom-avatar-preview").src = url;
+        const radio = document.getElementById("radio-custom-avatar");
+        radio.value = url;
+        radio.checked = true;
+        document.getElementById("custom-avatar-label").style.display = "block";
+      };
+      reader.readAsDataURL(file);
     }
   </script>
-
-  <!-- Custom Glassmorphic Alert Modal -->
-  <div id="custom-alert-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(8, 8, 16, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; align-items: center; justify-content: center; animation: fadeInOverlay 0.25s ease;">
-    <style>
-      @keyframes fadeInOverlay {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-    </style>
-    <div style="background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 24px 48px rgba(0,0,0,0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);">
-      <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(232, 74, 74, 0.15); border: 1px solid var(--error); color: var(--error); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 24px; font-weight: bold;">
-        ⚠️
-      </div>
-      <h3 style="font-size: 18px; font-weight: 800; color: white; margin-bottom: 8px;" id="custom-alert-title">Conflict</h3>
-      <p style="font-size: 13px; color: var(--muted-white); line-height: 1.5; margin-bottom: 20px;" id="custom-alert-message">You are already registered for this event!</p>
-      <button type="button" onclick="closeCustomAlert()" class="btn" style="background: var(--error); color: white; width: 100%; border: none; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Dismiss</button>
-    </div>
-  </div>
-
-  <!-- Waiting for Admin Verification Overlay -->
-  <div id="waiting-verification-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(8, 8, 16, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; align-items: center; justify-content: center; animation: fadeInOverlay 0.25s ease;">
-    <div style="background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 24px 48px rgba(0,0,0,0.5); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); display: flex; flex-direction: column; align-items: center; gap: 12px;">
-      
-      <!-- Glowing rotating spinner -->
-      <div class="verification-spinner" style="width: 55px; height: 55px; border: 4px solid rgba(200, 232, 74, 0.1); border-top: 4px solid var(--nova-yellow); border-radius: 50%; animation: spin 1s linear infinite; box-shadow: 0 0 15px rgba(200, 232, 74, 0.2); margin-bottom: 8px;"></div>
-      <style>
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      </style>
-
-      <h3 style="font-size: 16px; font-weight: 800; color: white; margin-bottom: 2px; line-height: 1.3;">Waiting for secure bank SMS confirmation...</h3>
-      <div id="waiting-amount-label" style="font-size: 15px; font-weight: 700; color: var(--nova-yellow); margin-bottom: 8px;">Amount Due: ₹0</div>
-
-      <p style="font-size: 11px; color: var(--muted-white); line-height: 1.5; margin-bottom: 12px; max-width: 320px;">
-        Please do not close or refresh this page. Once your UPI transfer is verified, our system will immediately authorize your registration and issue your pass.
-      </p>
-
-      <!-- Unified Interactive QR Container -->
-      <a id="waiting-upi-qr-link" href="#" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 16px; border-radius: 20px; transition: all 0.3s ease; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35); cursor: pointer; width: 180px; max-width: 100%;">
-        <!-- Clean official UPI Logo via Inline SVG -->
-        <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: center; width: 90px; height: 26px;">
-          <svg width="100%" height="100%" viewBox="0 0 100 35" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-            <rect width="100" height="35" rx="6" fill="#F4F4F7" />
-            <!-- Stylized U-P-I -->
-            <path d="M18 10 v8 c0 1.5 1.2 2.5 2.5 2.5 s2.5-1 2.5-2.5 v-8 h2.5 v8 c0 2.5-2 4.5-5 4.5 s-5-2-5-4.5 v-8 z" fill="#097939" />
-            <path d="M31 10 h5.5 c2 0 3.5 1.2 3.5 3 s-1.5 3-3.5 3 H33.5 v5 H31 z M33.5 12.2 v2 h2.5 c1 0 1.5-.5 1.5-1 s-.5-1-1.5-1 z" fill="#006699" />
-            <path d="M46 10 h2.5 v11 H46 z" fill="#D63A37" />
-            <polygon points="53,21 59,10 61,10 55,21" fill="#097939" />
-            <polygon points="57,21 63,10 65,10 59,21" fill="#D63A37" />
-            <text x="14" y="30" font-family="'Inter', sans-serif" font-weight="900" font-size="5" fill="#333333" letter-spacing="0.2">UNIFIED PAYMENTS INTERFACE</text>
-          </svg>
-        </div>
-        
-        <div style="background: white; padding: 8px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 8px;">
-          <canvas id="waiting-upi-qr-canvas" style="display: block; width: 130px; height: 130px;"></canvas>
-        </div>
-        
-        <span style="font-size: 10px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
-          Scan QR to Pay
-        </span>
-      </a>
-
-      <!-- Single Universal UPI Deep-Link Action Button -->
-      <a id="waiting-upi-mobile-link" href="#" class="btn" style="text-decoration: none; background: transparent !important; border: 2px solid var(--neon-purple) !important; color: var(--white-pure) !important; font-size: 11.5px; padding: 12px; border-radius: 12px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s ease-in-out; box-shadow: 0 0 12px rgba(139, 111, 212, 0.3) !important;">
-        ⚡ Pay via Any UPI App (GPay / PhonePe / Paytm)
-      </a>
-
-      <!-- Add hover style inside overlay for visual feedback -->
-      <style>
-        #waiting-upi-mobile-link:hover {
-          background: rgba(139, 111, 212, 0.1) !important;
-          box-shadow: 0 0 20px rgba(139, 111, 212, 0.6) !important;
-          transform: translateY(-1px);
-        }
-      </style>
-
-      <div style="font-size: 9px; color: var(--nova-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
-        Polling Database Stream...
-      </div>
-
-      <button type="button" id="btn-waiting-back" onclick="closeWaitingOverlayAndGoToWallet()" class="btn" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--white-pure); width: 100%; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-size: 11px; margin-top: 8px; transition: all 0.2s;">
-        ← Back to Dashboard / View in Wallet
-      </button>
-
-
-    </div>
-  </div>
-  </div> <!-- Closing main-app-layout -->
 </body>
-
 </html>

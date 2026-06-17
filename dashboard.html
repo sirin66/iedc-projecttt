@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RITU 2026 - Student Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --font-display: 'Outfit', sans-serif;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+    }
+    body {
+      background-color: #030611;
+      font-family: var(--font-sans);
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+  </style>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+
+  <!-- Auth Session Check Gate -->
+  <script>
+    if (!sessionStorage.getItem("loggedInUserUid")) {
+      window.location.replace("index.html");
+    }
+  </script>
+
+  <div class="presentation-container">
+    <div class="bg-glow-purple"></div>
+    <div class="bg-glow-coral"></div>
+
+    <!-- Left Brand Sidebar for Large Screen Desktops -->
+    <div class="presentation-sidebar">
+      <div class="brand-eyebrow">IEDC RIT Presents</div>
+      <h1 class="brand-title">RITU 2026<br><span>Event Gateway</span></h1>
+      <p class="brand-tagline">
+        Experience RIT Kottayam's premium technocultural event platform. Register for workshops, track team tournaments, and access digital entries instantly.
+      </p>
+      <div class="brand-features">
+        <div class="feature-item">
+          <div class="feature-text">⚡ Instant Digital Tickets</div>
+          <div class="feature-desc">Interactive BookMyShow-style passes with live entry QR validation codes.</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-text">🛡️ Direct UPI Automation</div>
+          <div class="feature-desc">Pay directly via GPay, PhonePe, or Paytm with instant admin approvals.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Screen Frame Viewport -->
+    <div class="phone-frame">
+      <div class="screen-container">
+        
+        <!-- Main Application Shell -->
+        <div id="main-app-layout" style="width: 100%; height: 100%;">
+          
+          <!-- Live Announcement Marquee Ticker -->
+          <div class="ticker-wrap" id="global-ticker-wrap">
+            <div class="ticker" id="app-ticker-tape">
+              <span class="ticker-item">📢 Loading latest RITU announcements...</span>
+            </div>
+          </div>
+
+          <!-- Initial Promotional Popup Drawer -->
+          <div id="ad-overlay" class="ad-overlay">
+            <div class="ad-modal">
+              <button type="button" class="ad-close-btn" onclick="closeAdOverlay()">&times;</button>
+              <div class="ad-tag">RITU Spotlight</div>
+              <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 800; margin-bottom: 6px;">InnovateRIT Summit</h3>
+              <p style="font-size: 11.5px; color: rgba(255,255,255,0.6); line-height: 1.4; margin-bottom: 12px;">Join the flagship campus hackathon and startup pitch session by RIT IEDC this weekend. Grand prizes up to ₹30,000!</p>
+              <div style="width: 100%; height: 110px; border-radius: 12px; background: url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80') center/cover no-repeat; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;"></div>
+              <button type="button" class="btn btn-primary" onclick="closeAdOverlay()" style="width: 100%; padding: 12px; font-size: 12px;">Explore Summit</button>
+            </div>
+          </div>
+
+          <!-- Screen: Pending Verification Loader -->
+          <div id="screen-pending" class="screen full-height" style="display: none;">
+            <div class="screen-content" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100%; padding: var(--space-xl); text-align: center;">
+              <div class="pending-icon-wrapper" style="width: 80px; height: 80px; border-radius: 50%; background: rgba(200, 232, 74, 0.1); border: 2px solid var(--neon-yellow); display: flex; align-items: center; justify-content: center; margin-bottom: 24px; color: var(--neon-yellow); animation: warningPulse 2s infinite;">
+                ⏳
+              </div>
+              <h1 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 8px;">Approval Pending</h1>
+              <p style="color: rgba(255,255,255,0.6); margin-bottom: 32px; font-size: 13px; line-height: 1.5; max-width: 280px;">
+                Welcome, <span id="pending-student-name" style="color: #ffffff; font-weight: 700;">Student</span>!<br>
+                Your registration is received. Please wait for an administrator to activate your account.
+              </p>
+              <button type="button" class="btn btn-secondary" id="btn-pending-logout" onclick="handleSignOut()" style="width: 100%;">Log Out</button>
+            </div>
+          </div>
+
+          <!-- Section: Home / Discover Events -->
+          <div id="home-section" class="screen nav-section active">
+            <div class="app-header">
+              <div class="logo-wrapper">
+                <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
+                  <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
+                  <text x="10" y="19" font-family="'Outfit', sans-serif" font-weight="900" font-size="18" fill="#FFFFFF">IEDC</text>
+                  <text x="10" y="36" font-family="'Outfit', sans-serif" font-weight="900" font-size="18" fill="#FFFFFF">RIT</text>
+                </svg>
+              </div>
+              <div class="avatar-wrapper" id="profile-avatar-trigger" onclick="switchTab('profile')" style="width: 32px; height: 32px; cursor: pointer;">
+                <img class="avatar-img" id="app-header-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" alt="Student">
+              </div>
+            </div>
+
+            <!-- Event Search Bar -->
+            <div class="search-wrapper">
+              <input type="text" id="search-input" class="search-input" placeholder="Search workshops, hackathons, cups..." autocomplete="off">
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="categories-scroll">
+              <span class="chip chip-category active" data-category="all">All</span>
+              <span class="chip chip-category" data-category="workshop">Workshops</span>
+              <span class="chip chip-category" data-category="talk">Talks</span>
+              <span class="chip chip-category" data-category="hackathon">Hackathons</span>
+              <span class="chip chip-category" data-category="tournament">Tournaments</span>
+            </div>
+
+            <div class="screen-content" style="padding-top: 10px;">
+              <div class="section-eyebrow">Featured Spotlight</div>
+              <div id="featured-card-container">
+                <!-- Injected via app.js -->
+              </div>
+
+              <div class="home-section-title" style="margin-top: 20px;">
+                <span class="section-eyebrow">Discover Events</span>
+              </div>
+              <div class="home-list-container" id="events-list-container">
+                <!-- Injected via app.js -->
+              </div>
+            </div>
+
+            <!-- Full Event Detail View Overlay (Modal slide) -->
+            <div id="screen-detail" class="screen full-height" style="display: none; background: rgba(3, 6, 17, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 200;">
+              <div class="btn-back" id="detail-back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </div>
+
+              <div class="hero-section" id="detail-hero">
+                <div class="hero-chip-wrapper" id="detail-type-chip-container"></div>
+                <h1 class="hero-title" id="detail-title">Workshop Details</h1>
+                <div class="hero-meta-row" id="detail-meta-row"></div>
+              </div>
+
+              <div class="screen-content detail-content" style="padding-bottom: 120px;">
+                <div>
+                  <span class="section-eyebrow">About Event</span>
+                  <p class="body-desc" id="detail-description">Loading event description details...</p>
+                </div>
+
+                <!-- Live countdown timer -->
+                <div id="detail-countdown-container" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.08); font-size: 12.5px; margin: 15px 0;">
+                  ⏳ <span id="detail-countdown-timer">Ticking clock starting...</span>
+                </div>
+
+                <div class="detail-features-grid">
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-date">N/A</div>
+                    <div class="detail-feature-lbl">Date</div>
+                  </div>
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-time">N/A</div>
+                    <div class="detail-feature-lbl">Time</div>
+                  </div>
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-seats">N/A</div>
+                    <div class="detail-feature-lbl">Seats Left</div>
+                  </div>
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-price">N/A</div>
+                    <div class="detail-feature-lbl">Entry Fee</div>
+                  </div>
+                </div>
+
+                <!-- Host Profile Panel -->
+                <div>
+                  <span class="section-eyebrow">Speaker / Host Profile</span>
+                  <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                    <div>
+                      <p class="body-desc" id="detail-host" style="font-weight: 700; color: #8b6fd4; margin: 0 0 2px 0;">Speaker Name</p>
+                      <p id="detail-host-qual" style="font-size: 11px; color: rgba(255,255,255,0.6); margin: 0;">Bio details</p>
+                    </div>
+                    <a id="detail-host-linkedin" href="#" target="_blank" style="margin-left: auto; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #0077b5; color: white; text-decoration: none;">
+                      L
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Maps / Meeting Room Details -->
+                <div style="margin-top: 15px;">
+                  <span class="section-eyebrow">Venue / Digital Room</span>
+                  <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); margin-top: 8px;">
+                    <div style="font-size: 13px; font-weight: 700;" id="detail-location-text">Loading Location...</div>
+                    <a id="detail-location-map-link" href="#" target="_blank" style="font-size: 11px; color: #C8E84A; font-weight: 700; text-decoration: none; margin-top: 4px;">📍 View Google Maps Coordinates</a>
+                    <div id="detail-location-meeting" style="display: none; flex-direction: column; gap: 2px;">
+                      <span style="font-size: 10px; color: #4ae88a; font-weight: 700;">SECURE MEETING PORTAL:</span>
+                      <a id="detail-meeting-link" href="#" target="_blank" style="font-size: 12px; color: #00b4d8; text-decoration: underline;">Open Zoom / Google Meet Link</a>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Registration Checkout Form -->
+                <form id="registration-form" class="detail-reg-box" style="margin-top: 20px;">
+                  <span class="section-eyebrow">Attendee Checkout Registration</span>
+                  <div class="input-group">
+                    <label class="input-label">Student Full Name</label>
+                    <input type="text" id="detail-reg-name" class="input-field" disabled>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label">Register Number / KTU ID</label>
+                    <input type="text" id="detail-reg-ktuid" class="input-field" disabled>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label">Bank Account Owner's Full Name (As registered in UPI apps)</label>
+                    <input type="text" id="detail-reg-bank-name" class="input-field" placeholder="ACCOUNT HOLDER NAME" required>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label">WhatsApp Contact Number</label>
+                    <input type="tel" id="detail-reg-phone" class="input-field" placeholder="+91 98765 43210" required>
+                  </div>
+
+                  <!-- Team member input panel -->
+                  <div id="detail-team-section" style="display: none; flex-direction: column; gap: 8px; margin-top: 10px;">
+                    <span class="section-eyebrow">Add Team Member Names</span>
+                    <div id="detail-team-slots-container"></div>
+                    <button type="button" id="detail-btn-add-member" class="btn" style="border: 1px dashed #C8E84A; color: #C8E84A; background: transparent; font-size: 11px; padding: 8px;">+ Add Team Member</button>
+                  </div>
+                </form>
+
+                <!-- Dynamic Glassmorphic Payment Modal Drawer -->
+                <div id="detail-upi-checkout-container" style="display: none; flex-direction: column; gap: 15px; padding: 20px; border-radius: 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); margin-top: 20px; text-align: center;">
+                  <span class="section-eyebrow" style="color: #c8e84a;">Scan or Click QR to Pay</span>
+                  <p style="font-size: 11.5px; color: rgba(255,255,255,0.6); line-height: 1.4; margin: 0;">Scan using GPay, PhonePe, Paytm, or BHIM.</p>
+                  
+                  <!-- Clickable QR Deep-Link container -->
+                  <a id="detail-upi-qr-wrapper-link" href="#" style="display: inline-block; padding: 12px; background: white; border-radius: 12px; margin: 5px auto; box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
+                    <canvas id="detail-upi-qr-canvas" style="width: 140px; height: 140px; display: block;"></canvas>
+                  </a>
+                  
+                  <div style="font-size: 16px; font-weight: 800;">
+                    Amount Due: <span id="detail-upi-amount-label" style="color: #C8E84A;">₹0</span>
+                  </div>
+
+                  <a id="detail-upi-mobile-intent-link" href="#" class="btn" style="background: rgba(139, 111, 212, 0.12) !important; border: 1.5px solid #8b6fd4 !important; color: white !important; font-size: 11.5px; padding: 12px; border-radius: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; text-transform: uppercase;">
+                    ⚡ Pay via Any UPI App (GPay / PhonePe / Paytm)
+                  </a>
+
+                  <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 10px;">
+                    <button type="button" id="detail-upi-confirm-btn" class="btn" style="background: #4ae88a; color: #030611; font-weight: 800; border: none; padding: 12px; font-size: 12px;">I Have Paid / Confirm Enrollment</button>
+                    <button type="button" id="detail-upi-cancel-btn" class="btn" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); padding: 8px; font-size: 11px;">Cancel & Go Back</button>
+                  </div>
+                </div>
+
+                <!-- Confirmed Entry Ticket Block -->
+                <div id="ticket-container" style="display: none; flex-direction: column; align-items: center; gap: 15px; padding: 20px; border-radius: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); margin-top: 20px; text-align: center;">
+                  <span class="section-eyebrow" style="color: #4ae88a; font-weight: 700;">Enrollment Verified</span>
+                  <div style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+                    <canvas id="ticket-qr-canvas" style="display: block; width: 160px; height: 160px;"></canvas>
+                  </div>
+                  <p style="font-size: 11.5px; color: rgba(255,255,255,0.6); margin: 0;">Present this QR pass code at the gate entrance check-in.</p>
+                  <button type="button" onclick="switchTab('wallet')" class="btn" style="background: #8b6fd4; color: white; width: 100%; font-size: 12px; padding: 12px;">Open Digital Wallet Shelf</button>
+                </div>
+              </div>
+
+              <!-- Footer CTA -->
+              <div class="sticky-cta-container">
+                <button type="button" class="btn btn-primary sticky-cta-btn" id="detail-register-btn" style="width: 100%;">Register & Pay</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Wallet Shelf (Physical notched passes) -->
+          <div id="wallet-section" class="screen nav-section" style="display: none;">
+            <div class="screen-content" style="padding-bottom: 100px;">
+              <div class="dashboard-header">
+                <div>
+                  <h1 class="dashboard-greeting" id="wallet-greeting-name">Hey Student 👋</h1>
+                  <span class="dashboard-date dashboard-current-date">June 24, 2026</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-logout-action" onclick="handleSignOut()" style="width: auto; padding: 8px 12px; font-size: 11px;">Logout</button>
+              </div>
+
+              <div class="stats-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px;">
+                <div class="stat-card">
+                  <span class="stat-num" id="stat-attended">0</span>
+                  <span class="stat-lbl">Attended</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-num" id="stat-upcoming">0</span>
+                  <span class="stat-lbl">Active</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-num" id="stat-certs">0</span>
+                  <span class="stat-lbl">Certs</span>
+                </div>
+              </div>
+
+              <h2 style="font-family: var(--font-display); font-size: 15px; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; color: #8b6fd4;">My Tickets Shelf</h2>
+              <div class="dashboard-list" id="dashboard-list-container">
+                <!-- Injected via app.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Announcements Feed -->
+          <div id="news-section" class="screen nav-section" style="display: none;">
+            <div class="screen-content" style="padding-bottom: 100px;">
+              <div class="dashboard-header">
+                <div>
+                  <h1 class="dashboard-greeting">Announcements</h1>
+                  <span class="dashboard-date dashboard-current-date">June 24, 2026</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-logout-action" onclick="handleSignOut()" style="width: auto; padding: 8px 12px; font-size: 11px;">Logout</button>
+              </div>
+
+              <div class="dashboard-list" id="notifications-list-container" style="display: flex; flex-direction: column; gap: 15px;">
+                <!-- Injected via app.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Profile Settings Workspace -->
+          <div id="profile-section" class="screen nav-section" style="display: none;">
+            <div class="screen-content" style="padding-bottom: 100px;">
+              <div class="dashboard-header">
+                <div>
+                  <h1 class="dashboard-greeting" id="profile-greeting-name">Student Profile</h1>
+                  <span class="dashboard-date dashboard-current-date">June 24, 2026</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-logout-action" onclick="handleSignOut()" style="width: auto; padding: 8px 12px; font-size: 11px;">Logout</button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 20px;">
+                <div class="avatar-wrapper" style="width: 72px; height: 72px; border-color: var(--neon-yellow);">
+                  <img class="avatar-img" id="db-profile-avatar" src="" alt="Avatar">
+                </div>
+                <h2 class="h3-title" id="db-profile-name" style="margin: 0; font-size: 18px;">Student</h2>
+                <span class="chip" style="background: rgba(200,232,74,0.1); border-color: var(--neon-yellow); color: var(--neon-yellow);">Student Account</span>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="detail-feature-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 700;">KTU ID / Reg No</span>
+                  <span id="db-profile-id" style="font-weight: 700; color: #fff;">N/A</span>
+                </div>
+                <div class="detail-feature-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 700;">Email Address</span>
+                  <span id="db-profile-email" style="font-weight: 700; color: #fff;">N/A</span>
+                </div>
+                <div class="detail-feature-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 700;">Department</span>
+                  <span id="db-profile-dept" style="font-weight: 700; color: #fff;">N/A</span>
+                </div>
+                <div class="detail-feature-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 700;">Academic Year</span>
+                  <span id="db-profile-year" style="font-weight: 700; color: #fff;">N/A</span>
+                </div>
+                <div class="detail-feature-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 700;">Phone Number</span>
+                  <span id="db-profile-phone" style="font-weight: 700; color: #fff;">N/A</span>
+                </div>
+                <div class="detail-feature-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 700;">College</span>
+                  <span id="db-profile-college" style="font-weight: 700; color: #fff;">N/A</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Screen: Ticket Full Cover Pass (Floating page) -->
+          <div id="screen-ticket" class="screen full-height" style="display: none; background: rgba(3, 6, 17, 0.99); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); z-index: 200;">
+            <div class="btn-back" id="ticket-back-btn" onclick="navigateTo('wallet')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </div>
+            <div class="screen-content" style="padding: 24px 16px 100px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; height: 100%;">
+              <div class="bookmyshow-ticket" style="margin-top: 10px; width: 100%; max-width: 320px;">
+                <!-- Card Header Poster -->
+                <div class="ticket-poster-container" id="ticket-poster-img" style="height: 150px; background-size: cover; background-position: center; position: relative;">
+                  <div style="position: absolute; top: 12px; right: 12px;">
+                    <span id="ticket-type-tag" class="chip">WORKSHOP</span>
+                  </div>
+                  <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 30px; background: linear-gradient(to bottom, transparent, rgba(3, 6, 17, 0.95));"></div>
+                </div>
+
+                <div class="ticket-perforation-line"></div>
+
+                <!-- Ticket Details -->
+                <div class="ticket-details-container">
+                  <h3 id="ticket-event-name" style="font-family: var(--font-display); font-size: 20px; font-weight: 900; line-height: 1.2; color: white; margin: 0;">Event Title</h3>
+                  
+                  <div style="display: flex; gap: 10px; font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 4px;">
+                    <span id="ticket-date">June 24, 2026</span>
+                  </div>
+
+                  <div class="ticket-frosted-pass" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; margin-top: 10px;">
+                    <div style="background: white; padding: 6px; border-radius: 8px; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <canvas id="qr-canvas" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span style="font-size: 9px; font-weight: 800; color: #8b6fd4; text-transform: uppercase;">Verified Ticket Pass</span>
+                      <span id="ticket-attendee" style="font-size: 13px; font-weight: 800; color: white; text-transform: uppercase;">Student Name</span>
+                      <span id="ticket-student-id" style="font-family: monospace; font-size: 10px; color: rgba(255,255,255,0.6);">ID: RIT22CS089</span>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); margin-top: 10px; font-size: 11px; text-align: left; color: rgba(255,255,255,0.6);">
+                    <div>Location: <strong style="color: white;" id="ticket-loc">RIT Campus</strong></div>
+                    <div id="ticket-id-text" style="font-family: monospace;">TICKET ID: reg-123456</div>
+                  </div>
+
+                  <a id="ticket-whatsapp-btn" href="#" target="_blank" class="btn" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #25D366 !important; color: white !important; font-size: 11px; padding: 10px; border-radius: 8px; font-weight: 800; text-decoration: none; width: 100%; margin-top: 8px; box-shadow: 0 0 10px rgba(37,211,102,0.3); border: none; text-transform: uppercase;">
+                    💬 Join Official WhatsApp Group
+                  </a>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 20px; width: 100%; max-width: 320px;">
+                <button type="button" class="btn btn-secondary" id="btn-ticket-download" style="flex: 1; font-size: 11px; padding: 12px;">Download PDF</button>
+                <button type="button" class="btn btn-ghost" id="btn-ticket-share" style="flex: 1; font-size: 11px; padding: 12px; border: 1px solid rgba(255,255,255,0.1); color: white;">Share Pass</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Sticky Navigation Bar -->
+          <nav class="bottom-nav">
+            <div class="nav-item bottom-nav-btn active-neon" id="nav-home" data-tab="home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+            <div class="nav-item bottom-nav-btn" id="nav-wallet" data-tab="wallet">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+            <div class="nav-item bottom-nav-btn" id="nav-news" data-tab="news">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
+                <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+            <div class="nav-item bottom-nav-btn" id="nav-profile" data-tab="profile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+          </nav>
+
+          <canvas id="confetti-canvas"></canvas>
+
+          <div id="app-toast" class="toast">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
+            </svg>
+            <span id="toast-text">Success!</span>
+          </div>
+
+        </div> <!-- Closing main-app-layout -->
+      </div>
+    </div>
+  </div>
+
+  <div id="custom-alert-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(3, 6, 17, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; align-items: center; justify-content: center; animation: fadeInOverlay 0.25s ease;">
+    <div style="background: rgba(255, 255, 255, 0.02); border: 1.5px solid rgba(255, 255, 255, 0.08); padding: 24px; border-radius: 20px; width: 90%; max-width: 360px; text-align: center; box-shadow: 0 20px 45px rgba(0,0,0,0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);">
+      <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(232, 74, 74, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 20px; font-weight: bold;">⚠️</div>
+      <h3 style="font-size: 16.5px; font-weight: 800; color: white; margin-bottom: 8px;" id="custom-alert-title">Conflict</h3>
+      <p style="font-size: 12.5px; color: rgba(255,255,255,0.6); line-height: 1.5; margin-bottom: 20px;" id="custom-alert-message">You are already registered for this event!</p>
+      <button type="button" onclick="closeCustomAlert()" class="btn" style="background: #ff4d4d; color: white; width: 100%; border: none; font-weight: 800; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 11.5px; text-transform: uppercase;">Dismiss</button>
+    </div>
+  </div>
+
+  <div id="waiting-verification-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(3, 6, 17, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999; align-items: center; justify-content: center; animation: fadeInOverlay 0.25s ease;">
+    <div style="background: rgba(255, 255, 255, 0.02); border: 1.5px solid rgba(255, 255, 255, 0.08); padding: 24px; border-radius: 20px; width: 90%; max-width: 365px; text-align: center; box-shadow: 0 20px 45px rgba(0,0,0,0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); display: flex; flex-direction: column; align-items: center; gap: 12px;">
+      <div style="width: 44px; height: 44px; border: 3px solid rgba(200, 232, 74, 0.1); border-top: 3px solid #C8E84A; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <h3 style="font-size: 15px; font-weight: 800; color: white; margin: 4px 0 0 0; line-height: 1.3;">Waiting for payment verification...</h3>
+      <div id="waiting-amount-label" style="font-size: 14px; font-weight: 700; color: #C8E84A;">Amount Due: ₹0</div>
+      <p style="font-size: 11px; color: rgba(255,255,255,0.6); line-height: 1.5; margin: 0; max-width: 290px;">
+        Scan this QR code or launch your UPI payment app below. Once payment is verified, your entry pass will unlock.
+      </p>
+
+      <a id="waiting-upi-qr-link" href="#" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.06); padding: 14px; border-radius: 16px; margin: 5px 0; width: 160px;">
+        <div style="background: white; padding: 6px; border-radius: 8px; display: inline-block; margin-bottom: 6px;">
+          <canvas id="waiting-upi-qr-canvas" style="display: block; width: 110px; height: 110px;"></canvas>
+        </div>
+        <span style="font-size: 9.5px; color: #C8E84A; font-weight: 800; text-transform: uppercase;">Scan QR Code</span>
+      </a>
+
+      <a id="waiting-upi-mobile-link" href="#" class="btn" style="text-decoration: none; background: transparent !important; border: 1.5px solid #8b6fd4 !important; color: white !important; font-size: 11px; padding: 12px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; text-transform: uppercase; box-shadow: 0 0 10px rgba(139,111,212,0.25);">
+        ⚡ Pay via Any UPI App (GPay / PhonePe / Paytm)
+      </a>
+
+      <button type="button" onclick="closeWaitingOverlayAndGoToWallet()" class="btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; font-weight: 700; padding: 10px; border-radius: 8px; font-size: 11px; margin-top: 4px;">
+        ← Back to Dashboard / View Wallet
+      </button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    // Initial Ad Overlay Popup controller
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(showAdOverlay, 1500);
+    });
+
+    function showAdOverlay() {
+      const ad = document.getElementById("ad-overlay");
+      if (ad) ad.classList.add("show");
+    }
+
+    function closeAdOverlay() {
+      const ad = document.getElementById("ad-overlay");
+      if (ad) ad.classList.remove("show");
+    }
+
+    function closeWaitingOverlayAndGoToWallet() {
+      const waitOverlay = document.getElementById("waiting-verification-overlay");
+      if (waitOverlay) waitOverlay.style.display = "none";
+      if (typeof switchTab === "function") {
+        switchTab("wallet");
+      }
+    }
+  </script>
+</body>
+</html>

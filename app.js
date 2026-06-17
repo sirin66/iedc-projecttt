@@ -1,7 +1,34 @@
 // ==========================================
-// 01 — APPLICATION STATE & CONFIGURATION
+// 01 — Firebase Init & Shared Configurations
 // ==========================================
 
+const firebaseConfig = {
+  apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+  authDomain: "iedc-ux.firebaseapp.com",
+  projectId: "iedc-ux",
+  storageBucket: "iedc-ux.firebasestorage.app",
+  messagingSenderId: "362260352304",
+  appId: "1:362260352304:web:27374dbb9b51182807ccf5",
+  measurementId: "G-2KH08MNGSX"
+};
+
+let useRealFirebase = false;
+try {
+  if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    useRealFirebase = true;
+    console.log("Firebase compatibility layer initialized successfully.");
+  }
+} catch (e) {
+  console.error("Firebase init failed, running in simulator mode:", e);
+}
+
+const db = useRealFirebase ? firebase.firestore() : null;
+const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
+
+// Shared App State
 let EVENTS_DATA = [];
 let USER_REGISTRATIONS = [];
 let USER_PROFILE = {
@@ -10,7 +37,10 @@ let USER_PROFILE = {
   id: "",
   collegeName: "",
   avatar: "",
-  phone: ""
+  phone: "",
+  department: "",
+  yearOfStudy: "",
+  approved: false
 };
 
 let selectedEvent = null;
@@ -19,12 +49,11 @@ let searchQuery = "";
 let countdownInterval = null;
 let detailCountdownInterval = null;
 let teamMemberCount = 0;
-let pendingRegistration = null;
 let currentVerificationUnsubscribe = null;
 let simulatorPollingInterval = null;
-let pendingRegistrationId = null;
 let isUserLoggedIn = false;
 
+// Input Sanitization (XSS Defense)
 function sanitizeInput(str) {
   if (!str) return "";
   return String(str)
@@ -41,655 +70,738 @@ function sanitizeInput(str) {
     .trim();
 }
 
-const PHONEPE_CONFIG = {
-  MERCHANT_ID: "M222YFJEV26ZI_2606161742",
-  SALT_KEY: "YTFkMDU1NzktMjBlNC00YzFmLTkxMTQtNWFlODY1Yjc3Mzlk",
-  SALT_INDEX: "1",
-  API_URL: "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay"
+// Global Toast Module
+function showToast(message, borderColor = "#8b6fd4") {
+  const toast = document.getElementById("app-toast");
+  if (!toast) return;
+  const textSpan = document.getElementById("toast-text");
+  if (textSpan) textSpan.textContent = message;
+  toast.style.borderColor = borderColor;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2500);
+}
+
+// Global Alert overlays
+function showCustomAlert(title, message) {
+  const overlay = document.getElementById("custom-alert-overlay");
+  if (!overlay) return;
+  document.getElementById("custom-alert-title").textContent = title;
+  document.getElementById("custom-alert-message").textContent = message;
+  overlay.style.display = "flex";
+}
+window.closeCustomAlert = function() {
+  const overlay = document.getElementById("custom-alert-overlay");
+  if (overlay) overlay.style.display = "none";
 };
 
-// Firebase initialization configuration block
-const firebaseConfig = {
-  apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
-  authDomain: "iedc-ux.firebaseapp.com",
-  projectId: "iedc-ux",
-  storageBucket: "iedc-ux.firebasestorage.app",
-  messagingSenderId: "362260352304",
-  appId: "1:362260352304:web:27374dbb9b51182807ccf5",
-  measurementId: "G-2KH08MNGSX"
-};
+// ==========================================
+// 02 — Router & Page Mode Initializations
+// ==========================================
 
-let useRealFirebase = false;
-if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
-  try {
-    firebase.initializeApp(firebaseConfig);
-    useRealFirebase = true;
-    console.log("Firebase initialized successfully inside client engine.");
-  } catch (error) {
-    console.error("Firebase initialization fallback error:", error);
+document.addEventListener("DOMContentLoaded", async () => {
+  const pathname = window.location.pathname;
+  
+  if (pathname.includes("admin.html")) {
+    await initAdminMode();
+  } else if (pathname.includes("dashboard.html")) {
+    await initDashboardMode();
+  } else {
+    initLoginGatewayMode();
+  }
+});
+
+// ==========================================
+// 03 — Login & Registration Gateway Mode
+// ==========================================
+
+function initLoginGatewayMode() {
+  console.log("Login Gateway Mode Activated.");
+  isUserLoggedIn = false;
+  sessionStorage.removeItem("loggedInUserUid");
+  
+  // Auth state change detector
+  if (useRealFirebase) {
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        sessionStorage.setItem("loggedInUserUid", user.uid);
+        window.location.href = "dashboard.html";
+      }
+    });
   }
 }
-sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
-// ==========================================
-// 02 — DOM ELEMENTS REGISTRY
-// ==========================================
-
-const screens = {
-  auth: document.getElementById("screen-auth"),
-  pending: document.getElementById("screen-pending"),
-  home: document.getElementById("home-section"),
-  detail: document.getElementById("screen-detail"),
-  ticket: document.getElementById("screen-ticket"),
-  profile: document.getElementById("profile-section"),
-  wallet: document.getElementById("wallet-section"),
-  news: document.getElementById("news-section")
+// Login Submit Form Handler
+window.handleLoginSubmit = async function(event) {
+  event.preventDefault();
+  const emailInput = document.getElementById("student-email");
+  const passwordInput = document.getElementById("student-password");
+  const submitBtn = document.getElementById("login-btn");
+  
+  const email = emailInput.value.trim().toLowerCase();
+  const password = passwordInput.value;
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = "VERIFYING...";
+  
+  try {
+    let uid = "";
+    if (useRealFirebase) {
+      const credentials = await firebase.auth().signInWithEmailAndPassword(email, password);
+      uid = credentials.user.uid;
+    } else {
+      // Mock Login checks
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+      const user = mockUsers[email];
+      if (!user || user.password !== password) {
+        throw { code: "auth/invalid-credential" };
+      }
+      uid = user.uid;
+    }
+    
+    sessionStorage.setItem("loggedInUserUid", uid);
+    window.location.href = "dashboard.html";
+  } catch (err) {
+    console.error("Auth rejection:", err);
+    let friendlyMsg = "Authentication failed. Please check your credentials.";
+    if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+      friendlyMsg = "Account not found or invalid password combination.";
+    } else if (err.code === "auth/wrong-password") {
+      friendlyMsg = "Incorrect password. Please try again.";
+    } else if (err.code === "auth/invalid-email") {
+      friendlyMsg = "Please enter a valid academic email address.";
+    }
+    alert("Login Error: " + friendlyMsg);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "LOGIN & ENTER";
+  }
 };
 
-const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
-
-// ==========================================
-// 03 — ROUTING & SCREEN TRANSITIONS
-// ==========================================
-
-async function switchTab(tabName) {
-  if (!isUserLoggedIn) {
-    console.warn("Auth Guard: Blocked transition to tab", tabName);
+// Registration Form Handler
+window.handleRegisterSubmit = async function(event) {
+  event.preventDefault();
+  const name = document.getElementById("setup-name").value.trim();
+  const email = document.getElementById("setup-email").value.trim().toLowerCase();
+  const password = document.getElementById("setup-password").value;
+  const confirmPassword = document.getElementById("setup-confirm-password").value;
+  const id = document.getElementById("setup-id").value.trim();
+  const department = document.getElementById("setup-department").value.trim();
+  const yearOfStudy = document.getElementById("setup-year").value;
+  const phone = document.getElementById("setup-phone").value.trim();
+  const college = document.getElementById("setup-college").value.trim();
+  
+  if (password !== confirmPassword) {
+    alert("Validation Error: Passwords do not match.");
     return;
   }
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-
-  // 1. Hide all navigation sections completely
-  document.querySelectorAll('.nav-section').forEach(section => {
-      section.style.display = 'none';
-      section.classList.remove('active');
-  });
   
-  // 2. Unhide the targeted section smoothly
-  const activeSection = document.getElementById(`${tabName}-section`);
-  if (activeSection) {
-      activeSection.style.display = 'block';
-      activeSection.classList.add('active');
-  }
+  let avatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
+  const avatarOptions = document.getElementsByName("setup-avatar");
+  avatarOptions.forEach(opt => {
+    if (opt.checked) avatar = opt.value;
+  });
 
-  // Hide any overlay screens if open (e.g. auth, pending, detail, ticket)
-  const overlayIds = ["auth", "pending", "detail", "ticket"];
-  overlayIds.forEach(id => {
-    if (screens[id]) {
-      screens[id].style.display = "none";
-      screens[id].classList.remove("active");
+  const profileData = {
+    name,
+    email,
+    registerNo: id,
+    id,
+    department,
+    year: yearOfStudy,
+    yearOfStudy,
+    phone,
+    collegeName: college,
+    avatar,
+    approved: false,
+    role: "student",
+    createdAt: new Date().toISOString()
+  };
+
+  const registerBtn = document.getElementById("btn-setup-submit");
+  registerBtn.disabled = true;
+  registerBtn.textContent = "REGISTERING...";
+
+  try {
+    let uid = "";
+    if (useRealFirebase) {
+      const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+      uid = userCredential.user.uid;
+      await db.collection("students").doc(uid).set({ uid, ...profileData });
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+      if (users[email]) throw { code: "auth/email-already-in-use" };
+      uid = "uid_" + Math.random().toString(36).substr(2, 9);
+      users[email] = { uid, email, password, profileData: { uid, ...profileData } };
+      localStorage.setItem("firebase_mock_users", JSON.stringify(users));
     }
-  });
-
-  // Ensure bottom navigation bar is visible when tab sections are active
-  const bottomNav = document.querySelector(".bottom-nav");
-  if (bottomNav) bottomNav.style.display = "flex";
-
-  // Ensure global news ticker is visible when tab sections are active
-  const globalTicker = document.getElementById("global-ticker-wrap");
-  if (globalTicker) globalTicker.style.display = "block";
-
-  // 3. Update active neon state on bottom icons
-  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
-      btn.classList.remove('active-neon');
-  });
-  const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
-  if (activeBtn) {
-      activeBtn.classList.add('active-neon');
+    
+    sessionStorage.setItem("loggedInUserUid", uid);
+    alert("Registration Successful! Your profile is pending administrator approval.");
+    window.location.href = "dashboard.html";
+  } catch (err) {
+    console.error("Register failed:", err);
+    let msg = "Could not complete registration.";
+    if (err.code === "auth/email-already-in-use") {
+      msg = "This email is already linked to another student account.";
+    }
+    alert("Registration Error: " + msg);
+  } finally {
+    registerBtn.disabled = false;
+    registerBtn.textContent = "Register & Enter";
   }
+};
 
-  // 4. Trigger data syncing and layout rendering
-  if (tabName === "home") {
-    await syncEvents();
+// Forgot Password Handler
+window.handleForgotPasswordSubmit = async function(event) {
+  event.preventDefault();
+  const email = document.getElementById("forgot-email").value.trim().toLowerCase();
+  try {
+    if (useRealFirebase) {
+      await firebase.auth().sendPasswordResetEmail(email);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+      if (!mockUsers[email]) throw { code: "auth/user-not-found" };
+    }
+    alert("A password reset email has been sent. Please check your inbox!");
+    hideForgotPasswordForm();
+  } catch (e) {
+    alert("Error: Student record matching email address not found.");
+  }
+};
+
+// Google Auth Sign-in
+window.handleGoogleSignIn = async function() {
+  try {
+    let uid = "";
+    let email = "";
+    let name = "";
+    if (useRealFirebase) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const res = await firebase.auth().signInWithPopup(provider);
+      uid = res.user.uid;
+      email = res.user.email;
+      name = res.user.displayName;
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      uid = "uid_google123";
+      email = "google.student@rit.ac.in";
+      name = "GOOGLE TEST USER";
+    }
+
+    // Check if doc exists
+    let exists = false;
+    let data = {};
+    if (useRealFirebase) {
+      const doc = await db.collection("students").doc(uid).get();
+      exists = doc.exists;
+      if (exists) data = doc.data();
+    } else {
+      const users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+      if (users[email]) {
+        exists = true;
+        data = users[email].profileData;
+      }
+    }
+
+    sessionStorage.setItem("loggedInUserUid", uid);
+
+    if (exists) {
+      window.location.href = "dashboard.html";
+    } else {
+      // Direct them to setup profile
+      document.getElementById("auth-tabs-container").style.display = "none";
+      document.getElementById("auth-login-form").style.display = "none";
+      document.getElementById("profile-setup-form").style.display = "block";
+      document.getElementById("setup-name").value = name.toUpperCase();
+      document.getElementById("setup-email").value = email.toLowerCase();
+      document.getElementById("setup-password").value = "GOOGLE_AUTH_LOGIN";
+      document.getElementById("setup-confirm-password").value = "GOOGLE_AUTH_LOGIN";
+      document.getElementById("setup-title").textContent = "Google Profile Setup";
+      alert("Please fill in the remaining details to complete registration.");
+    }
+  } catch (e) {
+    console.error("Google Auth failed:", e);
+    alert("Google Sign in failed.");
+  }
+};
+
+// ==========================================
+// 04 — Student Portal Dashboard Mode
+// ==========================================
+
+async function initDashboardMode() {
+  console.log("Student Dashboard Activated.");
+  isUserLoggedIn = true;
+  const uid = sessionStorage.getItem("loggedInUserUid");
+  
+  // Bind category chips click handlers
+  document.querySelectorAll(".chip-category").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".chip-category").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      currentFilter = pill.getAttribute("data-category");
+      renderHomeEvents();
+    });
+  });
+
+  // Search filter
+  document.getElementById("search-input").addEventListener("input", (e) => {
+    searchQuery = e.target.value;
     renderHomeEvents();
-  } else {
+  });
+
+  // Load and sync dashboard records
+  try {
+    await fetchProfile(uid);
+    
+    if (USER_PROFILE.approved !== true) {
+      document.getElementById("pending-student-name").textContent = USER_PROFILE.name;
+      document.getElementById("screen-pending").style.display = "flex";
+      document.getElementById("main-app-layout").style.display = "none";
+      return;
+    }
+
+    // Set greeting details
+    document.querySelectorAll(".dashboard-greeting").forEach(greet => {
+      greet.textContent = `Hey ${USER_PROFILE.name.split(" ")[0]} 👋`;
+    });
+    
+    // Draw current date
+    const opt = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+    document.querySelectorAll(".dashboard-current-date").forEach(el => {
+      el.textContent = new Date().toLocaleDateString('en-US', opt);
+    });
+
+    // Sync collections
     await syncEvents();
     await syncRegistrations();
+    
+    // Initial Render
+    renderHomeEvents();
     renderDashboard();
+    
+    // Start active announcements ticker sync
+    syncAnnouncements();
+    syncTicker();
+    
+  } catch (e) {
+    console.error("Dashboard init error:", e);
   }
 }
-window.switchTab = switchTab;
 
-async function navigateTo(screenId) {
-  if (!isUserLoggedIn && screenId !== "auth") {
-    console.warn("Auth Guard: Blocked transition to screen", screenId);
-    return;
-  }
-  // If the target is one of the bottom tab pages, run switchTab instead
-  if (["home", "wallet", "news", "profile"].includes(screenId)) {
-    await switchTab(screenId);
-    return;
-  }
-
-  // Hide all screens (both overlay screens and nav-sections)
-  Object.entries(screens).forEach(([id, screen]) => {
-    if (screen) {
-      // Keep home section visible if details overlay (detail) is nested inside it
-      if (screenId === "detail" && id === "home") {
-        screen.style.display = "block";
-        screen.classList.add("active");
-        return;
-      }
-      screen.style.display = "none";
-      screen.classList.remove("active");
+// Fetch Student Profile Document
+async function fetchProfile(uid) {
+  if (useRealFirebase) {
+    const doc = await db.collection("students").doc(uid).get();
+    if (doc.exists) {
+      USER_PROFILE = { uid, ...doc.data() };
     }
-  });
-
-  // Show targeted overlay screen
-  const targetScreen = screens[screenId];
-  if (targetScreen) {
-    targetScreen.style.display = "block";
-    targetScreen.classList.add("active");
-  }
-
-  // Handle ticker visibility based on screen navigation
-  const globalTicker = document.getElementById("global-ticker-wrap");
-  if (globalTicker) {
-    if (screenId === "auth" || screenId === "pending") {
-      globalTicker.style.display = "none";
-    } else {
-      globalTicker.style.display = "block";
-    }
-  }
-
-  const presentationContainer = document.querySelector(".presentation-container");
-  if (presentationContainer) presentationContainer.style.display = "flex";
-
-  const bottomNav = document.querySelector(".bottom-nav");
-  if (screenId === "auth" || screenId === "pending") {
-    if (bottomNav) bottomNav.style.display = "none";
   } else {
-    if (bottomNav) bottomNav.style.display = "flex";
+    // Simulator Mode Profile fetch
+    const mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+    for (const email in mockUsers) {
+      if (mockUsers[email].uid === uid) {
+        USER_PROFILE = mockUsers[email].profileData;
+        break;
+      }
+    }
   }
 }
 
-// Bind click event listeners dynamically to all bottom nav buttons
-document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    if (!isUserLoggedIn) return;
-    const tabName = btn.getAttribute("data-tab");
-    if (tabName) {
-      switchTab(tabName);
-    }
-  });
-});
+// Sign-out
+window.handleSignOut = function() {
+  sessionStorage.removeItem("loggedInUserUid");
+  if (useRealFirebase) {
+    firebase.auth().signOut().then(() => {
+      window.location.href = "index.html";
+    }).catch(() => {
+      window.location.href = "index.html";
+    });
+  } else {
+    window.location.href = "index.html";
+  }
+};
 
-document.getElementById("detail-back-btn").addEventListener("click", () => {
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  switchTab("home");
-});
-document.getElementById("ticket-back-btn").addEventListener("click", () => switchTab("wallet"));
-document.getElementById("setup-back-btn").addEventListener("click", () => switchTab("home"));
-
-// ==========================================
-// 04 — DATABASE SYNCHRONIZATION (Firestore / Simulator)
-// ==========================================
-
+// Database Event Synchronizer
 async function syncEvents() {
-  let mergedEvents = [];
-
+  let merged = [];
   if (useRealFirebase) {
     try {
-      const db = firebase.firestore();
-      
-      const eventsSnap = await db.collection("events").get();
-      eventsSnap.forEach(doc => {
-        const evt = doc.data();
-        mergedEvents.push(evt);
-      });
-
-      const tournamentsSnap = await db.collection("tournaments").get();
-      tournamentsSnap.forEach(doc => {
-        const tour = doc.data();
-        mergedEvents.push(tour);
-      });
-    } catch (err) {
-      console.error("Firestore events fetch error:", err);
+      const evSnap = await db.collection("events").get();
+      evSnap.forEach(d => merged.push({ id: d.id, ...d.data() }));
+      const tourSnap = await db.collection("tournaments").get();
+      tourSnap.forEach(d => merged.push({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.error(e);
     }
   } else {
-    // Simulator Mode fallback
-    try {
-      const mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-      const mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-
-      mockEvents.forEach(evt => mergedEvents.push(evt));
-      mockTournaments.forEach(tour => mergedEvents.push(tour));
-    } catch (err) {
-      console.error("Local mock storage load failed:", err);
-    }
+    // Simulator mock data load
+    merged = [
+      ...JSON.parse(localStorage.getItem("firebase_mock_events") || "[]"),
+      ...JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]")
+    ];
   }
-
-  EVENTS_DATA = mergedEvents;
+  EVENTS_DATA = merged;
 }
 
-let registrationsUnsubscribe = null;
-
+// Database Registrations Synchronizer
 async function syncRegistrations() {
-  const cachedUid = sessionStorage.getItem("loggedInUserUid");
-  if (!cachedUid) return;
-
+  const uid = sessionStorage.getItem("loggedInUserUid");
   if (useRealFirebase) {
     return new Promise((resolve) => {
-      if (registrationsUnsubscribe) {
-        registrationsUnsubscribe();
-      }
-      
-      const db = firebase.firestore();
-      registrationsUnsubscribe = db.collection("registrations")
-        .where("studentUid", "==", cachedUid)
+      db.collection("registrations")
+        .where("studentUid", "==", uid)
         .onSnapshot((snap) => {
-          let firebaseRegs = [];
+          let list = [];
           snap.forEach(doc => {
-            const reg = doc.data();
-            const match = EVENTS_DATA.find(e => e.id === reg.eventId);
-            firebaseRegs.push({
-              id: reg.eventId,
-              registrationId: reg.registrationId,
-              ticketId: reg.registrationId,
-              title: reg.eventTitle || (match ? match.title : "Event"),
-              type: match ? match.type : "talk",
-              typeLabel: match ? match.typeLabel : "Talk",
+            const data = doc.data();
+            const match = EVENTS_DATA.find(e => e.id === data.eventId);
+            list.push({
+              id: data.eventId,
+              registrationId: doc.id,
+              ticketId: doc.id,
+              title: data.eventTitle || (match ? match.title : "Event"),
+              type: match ? match.type : "workshop",
+              typeLabel: match ? match.typeLabel : "Workshop",
               date: match ? match.date : "TBD",
-              isoDate: match ? match.isoDate : new Date().toISOString(),
               time: match ? match.time : "TBD",
               location: match ? match.location : "TBD",
               host: match ? match.host : "IEDC RIT",
-              color: match ? match.color : "#C8E84A",
-              status: reg.status || "Confirmed",
-              checkedIn: reg.checkedIn === true,
-              razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-              phone: reg.phone || "",
-              bankAccountName: reg.bankAccountName || "",
-              duration: match ? (match.duration || "") : "",
-              whatsappLink: match ? (match.whatsappLink || "") : "",
-              instructions: match ? (match.instructions || "") : "",
-              poster: match ? (match.poster || match.poster_url || "") : ""
+              color: match ? match.color : "#8b6fd4",
+              status: data.status || "Pending",
+              checkedIn: data.checkedIn === true,
+              studentName: data.studentName,
+              registerNo: data.registerNo,
+              phone: data.phone,
+              bankAccountName: data.bankAccountName,
+              whatsappLink: match ? match.whatsappLink : "",
+              duration: match ? match.duration : "",
+              instructions: match ? match.instructions : "",
+              poster: match ? match.poster : ""
             });
           });
-
-          USER_REGISTRATIONS = [...firebaseRegs];
-
-          // Re-render dashboard in real-time
-          const activeScreen = document.querySelector(".screen.active");
-          if (activeScreen && ["profile-section", "wallet-section", "news-section"].includes(activeScreen.id)) {
-            renderDashboard();
-          }
-          
+          USER_REGISTRATIONS = list;
+          renderDashboard();
           resolve();
-        }, (err) => {
-          console.error("Registrations snapshot stream error:", err);
-          resolve();
-        });
+        }, () => resolve());
     });
   } else {
-    // Simulator Mode fallback
-    let mergedRegs = [];
-    try {
-      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-      mockRegs.forEach(reg => {
-        if (reg.studentUid === cachedUid) {
-          const match = EVENTS_DATA.find(e => e.id === reg.eventId);
-          mergedRegs.push({
-            id: reg.eventId,
-            registrationId: reg.registrationId,
-            ticketId: reg.registrationId,
-            title: reg.eventTitle || (match ? match.title : "Event"),
-            type: match ? match.type : "talk",
-            typeLabel: match ? match.typeLabel : "Talk",
-            date: match ? match.date : "TBD",
-            isoDate: match ? match.isoDate : new Date().toISOString(),
-            time: match ? match.time : "TBD",
-            location: match ? match.location : "TBD",
-            host: match ? match.host : "IEDC RIT",
-            color: match ? match.color : "#C8E84A",
-            status: reg.status || "Confirmed",
-            checkedIn: reg.checkedIn === true,
-            razorpayPaymentId: reg.razorpayPaymentId || reg.utrNumber || "FREE",
-            phone: reg.phone || "",
-            bankAccountName: reg.bankAccountName || "",
-            duration: match ? (match.duration || "") : "",
-            whatsappLink: match ? (match.whatsappLink || "") : "",
-            instructions: match ? (match.instructions || "") : "",
-            poster: match ? (match.poster || match.poster_url || "") : ""
-          });
-        }
-      });
-    } catch (err) {
-      console.error("Mock registrations sync error:", err);
-    }
-    USER_REGISTRATIONS = mergedRegs;
+    // Local storage mock registry
+    let list = [];
+    const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    mockRegs.forEach(reg => {
+      if (reg.studentUid === uid) {
+        const match = EVENTS_DATA.find(e => e.id === reg.eventId);
+        list.push({
+          id: reg.eventId,
+          registrationId: reg.registrationId,
+          ticketId: reg.registrationId,
+          title: reg.eventTitle || (match ? match.title : "Event"),
+          type: match ? match.type : "workshop",
+          typeLabel: match ? match.typeLabel : "Workshop",
+          date: match ? match.date : "TBD",
+          time: match ? match.time : "TBD",
+          location: match ? match.location : "TBD",
+          host: match ? match.host : "IEDC RIT",
+          color: match ? match.color : "#8b6fd4",
+          status: reg.status || "Pending",
+          checkedIn: reg.checkedIn === true,
+          studentName: reg.studentName,
+          registerNo: reg.registerNo,
+          phone: reg.phone,
+          bankAccountName: reg.bankAccountName,
+          whatsappLink: match ? match.whatsappLink : "",
+          duration: match ? match.duration : "",
+          instructions: match ? match.instructions : "",
+          poster: match ? match.poster : ""
+        });
+      }
+    });
+    USER_REGISTRATIONS = list;
     return Promise.resolve();
   }
 }
 
-// ==========================================
-// 05 — HOME SCREEN RENDERING & FILTERING
-// ==========================================
-
-function renderHomeEvents() {
-  const listContainer = document.getElementById("events-list-container");
-  const featuredContainer = document.getElementById("featured-card-container");
+// Announcements synchronization
+function syncAnnouncements() {
+  const container = document.getElementById("notifications-list-container");
+  if (!container) return;
   
-  listContainer.innerHTML = "";
-  featuredContainer.innerHTML = "";
+  if (useRealFirebase) {
+    db.collection("announcements").onSnapshot(snap => {
+      let list = [];
+      snap.forEach(d => list.push(d.data()));
+      list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      renderAnnouncementsList(list, container);
+    });
+  } else {
+    const list = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
+    list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    renderAnnouncementsList(list, container);
+  }
+}
 
-  // Filter query logic
-  let filtered = EVENTS_DATA.filter(evt => {
-    const matchesCategory = currentFilter === "all" || evt.type === currentFilter;
-    const matchesSearch = evt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          evt.host.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          evt.typeLabel.toLowerCase().includes(searchQuery.toLowerCase());
+function renderAnnouncementsList(list, container) {
+  container.innerHTML = "";
+  if (list.length === 0) {
+    container.innerHTML = `<p style="color: rgba(255,255,255,0.6); font-size:12px;">No active announcements at the moment.</p>`;
+    return;
+  }
+  list.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "notification-card";
+    card.style.background = "rgba(255,255,255,0.02)";
+    card.style.border = "1px solid rgba(255,255,255,0.06)";
+    card.style.padding = "16px";
+    card.style.borderRadius = "12px";
+    card.innerHTML = `
+      <div style="font-weight: 800; font-size:14px; margin-bottom: 4px; color:#ffffff;">${item.title}</div>
+      <p style="font-size: 12px; color:rgba(255,255,255,0.6); margin: 0; line-height: 1.4;">${item.message || item.body}</p>
+      <div style="font-size: 10px; color: rgba(255,255,255,0.4); margin-top:8px;">${new Date(item.createdAt).toLocaleString()}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// Global Ticker Sync
+function syncTicker() {
+  const tickerContainer = document.getElementById("app-ticker-tape");
+  if (!tickerContainer) return;
+  if (useRealFirebase) {
+    db.collection("config").doc("ticker").onSnapshot(doc => {
+      if (doc.exists) {
+        const text = doc.data().text || "";
+        tickerContainer.innerHTML = text.split("|").map(t => `<span class="ticker-item">${t.trim()}</span>`).join("");
+      }
+    });
+  } else {
+    const data = JSON.parse(localStorage.getItem("firebase_mock_config_ticker") || '{"text":""}');
+    tickerContainer.innerHTML = data.text.split("|").map(t => `<span class="ticker-item">${t.trim()}</span>`).join("");
+  }
+}
+
+// Render Events on Homepage grid
+function renderHomeEvents() {
+  const container = document.getElementById("events-list-container");
+  const spotlightContainer = document.getElementById("featured-card-container");
+  if (!container || !spotlightContainer) return;
+  
+  container.innerHTML = "";
+  spotlightContainer.innerHTML = "";
+  
+  let list = EVENTS_DATA.filter(ev => {
+    const matchesCategory = currentFilter === "all" || ev.type === currentFilter;
+    const matchesSearch = ev.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          ev.host.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  if (filtered.length === 0) {
-    listContainer.innerHTML = `
-      <div style="padding: var(--space-xl) 0; text-align: left; color: var(--muted-white);">
-        <p class="body-desc">No events found matching your queries.</p>
-      </div>
-    `;
+  
+  if (list.length === 0) {
+    container.innerHTML = `<p style="grid-column:1/-1; color: rgba(255,255,255,0.6); font-size:12px;">No events matching query found.</p>`;
     return;
   }
 
-  // First spotlight card
-  let featuredEvent = null;
+  // Showcase First event on Spotlight
+  let featured = null;
   if (currentFilter === "all" && searchQuery === "") {
-    featuredEvent = filtered[0];
-    filtered = filtered.slice(1);
+    featured = list[0];
+    list = list.slice(1);
   }
 
-  if (featuredEvent) {
-    const featCard = document.createElement("div");
-    featCard.className = "card-featured";
-    featCard.style.setProperty("--event-color", featuredEvent.color);
-    if (featuredEvent.poster || featuredEvent.poster_url) {
-      const pUrl = featuredEvent.poster || featuredEvent.poster_url;
-      featCard.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.25), rgba(8, 8, 16, 0.9)), url(${pUrl})`;
-      featCard.style.backgroundSize = "cover";
-      featCard.style.backgroundPosition = "center";
-    }
-    featCard.innerHTML = `
-      <div class="card-featured-circle"></div>
-      <div class="card-featured-content" style="width: 100%;">
-        <span class="chip chip-${featuredEvent.type}" style="margin-bottom: var(--space-sm);">${featuredEvent.typeLabel}</span>
-        <h2 class="h3-title" style="margin-bottom: var(--space-xs); line-height: 1.2;">${featuredEvent.title}</h2>
-        <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-bottom: 12px;">
-          <span>${featuredEvent.date}</span>
-          <span>•</span>
-          <span>${featuredEvent.time}</span>
-        </div>
-        <button class="card-btn-register" id="btn-register-${featuredEvent.id}">Register Now</button>
-      </div>
-    `;
-    featCard.addEventListener("click", (e) => {
-      if (e.target.classList.contains("card-btn-register")) return;
-      openEventDetail(featuredEvent);
-    });
-    featuredContainer.appendChild(featCard);
-
-    // Bind glassmorphic button click explicitly
-    featCard.querySelector(`#btn-register-${featuredEvent.id}`).addEventListener("click", (e) => {
-      e.stopPropagation();
-      openEventDetail(featuredEvent);
-    });
-  }
-
-  // Grid lists
-  filtered.forEach(evt => {
+  if (featured) {
     const card = document.createElement("div");
-    card.className = "card-event";
-    card.style.setProperty("--event-color", evt.color);
-    if (evt.poster || evt.poster_url) {
-      const pUrl = evt.poster || evt.poster_url;
-      card.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.65), rgba(8, 8, 16, 0.96)), url(${pUrl})`;
+    card.className = "card-featured";
+    card.style.setProperty("--event-color", featured.color || "#c8e84a");
+    if (featured.poster || featured.poster_url) {
+      card.style.backgroundImage = `linear-gradient(to bottom, rgba(3, 6, 17, 0.2), rgba(3, 6, 17, 0.95)), url(${featured.poster || featured.poster_url})`;
       card.style.backgroundSize = "cover";
       card.style.backgroundPosition = "center";
     }
     card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <span class="chip chip-${evt.type}">${evt.typeLabel}</span>
-        <span class="caption-meta" style="color: var(--nova-yellow);">${evt.price}</span>
+      <div class="card-featured-content">
+        <span class="chip" style="background:${featured.color || '#c8e84a'}; color:#030611; font-weight:800; border:none; margin-bottom:8px;">${featured.typeLabel.toUpperCase()}</span>
+        <h2 style="font-family: var(--font-display); font-size: 20px; font-weight:900; margin: 4px 0;">${featured.title}</h2>
+        <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-bottom: 12px;">${featured.date} • ${featured.time}</div>
+        <button type="button" class="card-btn-register" id="feat-reg-btn-${featured.id}">REGISTER NOW</button>
       </div>
-      <h3 class="h3-title" style="margin-top: var(--space-xs); line-height:1.2;">${evt.title}</h3>
-      <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-top: auto; margin-bottom: 8px;">
-        <span style="display:flex; align-items:center; gap:4px;">
-          📅 ${evt.date}
-        </span>
-      </div>
-      <button class="card-btn-register" id="btn-register-${evt.id}">Register Now</button>
     `;
     card.addEventListener("click", (e) => {
-      if (e.target.classList.contains("card-btn-register")) return;
-      openEventDetail(evt);
+      if (e.target.tagName !== "BUTTON") openEventDetail(featured);
     });
-    listContainer.appendChild(card);
+    spotlightContainer.appendChild(card);
+    
+    document.getElementById(`feat-reg-btn-${featured.id}`).addEventListener("click", () => openEventDetail(featured));
+  }
 
-    // Bind glassmorphic button click explicitly
-    card.querySelector(`#btn-register-${evt.id}`).addEventListener("click", (e) => {
-      e.stopPropagation();
-      openEventDetail(evt);
+  // Grid cards list
+  list.forEach(ev => {
+    const card = document.createElement("div");
+    card.className = "card-event";
+    card.style.setProperty("--event-color", ev.color || "#8b6fd4");
+    if (ev.poster || ev.poster_url) {
+      card.style.backgroundImage = `linear-gradient(to bottom, rgba(3, 6, 17, 0.6), rgba(3, 6, 17, 0.98)), url(${ev.poster || ev.poster_url})`;
+      card.style.backgroundSize = "cover";
+      card.style.backgroundPosition = "center";
+    }
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="chip">${ev.typeLabel.toUpperCase()}</span>
+        <span style="color:#C8E84A; font-weight:800; font-size:11.5px;">${ev.price}</span>
+      </div>
+      <h3 style="font-family: var(--font-display); font-size: 15px; font-weight:800; margin: 10px 0 4px 0; line-height: 1.2;">${ev.title}</h3>
+      <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-bottom:12px;">📅 ${ev.date}</div>
+      <button type="button" class="card-btn-register" id="grid-reg-btn-${ev.id}">REGISTER NOW</button>
+    `;
+    card.addEventListener("click", (e) => {
+      if (e.target.tagName !== "BUTTON") openEventDetail(ev);
     });
+    container.appendChild(card);
+    
+    document.getElementById(`grid-reg-btn-${ev.id}`).addEventListener("click", () => openEventDetail(ev));
   });
 }
 
-// Search queries binding
-document.getElementById("search-input").addEventListener("input", (e) => {
-  searchQuery = e.target.value;
-  renderHomeEvents();
-});
-
-// Category pills clicks
-document.querySelectorAll(".chip-category").forEach(pill => {
-  pill.addEventListener("click", () => {
-    document.querySelectorAll(".chip-category").forEach(p => p.classList.remove("active"));
-    pill.classList.add("active");
-    currentFilter = pill.getAttribute("data-category");
-    renderHomeEvents();
-  });
-});
-
-// ==========================================
-// 06 — SINGLE-PAGE CHECKOUT DETAILS OVERLAY
-// ==========================================
-
-function openEventDetail(event) {
-  selectedEvent = event;
-
-  // Background and titles
-  const hero = document.getElementById("detail-hero");
-  hero.style.setProperty("--event-color", event.color);
-  if (event.poster || event.poster_url) {
-    const pUrl = event.poster || event.poster_url;
-    hero.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.3), var(--void-black)), url(${pUrl})`;
-    hero.style.backgroundSize = "cover";
-    hero.style.backgroundPosition = "center";
-  } else {
-    hero.style.backgroundImage = "";
-  }
+// Open Event Detail Overlays
+window.openEventDetail = function(ev) {
+  selectedEvent = ev;
+  const overlay = document.getElementById("screen-detail");
+  if (!overlay) return;
   
-  document.getElementById("detail-title").textContent = event.title;
-  document.getElementById("detail-description").textContent = event.description || "No description available.";
-  
-  // Feature grid values
-  document.getElementById("detail-feat-date").textContent = event.date || "TBD";
-  document.getElementById("detail-feat-time").textContent = event.time || "TBD";
-  document.getElementById("detail-feat-seats").textContent = event.seats !== undefined ? `${event.seats} Seats` : "Unlimited";
-  document.getElementById("detail-feat-price").textContent = event.price || "Free";
-
-  // Category tags
-  const chipContainer = document.getElementById("detail-type-chip-container");
-  chipContainer.innerHTML = `<span class="chip chip-${event.type}">${event.typeLabel}</span>`;
-
-  // Venue location details
-  const metaRow = document.getElementById("detail-meta-row");
-  metaRow.innerHTML = `<span class="chip" style="background: rgba(255,255,255,0.15); border:none; text-transform:none; font-weight:500;">📍 ${event.location || 'Online'}</span>`;
-
-  // Speaker Profile values
-  const hostParts = (event.host || "Organized by IEDC RIT").split(", ");
-  document.getElementById("detail-host").textContent = hostParts[0] || "IEDC Speaker";
-  document.getElementById("detail-host-qual").textContent = hostParts.slice(1).join(", ") || "IEDC Guest Host";
+  // Setup elements
+  document.getElementById("detail-title").textContent = ev.title;
+  document.getElementById("detail-description").textContent = ev.description;
+  document.getElementById("detail-feat-date").textContent = ev.date;
+  document.getElementById("detail-feat-time").textContent = ev.time;
+  document.getElementById("detail-feat-seats").textContent = `${ev.seats} Seats`;
+  document.getElementById("detail-feat-price").textContent = ev.price;
+  document.getElementById("detail-host").textContent = ev.host.split(",")[0];
+  document.getElementById("detail-host-qual").textContent = ev.host.split(",").slice(1).join(",").trim() || "RIT Expert";
   
   const linkedin = document.getElementById("detail-host-linkedin");
-  if (event.speakerLinkedin) {
-    linkedin.href = event.speakerLinkedin;
+  if (ev.speakerLinkedin) {
+    linkedin.href = ev.speakerLinkedin;
     linkedin.style.display = "flex";
   } else {
     linkedin.style.display = "none";
   }
 
-  // Online vs Offline Dynamic Adapters
-  const isOnline = event.mode === "online" || (event.location && event.location.toLowerCase().includes("http"));
+  // Location display logic
   const mapLink = document.getElementById("detail-location-map-link");
   const meetDiv = document.getElementById("detail-location-meeting");
   const meetLink = document.getElementById("detail-meeting-link");
   const locationText = document.getElementById("detail-location-text");
-
-  locationText.textContent = isOnline ? "Virtual / Digital Room" : (event.location || "TBD");
+  
+  const isOnline = ev.mode === "online" || ev.location.startsWith("http");
+  locationText.textContent = isOnline ? "Virtual Platform / Meeting Room" : ev.location;
 
   if (isOnline) {
     mapLink.style.display = "none";
     meetDiv.style.display = "flex";
-    meetLink.href = (event.location && event.location.startsWith("http")) ? event.location : "https://meet.google.com";
+    meetLink.href = ev.location.startsWith("http") ? ev.location : "https://meet.google.com";
   } else {
     mapLink.style.display = "inline-block";
-    mapLink.href = event.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}` : "#";
+    mapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}`;
     meetDiv.style.display = "none";
   }
 
-  // Pre-fill user registration details
-  document.getElementById("detail-reg-name").value = USER_PROFILE.name || "";
-  document.getElementById("detail-reg-ktuid").value = USER_PROFILE.id || "";
-  document.getElementById("detail-reg-phone").value = USER_PROFILE.phone || "";
+  // Bind values
+  document.getElementById("detail-reg-name").value = USER_PROFILE.name;
+  document.getElementById("detail-reg-ktuid").value = USER_PROFILE.id;
+  document.getElementById("detail-reg-phone").value = USER_PROFILE.phone;
+  document.getElementById("detail-reg-bank-name").value = "";
 
-  // Team slots dynamically
+  // Team sections Setup
   const teamSection = document.getElementById("detail-team-section");
-  const slotsContainer = document.getElementById("detail-team-slots-container");
-  slotsContainer.innerHTML = "";
+  const slotContainer = document.getElementById("detail-team-slots-container");
+  slotContainer.innerHTML = "";
   teamMemberCount = 0;
-
-  if (event.hasTeam) {
+  if (ev.hasTeam) {
     teamSection.style.display = "flex";
     addDetailTeamSlot();
   } else {
     teamSection.style.display = "none";
   }
 
-  // Start Detail Countdown ticking clock
-  startDetailCountdown(event.isoDate);
-
-  // Reset payment checkout screen states
-  document.getElementById("registration-form").style.display = "flex";
+  // Initial forms visibility toggling
+  document.getElementById("registration-form").style.display = "block";
   document.getElementById("detail-upi-checkout-container").style.display = "none";
   document.getElementById("ticket-container").style.display = "none";
   
-  const stickyCta = document.querySelector(".sticky-cta-container");
-  if (stickyCta) stickyCta.style.display = "block";
-
-  // Gating registration buttons
+  const isRegistered = USER_REGISTRATIONS.some(r => r.id === ev.id);
   const regBtn = document.getElementById("detail-register-btn");
-  const modalPayBtn = document.getElementById("modal-pay-btn");
-  const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === event.id);
-
-  if (isAlreadyRegistered) {
-    regBtn.textContent = "View Ticket Pass";
-    regBtn.style.backgroundColor = "var(--galactic-purple)";
-    regBtn.style.color = "var(--white-pure)";
-    if (modalPayBtn) {
-      modalPayBtn.textContent = "View Ticket Pass";
-      modalPayBtn.style.backgroundColor = "var(--galactic-purple)";
-      modalPayBtn.style.color = "var(--white-pure)";
-    }
-  } else if (event.seats <= 0) {
-    regBtn.textContent = "Sold Out";
-    regBtn.disabled = true;
-    regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-    if (modalPayBtn) {
-      modalPayBtn.textContent = "Sold Out";
-      modalPayBtn.disabled = true;
-      modalPayBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+  
+  if (isRegistered) {
+    const reg = USER_REGISTRATIONS.find(r => r.id === ev.id);
+    if (reg.status === "Pending") {
+      regBtn.textContent = "VERIFICATION IN PROGRESS";
+      regBtn.disabled = true;
+    } else {
+      regBtn.textContent = "VIEW ENTRY TICKET";
+      regBtn.disabled = false;
+      regBtn.onclick = () => showTicket(reg);
     }
   } else {
-    const btnText = event.price && event.price !== "Free" ? "Proceed to Pay" : "Confirm Free Register";
-    regBtn.textContent = btnText;
+    regBtn.textContent = ev.fee > 0 ? `PROCEED TO PAY (₹${ev.fee})` : "CONFIRM ENROLLMENT";
     regBtn.disabled = false;
-    regBtn.style.backgroundColor = "var(--nova-yellow)";
-    regBtn.style.color = "var(--void-black)";
-    if (modalPayBtn) {
-      modalPayBtn.textContent = btnText;
-      modalPayBtn.disabled = false;
-      modalPayBtn.style.backgroundColor = "var(--nova-yellow)";
-      modalPayBtn.style.color = "var(--void-black)";
-    }
+    regBtn.onclick = () => {
+      document.getElementById("registration-form").requestSubmit();
+    };
   }
 
-  navigateTo("detail");
-}
-
-function startDetailCountdown(isoDate) {
+  // Detail countdown timer
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  const timerSpan = document.getElementById("detail-countdown-timer");
-
-  const target = isoDate ? new Date(isoDate).getTime() : new Date("2026-06-25T09:00:00").getTime();
-
-  function update() {
-    const diff = target - new Date().getTime();
+  const countdownSpan = document.getElementById("detail-countdown-timer");
+  const targetDate = ev.isoDate ? new Date(ev.isoDate).getTime() : new Date().getTime();
+  
+  function runTimer() {
+    const diff = targetDate - new Date().getTime();
     if (diff <= 0) {
-      timerSpan.textContent = "Live Now / Ended";
+      countdownSpan.textContent = "Event Live / Passed";
       clearInterval(detailCountdownInterval);
     } else {
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      timerSpan.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s left`;
+      const d = Math.floor(diff / (1000*60*60*24));
+      const h = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+      const m = Math.floor((diff % (1000*60*60)) / (1000*60));
+      const s = Math.floor((diff % (1000*60)) / 1000);
+      countdownSpan.textContent = `${d}d ${h}h ${m}m ${s}s remaining`;
     }
   }
+  runTimer();
+  detailCountdownInterval = setInterval(runTimer, 1000);
 
-  update();
-  detailCountdownInterval = setInterval(update, 1000);
-}
+  // Show details screen modal
+  navigateTo("detail");
+};
+
+// Back button on details
+document.getElementById("detail-back-btn").addEventListener("click", () => {
+  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+  navigateTo("home");
+});
 
 function addDetailTeamSlot() {
   if (!selectedEvent || teamMemberCount >= selectedEvent.maxTeamSize - 1) return;
-
   teamMemberCount++;
   const container = document.getElementById("detail-team-slots-container");
   const div = document.createElement("div");
-  div.className = "team-member-input-row";
-  div.id = `detail-member-row-${teamMemberCount}`;
+  div.id = `detail-member-${teamMemberCount}`;
+  div.style.display = "flex";
+  div.style.gap = "8px";
+  div.style.marginBottom = "6px";
   div.innerHTML = `
     <input type="text" class="input-field detail-team-member-name" placeholder="Member #${teamMemberCount} Name" required style="flex:1;">
-    <button type="button" class="btn-remove-member" onclick="removeDetailTeamSlot(${teamMemberCount})">&times;</button>
+    <button type="button" class="btn" style="border:1px solid #ff4d4d; color:#ff4d4d; padding:6px 12px;" onclick="document.getElementById('detail-member-${teamMemberCount}').remove(); teamMemberCount--;">&times;</button>
   `;
   container.appendChild(div);
 }
-
-window.removeDetailTeamSlot = function(id) {
-  const row = document.getElementById(`detail-member-row-${id}`);
-  if (row) {
-    row.remove();
-    teamMemberCount--;
-  }
-};
-
 document.getElementById("detail-btn-add-member").addEventListener("click", addDetailTeamSlot);
 
-// Hooking Register & Pay Click Event
-document.getElementById("detail-register-btn").addEventListener("click", () => {
-  if (!selectedEvent) return;
-
-  const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === selectedEvent.id);
-  if (isAlreadyRegistered) {
-    const reg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
-    showTicket(reg);
-    return;
-  }
-
-  // Trigger HTML5 validation and submit form
-  document.getElementById("registration-form").requestSubmit();
-});
-
-// Bind form submit event
+// Submit form handles checkout initiation
 document.getElementById("registration-form").addEventListener("submit", (e) => {
   e.preventDefault();
   handleRegistrationCheckout();
@@ -697,243 +809,161 @@ document.getElementById("registration-form").addEventListener("submit", (e) => {
 
 async function handleRegistrationCheckout() {
   if (!selectedEvent) return;
-
-  // ===== STRICT VALIDATION: Bank Account Owner Name =====
-  const bankAccountName = sanitizeInput(document.getElementById("detail-reg-bank-name").value);
-  if (!bankAccountName) {
-    alert("Please enter the Bank Account Owner's Full Name to proceed with the payment");
-    return;
-  }
-
-  const phone = sanitizeInput(document.getElementById("detail-reg-phone").value);
-  if (!phone) {
-    showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
-    return;
-  }
   
-  const ktuid = USER_PROFILE.id || "";
-  const eventId = selectedEvent.id || selectedEvent.eventId;
-
-  // Set checkout processing status
-  const modalPayBtn = document.getElementById("modal-pay-btn");
-  const originalBtnText = modalPayBtn.textContent;
-  modalPayBtn.disabled = true;
-  modalPayBtn.textContent = "Checking details...";
-
-  // 1. Strict Duplicate Registration Check (Before Payment)
-  let hasDuplicate = false;
-  if (useRealFirebase) {
-    try {
-      const db = firebase.firestore();
-      const snap = await db.collection("registrations").where("eventId", "==", eventId).get();
-      snap.forEach(doc => {
-        const d = doc.data();
-        if (d.phone === phone || d.registerNo === ktuid) {
-          hasDuplicate = true;
-        }
-      });
-    } catch (err) {
-      console.error("Duplicate checking query error:", err);
-    }
-  } else {
-    // Simulator check
-    try {
-      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-      hasDuplicate = mockRegs.some(r => r.eventId === eventId && (r.phone === phone || r.registerNo === ktuid));
-    } catch (e) {
-      console.error("Local mock duplicate search error:", e);
-    }
-  }
-
-  if (hasDuplicate) {
-    // Restore button
-    modalPayBtn.disabled = false;
-    modalPayBtn.textContent = originalBtnText;
-
-    // Close the detail modal
-    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-    navigateTo("home");
-
-    // Trigger glassmorphic conflict alert
-    showCustomAlert("Conflict", "Conflict: You are already registered for this event!");
+  const bankName = sanitizeInput(document.getElementById("detail-reg-bank-name").value);
+  const phone = sanitizeInput(document.getElementById("detail-reg-phone").value);
+  
+  if (!bankName || !phone) {
+    alert("Please fill in both Bank Owner Name and contact WhatsApp phone number.");
     return;
   }
 
-  // Restore button text for future opens
-  modalPayBtn.disabled = false;
-  modalPayBtn.textContent = originalBtnText;
+  const email = USER_PROFILE.email;
+  const ktuid = USER_PROFILE.id;
+  const eventId = selectedEvent.id;
 
-  // Parse team members names if present
-  const teamInputs = document.querySelectorAll(".detail-team-member-name");
-  const teamMembers = [];
-  teamInputs.forEach(input => {
-    if (input.value.trim()) teamMembers.push(input.value.trim());
+  // Check duplicate registrations
+  let exists = false;
+  if (useRealFirebase) {
+    const snap = await db.collection("registrations").where("eventId", "==", eventId).where("studentUid", "==", USER_PROFILE.uid).get();
+    exists = !snap.empty;
+  } else {
+    const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    exists = mockRegs.some(r => r.eventId === eventId && r.studentUid === USER_PROFILE.uid);
+  }
+
+  if (exists) {
+    showCustomAlert("Conflict", "You are already registered for this event!");
+    return;
+  }
+
+  // Team parse
+  const teamNames = [];
+  document.querySelectorAll(".detail-team-member-name").forEach(inp => {
+    if (inp.value.trim()) teamNames.push(sanitizeInput(inp.value.trim()));
   });
 
-  // Parse amount fee
-  let amount = 0;
-  if (selectedEvent.fee !== undefined) {
-    amount = parseInt(selectedEvent.fee);
-  } else if (selectedEvent.reg_fee !== undefined) {
-    amount = parseInt(selectedEvent.reg_fee);
-  } else {
-    const priceVal = selectedEvent.price || "Free";
-    const amountMatch = String(priceVal).match(/\d+/);
-    amount = amountMatch ? parseInt(amountMatch[0]) : 0;
-  }
+  const amount = selectedEvent.fee || 0;
+  const regId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+  const txnId = "TXN_" + regId;
 
-  // Compile registration data
-  const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
-  const merchantTransactionId = "TXN_" + registrationId;
   const registrationData = {
-    registrationId,
-    eventId,
+    registrationId: regId,
+    eventId: eventId,
     eventTitle: selectedEvent.title,
-    studentName: sanitizeInput(USER_PROFILE.name),
-    studentEmail: sanitizeInput(USER_PROFILE.email),
-    registerNo: sanitizeInput(USER_PROFILE.id),
-    bankAccountName: sanitizeInput(bankAccountName), // Save the bank account owner's name here!
-    phone: sanitizeInput(phone),
-    teamMembers: teamMembers.map(t => sanitizeInput(t)),
-    amount,
-    razorpayPaymentId: merchantTransactionId, // PhonePe Transaction ID mapped here
+    studentName: USER_PROFILE.name,
+    studentEmail: email,
+    registerNo: ktuid,
+    bankAccountName: bankName,
+    phone: phone,
+    teamMembers: teamNames,
+    amount: amount,
+    razorpayPaymentId: txnId,
     checkedIn: false,
     status: amount > 0 ? "Pending" : "Confirmed",
+    studentUid: USER_PROFILE.uid,
     createdAt: new Date().toISOString(),
-    studentUid: sessionStorage.getItem("loggedInUserUid"),
     timestamp: new Date().toISOString()
   };
 
   if (amount > 0) {
-    // Save pending registration to database/localStorage first
-    try {
+    // Save pending registration
+    if (useRealFirebase) {
+      await db.collection("registrations").doc(regId).set(registrationData);
+    } else {
       let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
       mockRegs.push(registrationData);
       localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
-    } catch (e) {
-      console.error("Local mock pending registration failed:", e);
     }
+
+    // Display payments drawer details
+    document.getElementById("detail-upi-amount-label").textContent = `₹${amount}`;
     
-    localStorage.setItem("pending_phonepe_registration", JSON.stringify(registrationData));
+    // Config intents
+    const upiLink = `upi://pay?pa=${selectedEvent.upiId || 'iedcrit@okaxis'}&pn=${encodeURIComponent(selectedEvent.title)}&am=${amount}&cu=INR`;
+    
+    // Canvas QR Code
+    const qrcanvas = document.getElementById("detail-upi-qr-canvas");
+    new QRious({
+      element: qrcanvas,
+      value: upiLink,
+      size: 140,
+      background: "#FFFFFF",
+      foreground: "#030611",
+      level: "H"
+    });
 
-    if (useRealFirebase) {
-      try {
-        const db = firebase.firestore();
-        await db.collection("registrations").doc(registrationId).set(registrationData);
-      } catch (err) {
-        console.error("Firestore pending registration failed:", err);
-      }
-    }
-
-    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-
-    // Set waiting verification overlay details
-    const amountLabel = document.getElementById("waiting-amount-label");
-    if (amountLabel) {
-      amountLabel.textContent = `Amount Due: ₹${amount}`;
-    }
-
-    // Construct dynamic UPI deep-link intent using eventData
-    const eventData = { ...selectedEvent };
-    eventData.upiId = eventData.upiId || eventData.upi || "iedcrit@okaxis";
-    eventData.price = amount;
-    const upiLink = `upi://pay?pa=${eventData.upiId}&pn=${encodeURIComponent(eventData.title)}&am=${eventData.price}&cu=INR`;
-
+    document.getElementById("detail-upi-qr-wrapper-link").href = upiLink;
+    document.getElementById("detail-upi-mobile-intent-link").href = upiLink;
+    
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const upiMobileLink = document.getElementById("waiting-upi-mobile-link");
-    const upiQrLink = document.getElementById("waiting-upi-qr-link");
-
-    // Always set interactive QR wrapper link href to the UPI intent link
-    if (upiQrLink) {
-      upiQrLink.href = upiLink;
-    }
-
-    // Always set single universal button link href to the UPI intent link
-    if (upiMobileLink) {
-      upiMobileLink.href = upiLink;
-    }
-
-    // Always draw dynamic QR code to the canvas inside the modal
-    const upiCanvas = document.getElementById("waiting-upi-qr-canvas");
-    if (upiCanvas) {
-      new QRious({
-        element: upiCanvas,
-        value: upiLink,
-        size: 130,
-        background: "#FFFFFF",
-        foreground: "#080810",
-        level: "H"
-      });
-    }
-
     if (isMobile) {
+      document.getElementById("upi-mobile-view").style.display = "flex";
+      document.getElementById("upi-desktop-view").style.display = "none";
       window.location.href = upiLink;
+    } else {
+      document.getElementById("upi-desktop-view").style.display = "flex";
+      document.getElementById("upi-mobile-view").style.display = "none";
     }
 
-    // Show waiting verification overlay
-    const waitOverlay = document.getElementById("waiting-verification-overlay");
-    if (waitOverlay) {
-      waitOverlay.style.display = "flex";
-    }
+    // Toggle views inside details screen
+    document.getElementById("registration-form").style.display = "none";
+    document.getElementById("detail-upi-checkout-container").style.display = "flex";
+    document.getElementById("detail-register-btn").style.display = "none";
 
-    // Watch pending verification status
-    watchPendingVerification(registrationId, registrationData);
+    // Watch status polling/stream for payment verification
+    watchPendingVerification(regId, registrationData);
 
   } else {
-    // Free registration is immediate
-    await completeUpiRegistration(registrationData);
+    // Free registration confirmed immediately
+    await completeUpiEnrollment(registrationData);
   }
 }
 
-function watchPendingVerification(registrationId, registrationData) {
-  if (currentVerificationUnsubscribe) {
-    currentVerificationUnsubscribe();
-    currentVerificationUnsubscribe = null;
-  }
-  if (simulatorPollingInterval) {
-    clearInterval(simulatorPollingInterval);
-    simulatorPollingInterval = null;
-  }
+// Watch status confirm updates
+function watchPendingVerification(regId, regData) {
+  if (currentVerificationUnsubscribe) currentVerificationUnsubscribe();
+  if (simulatorPollingInterval) clearInterval(simulatorPollingInterval);
+  
+  // Toggle overlay loading spinner modal
+  document.getElementById("waiting-amount-label").textContent = `Amount Due: ₹${regData.amount}`;
+  const qrCanvasOverlay = document.getElementById("waiting-upi-qr-canvas");
+  const upiLink = `upi://pay?pa=${selectedEvent.upiId || 'iedcrit@okaxis'}&pn=${encodeURIComponent(selectedEvent.title)}&am=${regData.amount}&cu=INR`;
+  
+  new QRious({
+    element: qrCanvasOverlay,
+    value: upiLink,
+    size: 130,
+    background: "#FFFFFF",
+    foreground: "#030611",
+    level: "H"
+  });
+
+  document.getElementById("waiting-upi-qr-link").href = upiLink;
+  document.getElementById("waiting-upi-mobile-link").href = upiLink;
+  document.getElementById("waiting-verification-overlay").style.display = "flex";
 
   if (useRealFirebase) {
-    try {
-      const db = firebase.firestore();
-      currentVerificationUnsubscribe = db.collection("registrations").doc(registrationId)
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            if (data.status === "Confirmed") {
-              if (currentVerificationUnsubscribe) {
-                currentVerificationUnsubscribe();
-                currentVerificationUnsubscribe = null;
-              }
-              handleVerificationSuccess(data);
-            }
-          }
-        }, (err) => {
-          console.error("Error watching registration status:", err);
-        });
-    } catch (e) {
-      console.error("Firebase watch failed:", e);
-    }
+    currentVerificationUnsubscribe = db.collection("registrations").doc(regId)
+      .onSnapshot(doc => {
+        if (doc.exists && doc.data().status === "Confirmed") {
+          cleanupVerificationLoops();
+          handleVerificationSuccess(doc.data());
+        }
+      });
   }
 
   simulatorPollingInterval = setInterval(() => {
-    try {
-      let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-      const reg = mockRegs.find(r => r.registrationId === registrationId);
-      if (reg && reg.status === "Confirmed") {
-        clearInterval(simulatorPollingInterval);
-        simulatorPollingInterval = null;
-        handleVerificationSuccess(reg);
-      }
-    } catch (err) {
-      console.error("Local polling check error:", err);
+    const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    const match = mockRegs.find(r => r.registrationId === regId);
+    if (match && match.status === "Confirmed") {
+      cleanupVerificationLoops();
+      handleVerificationSuccess(match);
     }
   }, 1000);
 }
 
-async function handleVerificationSuccess(registrationData) {
+function cleanupVerificationLoops() {
   if (currentVerificationUnsubscribe) {
     currentVerificationUnsubscribe();
     currentVerificationUnsubscribe = null;
@@ -942,427 +972,101 @@ async function handleVerificationSuccess(registrationData) {
     clearInterval(simulatorPollingInterval);
     simulatorPollingInterval = null;
   }
-
-  const waitOverlay = document.getElementById("waiting-verification-overlay");
-  if (waitOverlay) {
-    waitOverlay.style.display = "none";
-  }
-
-  triggerConfetti();
-  showToast("Payment Verified & Ticket Issued!", "var(--success)", "var(--success)");
-
-  const regForm = document.getElementById("registration-form");
-  const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
-  const stickyCta = document.querySelector(".sticky-cta-container");
-  
-  if (regForm) regForm.style.display = "none";
-  if (upiCheckoutContainer) upiCheckoutContainer.style.display = "none";
-  if (stickyCta) stickyCta.style.display = "none";
-
-  const ticketContainer = document.getElementById("ticket-container");
-  if (ticketContainer) {
-    ticketContainer.style.display = "flex";
-  }
-
-  const canvas = document.getElementById("ticket-qr-canvas");
-  if (canvas) {
-    drawQRToCanvas(canvas, registrationData.registrationId, selectedEvent.color || "#8B6FD4", 180);
-  }
-
-  await syncRegistrations();
 }
 
+window.closeWaitingOverlayAndGoToWallet = function() {
+  cleanupVerificationLoops();
+  document.getElementById("waiting-verification-overlay").style.display = "none";
+  navigateTo("wallet");
+};
 
-async function completeUpiRegistration(registrationData) {
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-
-  // Confetti celebrations
-  triggerConfetti();
-
-  // Save registration ledger to Firestore / Simulator
-  // Mock registrations write
-  try {
-    let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-    if (!mockRegs.some(r => r.registrationId === registrationData.registrationId)) {
-      mockRegs.push(registrationData);
-    } else {
-      const idx = mockRegs.findIndex(r => r.registrationId === registrationData.registrationId);
-      mockRegs[idx] = registrationData;
-    }
-    localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
-
-    // Decrement seats locally
-    let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-    let evIdx = mockEvents.findIndex(e => e.id === registrationData.eventId);
-    if (evIdx !== -1) {
-      mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
-      localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
-    }
-    
-    let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-    let tourIdx = mockTours.findIndex(t => t.id === registrationData.eventId);
-    if (tourIdx !== -1) {
-      mockTours[tourIdx].seats = Math.max(0, (mockTours[tourIdx].seats || 50) - 1);
-      localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTours));
-    }
-  } catch (e) {
-    console.error("Local mock registration write failed:", e);
-  }
-
-  // Firestore write
-  if (useRealFirebase) {
-    try {
-      const db = firebase.firestore();
-      await db.collection("registrations").doc(registrationData.registrationId).set(registrationData);
-      
-      const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
-      await db.collection(targetCol).doc(registrationData.eventId).update({
-        seats: firebase.firestore.FieldValue.increment(-1)
-      });
-    } catch (err) {
-      console.error("Firestore registration ledger write failed:", err);
-    }
-  }
-
-  showToast("Registration Confirmed! Enjoy your event.", "var(--success)", "var(--success)");
-
-  // Hide checkout views and show success ticket block inside details modal
+function handleVerificationSuccess(reg) {
+  document.getElementById("waiting-verification-overlay").style.display = "none";
+  showToast("Payment Verified! Ticket Issued.", "#4ae88a");
+  triggerConfettiExplosion();
+  
   document.getElementById("detail-upi-checkout-container").style.display = "none";
-  document.getElementById("registration-form").style.display = "none";
-  const stickyCta = document.querySelector(".sticky-cta-container");
-  if (stickyCta) stickyCta.style.display = "none";
-
   document.getElementById("ticket-container").style.display = "flex";
   
-  // Render canvas QR code on the spot
-  drawQRToCanvas(document.getElementById("ticket-qr-canvas"), registrationData.registrationId, selectedEvent.color || "#8B6FD4", 180);
+  // Render Success Ticket QR
+  const targetCanvas = document.getElementById("ticket-qr-canvas");
+  drawQR(targetCanvas, reg.registrationId, reg.color || "#8b6fd4");
+  
+  syncRegistrations();
+}
 
-  // Sync state in background
+async function completeUpiEnrollment(reg) {
+  if (useRealFirebase) {
+    await db.collection("registrations").doc(reg.registrationId).set(reg);
+    // Decrement Event Seats
+    const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
+    await db.collection(targetCol).doc(reg.eventId).update({
+      seats: firebase.firestore.FieldValue.increment(-1)
+    });
+  } else {
+    // Simulator local writes
+    let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    mockRegs.push(reg);
+    localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+    
+    // Decrement seats
+    let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+    let evIdx = mockEvents.findIndex(e => e.id === reg.eventId);
+    if (evIdx !== -1) mockEvents[evIdx].seats = Math.max(0, mockEvents[evIdx].seats - 1);
+    localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+  }
+
+  showToast("Enrollment Confirmed successfully!", "#4ae88a");
+  triggerConfettiExplosion();
+
+  document.getElementById("registration-form").style.display = "none";
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("detail-register-btn").style.display = "none";
+  document.getElementById("ticket-container").style.display = "flex";
+  
+  const targetCanvas = document.getElementById("ticket-qr-canvas");
+  drawQR(targetCanvas, reg.registrationId, selectedEvent.color || "#8b6fd4");
+
   await syncRegistrations();
 }
 
-function showTicket(registration) {
-  document.getElementById("ticket-event-name").textContent = registration.title;
-  document.getElementById("ticket-date").textContent = registration.date + " - " + registration.time;
-  document.getElementById("ticket-loc").textContent = registration.location;
-  document.getElementById("ticket-id-text").textContent = `TICKET ID: ${registration.ticketId}`;
-  
-  document.getElementById("ticket-attendee").textContent = registration.studentName || USER_PROFILE.name || "Student";
-  document.getElementById("ticket-student-id").textContent = registration.registerNo || USER_PROFILE.id || "N/A";
-  
-  const posterUrl = registration.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80";
-  document.getElementById("ticket-poster-img").style.backgroundImage = `linear-gradient(to bottom, rgba(8,8,16,0.1), rgba(10,10,20,0.9)), url(${posterUrl})`;
-
-  const typeTag = document.getElementById("ticket-type-tag");
-  typeTag.textContent = registration.typeLabel;
-  typeTag.className = `chip chip-${registration.type}`;
-
-  generateQRCode(registration.ticketId, registration.color);
-
-  // Conditional WhatsApp group link inside pass
-  const waBtn = document.getElementById("ticket-whatsapp-btn");
-  const isConfirmed = registration.status === "Confirmed";
-  if (isConfirmed && registration.whatsappLink) {
-    waBtn.href = registration.whatsappLink;
-    waBtn.style.display = "inline-flex";
-  } else {
-    waBtn.style.display = "none";
-  }
-
-  document.getElementById("btn-ticket-download").onclick = () => {
-    showToast("Ticket downloaded successfully!", "var(--success)", "var(--success)");
-  };
-  document.getElementById("btn-ticket-share").onclick = () => {
-    sharePass(registration.ticketId, registration.title);
-  };
-
-  navigateTo("ticket");
-}
-
-window.shareEvent = async function(eventId, eventTitle) {
-  const url = `https://iedc-projecttt.pages.dev/?event=${eventId}`;
-  const shareData = {
-    title: `Register for ${eventTitle}`,
-    text: `Join me at the ${eventTitle}! Register here:`,
-    url: url
-  };
-
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-      showToast("Event shared successfully!", "var(--success)", "var(--success)");
-    } else {
-      await navigator.clipboard.writeText(url);
-      showToast("Link copied to clipboard!", "var(--nova-yellow)", "var(--nova-yellow)");
-    }
-  } catch (err) {
-    console.log("Share failed:", err);
-  }
-};
-
-window.sharePass = async function(ticketId, eventTitle) {
-  const shareData = {
-    title: `Confirmed pass for ${eventTitle}!`,
-    text: `I'm going to ${eventTitle}! Ticket ID: ${ticketId}. Get your passes here:`,
-    url: `https://iedc-projecttt.pages.dev/`
-  };
-
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-      showToast("Pass shared successfully!", "var(--success)", "var(--success)");
-    } else {
-      await navigator.clipboard.writeText(`Confirmed pass for ${eventTitle}! Ticket ID: ${ticketId}`);
-      showToast("Pass details copied!", "var(--nova-yellow)", "var(--nova-yellow)");
-    }
-  } catch (err) {
-    console.log("Share failed:", err);
-  }
-};
-
-window.togglePassExpansion = function(detailsId) {
-  const el = document.getElementById(detailsId);
-  if (el) {
-    const isHidden = el.style.display === "none";
-    el.style.display = isHidden ? "flex" : "none";
-  }
-};
-
-function encryptRegistrationId(id) {
-  try {
-    return CryptoJS.AES.encrypt(id, QR_SECRET_KEY).toString();
-  } catch (e) {
-    console.error("Encryption failed:", e);
-    return id;
-  }
-}
-
-function drawQRToCanvas(canvas, text, brandColor, size = 240) {
+// Draw encrypted QRs to canvases
+function drawQR(canvas, text, brandColor) {
   if (!canvas) return;
-  const encryptedText = encryptRegistrationId(text);
-  
+  const encrypted = CryptoJS.AES.encrypt(text, QR_SECRET_KEY).toString();
   new QRious({
     element: canvas,
-    value: encryptedText,
-    size: size,
+    value: encrypted,
+    size: 160,
     background: "#FFFFFF",
-    foreground: "#080810",
+    foreground: "#030611",
     level: "H"
   });
 }
 
-function generateQRCode(text, brandColor) {
-  const canvas = document.getElementById("qr-canvas");
-  drawQRToCanvas(canvas, text, brandColor, 240);
-}
-
-// Draw QR inside stubs card inside wallet
-function drawTicketQRCode(canvasId, text, brandColor) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const encryptedText = encryptRegistrationId(text);
-
-  new QRious({
-    element: canvas,
-    value: encryptedText,
-    size: 72,
-    background: "#FFFFFF",
-    foreground: "#080810",
-    level: "H"
-  });
-}
-
-// ==========================================
-// 08 — STUDENT DASHBOARD & TICKET WALLET
-// ==========================================
-
-function renderDashboard() {
-  const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-  document.querySelectorAll(".dashboard-current-date").forEach(el => {
-    el.textContent = new Date().toLocaleDateString('en-US', options);
-  });
-
-  // Profile details
-  document.getElementById("db-profile-avatar").src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
-  document.getElementById("db-profile-name").textContent = USER_PROFILE.name || "Student";
-  document.getElementById("db-profile-id").textContent = USER_PROFILE.id || "N/A";
-  document.getElementById("db-profile-email").textContent = USER_PROFILE.email || "N/A";
-  document.getElementById("db-profile-dept").textContent = USER_PROFILE.department || "N/A";
-  document.getElementById("db-profile-year").textContent = USER_PROFILE.yearOfStudy || "N/A";
-  document.getElementById("db-profile-phone").textContent = USER_PROFILE.phone || "N/A";
-  document.getElementById("db-profile-college").textContent = USER_PROFILE.collegeName || "N/A";
-
-  // Wallet stubs card shelf (Flipkart / BookMyShow styles)
-  const listContainer = document.getElementById("dashboard-list-container");
-  listContainer.innerHTML = "";
-
-  const completedCount = USER_REGISTRATIONS.filter(r => r.checkedIn === true).length;
-  const upcomingCount = USER_REGISTRATIONS.filter(r => r.checkedIn !== true).length;
-  
-  document.getElementById("stat-attended").textContent = completedCount;
-  document.getElementById("stat-upcoming").textContent = upcomingCount;
-  document.getElementById("stat-certs").textContent = completedCount;
-
-  if (USER_REGISTRATIONS.length === 0) {
-    listContainer.innerHTML = `
-      <div style="padding: var(--space-xl) 0; text-align: left; color: var(--muted-white);">
-        <p class="body-desc">Wallet is empty. You haven't booked any active event passes.</p>
-      </div>
-    `;
-  } else {
-    USER_REGISTRATIONS.forEach(reg => {
-      const card = document.createElement("div");
-      card.className = "ticket-wallet-card";
-      
-      const isPending = reg.status === "Pending";
-      const isChecked = reg.checkedIn === true;
-      
-      if (isPending) {
-        // Redacted pending placeholder layout (no QR or BookMyShow components render)
-        card.className = "ticket-wallet-card-pending";
-        card.style.cursor = "default";
-        card.innerHTML = `
-          <div class="pending-pass-placeholder" style="padding: 20px; text-align: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: var(--radius-card-std); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; align-items: center; gap: 12px;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(234, 179, 8, 0.1); border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; color: #eab308; font-size: 20px; box-shadow: 0 0 15px rgba(234, 179, 8, 0.25); animation: pulseWarning 2s infinite;">⏳</div>
-            <h4 style="font-family: var(--font-display); font-size: 14px; font-weight: 800; color: white; margin: 0;">Verification in Progress</h4>
-            <p class="body-desc" style="font-size: 11px; line-height: 1.5; color: var(--muted-white); margin: 0; text-align: center;">
-              Your premium ticket pass will automatically unlock here once the admin verifies your registration.
-            </p>
-            <div style="font-size: 9px; color: var(--soft-purple); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Event: ${reg.title}</div>
-          </div>
-        `;
-      } else {
-        // High-Fidelity Unlocked BookMyShow cinema card wrapper
-        card.className = "bookmyshow-ticket";
-        card.style.setProperty("--ticket-color", reg.color);
-        
-        const detailsId = `wallet-details-${reg.ticketId}`;
-        const posterUrl = reg.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80";
-        
-        // WhatsApp Group link button (Neon Green)
-        const whatsappButton = reg.whatsappLink
-          ? `<a href="${reg.whatsappLink}" target="_blank" class="btn btn-whatsapp-pulsing" style="background: #25D366 !important; color: white !important; font-size: 11px; padding: 10px; border-radius: 10px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: none; text-transform: uppercase; box-shadow: 0 0 12px rgba(37, 211, 102, 0.3); margin-top: 8px;">💬 Join Official WhatsApp Group</a>`
-          : "";
-
-        // Venue on Map button (Neon Blue)
-        const mapLink = reg.location && reg.location.startsWith("http") ? reg.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(reg.location)}`;
-        const mapButton = `<a href="${mapLink}" target="_blank" class="btn btn-map-neon" style="background: rgba(0, 180, 216, 0.1) !important; border: 1.5px solid var(--neon-blue) !important; color: var(--neon-blue) !important; font-size: 11px; padding: 10px; border-radius: 10px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 8px; text-transform: uppercase; box-shadow: 0 0 10px rgba(0, 180, 216, 0.25);">📍 View Venue on Map</a>`;
-
-        // Share My Pass button (Frosted Soft Purple)
-        const shareButton = `<button type="button" class="btn btn-share-pass" onclick="event.stopPropagation(); sharePass('${reg.ticketId}', '${reg.title}')" style="background: rgba(139, 111, 212, 0.1) !important; border: 1.5px solid var(--soft-purple) !important; color: var(--soft-purple) !important; font-size: 11px; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 8px; text-transform: uppercase; border: none;">📤 Share My Pass</button>`;
-
-        card.innerHTML = `
-          <!-- Event Branding Poster Image -->
-          <div class="ticket-poster-container">
-            <img src="${posterUrl}" alt="${reg.title}">
-            <div style="position: absolute; top: 12px; right: 12px; z-index: 3;">
-              <span class="chip chip-${reg.type}" style="font-size: 10px !important; text-transform: uppercase; font-weight: 900;">${reg.typeLabel}</span>
-            </div>
-            <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(to bottom, transparent, rgba(8, 8, 16, 0.95)); z-index: 2;"></div>
-          </div>
-
-          <div class="ticket-perforation-line"></div>
-
-          <div class="ticket-details-container">
-            <h3 style="font-family: var(--font-display); font-size: 18px !important; font-weight: 900; line-height: 1.2; color: white; margin: 0; text-align: left;">${reg.title}</h3>
-            
-            <div style="display: flex; gap: var(--space-md); font-size: 11px; color: var(--muted-white); justify-content: flex-start; align-items: center; margin-top: 4px;">
-              <span>📅 ${reg.date}</span>
-              <span>•</span>
-              <span>🕒 ${reg.time}</span>
-            </div>
-
-            <!-- Cryptographic Pass Block with canvas QR and Student Name -->
-            <div class="ticket-frosted-pass" style="background: rgba(255, 255, 255, 0.02) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; padding: 14px; border-radius: 14px; display: flex; align-items: center; gap: 14px; margin-top: 4px;">
-              <div style="background: white; padding: 6px; border-radius: 10px; width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <canvas id="qr-canvas-${reg.ticketId}" style="width: 100% !important; height: 100% !important;"></canvas>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 2px; text-align: left;">
-                <span style="font-size: 9px; font-weight: 900; color: var(--soft-purple); text-transform: uppercase; letter-spacing: 1px;">Verified Pass</span>
-                <span style="font-size: 13px; font-weight: 800; color: white; text-transform: uppercase; line-height: 1.2;">${reg.studentName || USER_PROFILE.name || 'Student'}</span>
-                <span style="font-family: monospace; font-size: 10px; color: var(--muted-white); margin-top: 2px;">ID: ${reg.ticketId}</span>
-              </div>
-            </div>
-
-            <!-- Expandable view target -->
-            <div id="${detailsId}" style="display: none; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); margin-top: 4px;">
-              <div style="font-size: 11px; color: var(--muted-white);">
-                <span>Duration: <strong style="color: white;">${reg.duration || '3 Hours'}</strong></span>
-              </div>
-              <div style="font-size: 11px; color: var(--muted-white); text-align: left; line-height: 1.4;">
-                Instructions: <span style="color: white;">${reg.instructions || 'Please arrive 15 minutes before the start time. Carry your student ID card.'}</span>
-              </div>
-              ${whatsappButton}
-              ${mapButton}
-              ${shareButton}
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-              <span style="font-size: 10px; color: var(--muted-white); font-family: monospace;">STATUS: CONFIRMED</span>
-              <span style="font-family: var(--font-display); font-size: 11px; font-weight: 900; color: var(--nova-yellow); text-transform: uppercase; letter-spacing: 1px; cursor: pointer;" onclick="event.stopPropagation(); togglePassExpansion('${detailsId}')">Pass Info</span>
-            </div>
-          </div>
-        `;
-
-        // Bind click event to toggle details section on ticket wallet card
-        card.addEventListener("click", (e) => {
-          if (e.target.closest("a") || e.target.closest("button") || e.target.closest("span[onclick]") || e.target.closest("canvas")) {
-            return;
-          }
-          togglePassExpansion(detailsId);
-        });
-      }
-      
-      listContainer.appendChild(card);
-      
-      // Draw live canvas QR code inside card ONLY if confirmed
-      if (!isPending) {
-        drawTicketQRCode(`qr-canvas-${reg.ticketId}`, reg.ticketId, reg.color);
-      }
-    });
-  }
-
-  renderNotifications();
-}
-
-window.viewPassDetails = function(ticketId) {
-  const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
-  if (reg) {
-    if (reg.status === "Pending") {
-      showToast("Payment is still processing.", "var(--warning)", "var(--warning)");
-      return;
-    }
-    showTicket(reg);
-  }
-};
-
-// ==========================================
-// 09 — MOTION SYSTEMS & CONFETTI CELEBRATION
-// ==========================================
-
-function triggerConfetti() {
+// Confetti explosions animations
+function triggerConfettiExplosion() {
   const canvas = document.getElementById("confetti-canvas");
+  if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  
   canvas.width = canvas.parentElement.clientWidth;
   canvas.height = canvas.parentElement.clientHeight;
 
-  const colors = ["#E8614A", "#8B6FD4", "#C8E84A", "#F28070", "#B89EF0"];
+  const colors = ["#8B6FD4", "#C8E84A", "#E8614A", "#4AE88A", "#00b4d8"];
   const particles = [];
 
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 75; i++) {
     particles.push({
       x: Math.random() * canvas.width,
-      y: Math.random() * -50,
+      y: Math.random() * -60,
       r: Math.random() * 4 + 3,
-      d: Math.random() * canvas.height,
       color: colors[Math.floor(Math.random() * colors.length)],
       tilt: Math.random() * 10 - 5,
-      tiltAngleIncremental: Math.random() * 0.07 + 0.02,
       tiltAngle: 0,
+      tiltAngleInc: Math.random() * 0.05 + 0.02,
       velocity: {
         x: Math.random() * 2 - 1,
-        y: Math.random() * 3 + 2
+        y: Math.random() * 4 + 3
       }
     });
   }
@@ -1370,11 +1074,9 @@ function triggerConfetti() {
   let animationFrame;
   const start = Date.now();
 
-  function drawConfetti() {
+  function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     let active = false;
-
     particles.forEach(p => {
       ctx.beginPath();
       ctx.lineWidth = p.r;
@@ -1385,996 +1087,362 @@ function triggerConfetti() {
 
       p.y += p.velocity.y;
       p.x += p.velocity.x;
-      p.tiltAngle += p.tiltAngleIncremental;
-      p.tilt = Math.sin(p.tiltAngle) * 12;
+      p.tiltAngle += p.tiltAngleInc;
+      p.tilt = Math.sin(p.tiltAngle) * 10;
 
       if (p.y < canvas.height) active = true;
     });
 
     if (active && Date.now() - start < 3000) {
-      animationFrame = requestAnimationFrame(drawConfetti);
+      animationFrame = requestAnimationFrame(draw);
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       cancelAnimationFrame(animationFrame);
     }
   }
-
-  drawConfetti();
+  draw();
 }
 
-function showToast(message, borderColor = "var(--galactic-purple)", iconColor = "var(--galactic-purple)") {
-  const toast = document.getElementById("app-toast");
-  const textSpan = document.getElementById("toast-text");
-  
-  textSpan.textContent = message;
-  toast.style.setProperty("--border-color", borderColor);
-  toast.style.setProperty("--icon-color", iconColor);
-
-  toast.classList.add("show");
-  
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2500);
-}
-
-window.showCustomAlert = function(title, message) {
-  const overlay = document.getElementById("custom-alert-overlay");
-  const titleEl = document.getElementById("custom-alert-title");
-  const msgEl = document.getElementById("custom-alert-message");
-  if (titleEl) titleEl.textContent = title;
-  if (msgEl) msgEl.textContent = message;
-  if (overlay) overlay.style.display = "flex";
-};
-
-window.closeCustomAlert = function() {
-  const overlay = document.getElementById("custom-alert-overlay");
-  if (overlay) overlay.style.display = "none";
-};
-
-// Update status bar time
-function updateStatusBarTime() {
-  const timeText = document.getElementById("status-time");
-  const now = new Date();
-  let hr = now.getHours();
-  let min = now.getMinutes();
-  
-  hr = hr < 10 ? '0' + hr : hr;
-  min = min < 10 ? '0' + min : min;
-  
-  timeText.textContent = `${hr}:${min}`;
-}
-setInterval(updateStatusBarTime, 60000);
-updateStatusBarTime();
-
-// ==========================================
-// 10 — FIREBASE SIMULATOR & SEEDING MODULES
-// ==========================================
-
-const FirebaseService = {
-  auth: {
-    createUserWithEmailAndPassword: async (email, password, profileData) => {
-      if (useRealFirebase) {
-        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-        const uid = userCredential.user.uid;
-        
-        await firebase.firestore().collection("students").doc(uid).set({
-          uid,
-          ...profileData,
-          email: email.toLowerCase()
-        });
-        
-        return { user: { uid, email } };
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        if (users[email.toLowerCase()]) {
-          throw new Error("auth/email-already-in-use");
-        }
-        
-        const uid = "uid_" + Math.random().toString(36).substr(2, 9);
-        users[email.toLowerCase()] = {
-          uid,
-          email: email.toLowerCase(),
-          password,
-          profileData: {
-            ...profileData,
-            uid,
-            email: email.toLowerCase()
-          }
-        };
-        localStorage.setItem("firebase_mock_users", JSON.stringify(users));
-        return { user: { uid, email } };
-      }
-    },
-    
-    signInWithEmailAndPassword: async (email, password) => {
-      if (useRealFirebase) {
-        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-        return { user: { uid: userCredential.user.uid, email: userCredential.user.email } };
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        const user = users[email.toLowerCase()];
-        if (!user || user.password !== password) {
-          throw new Error("auth/invalid-credential");
-        }
-        return { user: { uid: user.uid, email: user.email } };
-      }
-    },
-
-    signOut: async () => {
-      if (useRealFirebase) {
-        await firebase.auth().signOut();
-      }
-    },
-
-    sendPasswordResetEmail: async (email) => {
-      if (useRealFirebase) {
-        await firebase.auth().sendPasswordResetEmail(email);
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        if (!users[email.toLowerCase()]) {
-          throw new Error("auth/user-not-found");
-        }
-        console.log(`Password reset link sent to ${email} (Simulated).`);
-      }
-    },
-
-    signInWithGoogle: async () => {
-      if (useRealFirebase) {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await firebase.auth().signInWithPopup(provider);
-        return {
-          user: {
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName
-          }
-        };
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return {
-          user: {
-            uid: "uid_google123",
-            email: "google.student@rit.ac.in",
-            displayName: "GOOGLE TEST STUDENT"
-          }
-        };
-      }
-    }
-  },
-  
-  db: {
-    getStudentDoc: async (uid) => {
-      if (useRealFirebase) {
-        const doc = await firebase.firestore().collection("students").doc(uid).get();
-        return {
-          exists: () => doc.exists,
-          data: () => doc.data()
-        };
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        for (const email in users) {
-          if (users[email].uid === uid) {
-            return { exists: () => true, data: () => users[email].profileData };
-          }
-        }
-        return { exists: () => false };
-      }
-    },
-    
-    saveStudentDoc: async (uid, data) => {
-      if (useRealFirebase) {
-        await firebase.firestore().collection("students").doc(uid).set(data, { merge: true });
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-        for (const email in users) {
-          if (users[email].uid === uid) {
-            users[email].profileData = { ...users[email].profileData, ...data };
-            localStorage.setItem("firebase_mock_users", JSON.stringify(users));
-            return;
-          }
-        }
-        throw new Error("firestore/document-not-found");
-      }
-    }
-  }
-};
-
-function seedMockDatabase() {
-  let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-  
-  if (!users["sirin@rit.ac.in"]) {
-    users["sirin@rit.ac.in"] = {
-      uid: "uid_sirin123",
-      email: "sirin@rit.ac.in",
-      password: "password123",
-      profileData: {
-        uid: "uid_sirin123",
-        name: "SIRIN MATHEWS",
-        email: "sirin@rit.ac.in",
-        id: "RIT22CS089",
-        registerNo: "RIT22CS089",
-        department: "Computer Science & Engineering",
-        year: "3rd Year",
-        yearOfStudy: "3rd Year",
-        phone: "+919876543210",
-        collegeName: "Rajiv Gandhi Institute of Technology",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
-        approved: true
-      }
-    };
-  }
-
-  if (!users["admin@rit.ac.in"]) {
-    users["admin@rit.ac.in"] = {
-      uid: "uid_admin123",
-      email: "admin@rit.ac.in",
-      password: "admin123",
-      profileData: {
-        uid: "uid_admin123",
-        name: "ADMINISTRATOR",
-        email: "admin@rit.ac.in",
-        id: "ADMIN-01",
-        registerNo: "ADMIN-01",
-        department: "Administration",
-        year: "N/A",
-        yearOfStudy: "N/A",
-        phone: "+91 00000 00000",
-        collegeName: "IEDC RIT Admin",
-        avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80",
-        approved: true,
-        role: "admin"
-      }
-    };
-  }
-
-  localStorage.setItem("firebase_mock_users", JSON.stringify(users));
-
-  // Seed initial events and tournaments in localStorage
-  let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-  if (mockEvents.length === 0) {
-    mockEvents = [
-      {
-        id: "gen-ai-bootcamp-01",
-        eventId: "gen-ai-bootcamp-01",
-        title: "Generative AI Bootcamp",
-        type: "workshop",
-        typeLabel: "Workshop",
-        date: "24 June, 2026",
-        isoDate: "2026-06-24T10:00:00",
-        time: "10:00 AM",
-        seats: 25,
-        price: "₹150",
-        host: "Dr. Elizabeth George, AI Research lead at TechCorp",
-        speakerLinkedin: "https://linkedin.com",
-        location: "RIT CSE Seminar Hall",
-        mode: "offline",
-        description: "Hands-on engineering bootcamp on training, fine-tuning, and evaluating LLMs. Build complete systems.",
-        color: "#C8E84A",
-        hasTeam: false,
-        maxTeamSize: 1,
-        poster: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80",
-        upi: "iedcrit@okaxis"
-      },
-      {
-        id: "founder-stories-talk-02",
-        eventId: "founder-stories-talk-02",
-        title: "Scaling Fintech: Founder Stories",
-        type: "talk",
-        typeLabel: "Talk",
-        date: "25 June, 2026",
-        isoDate: "2026-06-25T14:30:00",
-        time: "02:30 PM",
-        seats: 120,
-        price: "Free",
-        host: "Arun Joy, CEO at FinNovate",
-        speakerLinkedin: "https://linkedin.com",
-        location: "https://meet.google.com/abc-def-ghi",
-        mode: "online",
-        description: "Learn what it takes to build, validate, scale and raise capital for a fintech venture in India.",
-        color: "#E8614A",
-        hasTeam: false,
-        maxTeamSize: 1,
-        poster: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80",
-        upi: "iedcrit@okaxis"
-      }
-    ];
-    localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
-  }
-
-  let mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-  if (mockTournaments.length === 0) {
-    mockTournaments = [
-      {
-        id: "fifa-tournament-03",
-        eventId: "fifa-tournament-03",
-        title: "FIFA 2026 Arena",
-        type: "tournament",
-        typeLabel: "Tournament",
-        date: "26 June, 2026",
-        isoDate: "2026-06-26T09:00:00",
-        time: "09:00 AM",
-        seats: 64,
-        price: "₹50",
-        host: "RIT Sports Club, Organizing Committee",
-        speakerLinkedin: "https://linkedin.com",
-        location: "RIT Indoor Stadium",
-        mode: "offline",
-        description: "Standard single elimination FIFA 26 gaming bracket. Cash awards for top 3 champions.",
-        color: "#8B6FD4",
-        hasTeam: false,
-        maxTeamSize: 1,
-        poster: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=600&q=80",
-        upi: "iedcrit@okaxis"
-      }
-    ];
-    localStorage.setItem("firebase_mock_tournaments", JSON.stringify(mockTournaments));
-  }
-}
-seedMockDatabase();
-
-// ==========================================
-// 11 — INTERACTION LOGIC & EVENT BINDINGS
-// ==========================================
-
-document.getElementById("profile-avatar-trigger").addEventListener("click", () => {
-  openProfileSetup(true);
+// Confirm action overrides on UPI drawer buttons
+document.getElementById("detail-upi-confirm-btn").addEventListener("click", async () => {
+  // Manual check confirm
+  showToast("Awaiting admin SMS check...", "#C8E84A");
+});
+document.getElementById("detail-upi-cancel-btn").addEventListener("click", () => {
+  cleanupVerificationLoops();
+  document.getElementById("registration-form").style.display = "block";
+  document.getElementById("detail-upi-checkout-container").style.display = "none";
+  document.getElementById("detail-register-btn").style.display = "block";
 });
 
-document.getElementById("btn-upload-avatar").addEventListener("click", () => {
-  document.getElementById("setup-avatar-upload").click();
-});
+// ==========================================
+// 05 — Student Wallet Shelf View
+// ==========================================
 
-document.getElementById("setup-avatar-upload").addEventListener("change", function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+function renderDashboard() {
+  const container = document.getElementById("dashboard-list-container");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  const attendedCount = USER_REGISTRATIONS.filter(r => r.checkedIn === true).length;
+  const activeCount = USER_REGISTRATIONS.filter(r => r.checkedIn !== true).length;
+  
+  const att = document.getElementById("stat-attended");
+  const up = document.getElementById("stat-upcoming");
+  const certs = document.getElementById("stat-certs");
+  
+  if (att) att.textContent = attendedCount;
+  if (up) up.textContent = activeCount;
+  if (certs) certs.textContent = attendedCount;
 
-  const type = file.type;
-  if (type !== "image/jpeg" && type !== "image/jpg") {
-    showToast("Avatar image must be in JPG/JPEG format.", "var(--error)", "var(--error)");
-    this.value = "";
+  if (USER_REGISTRATIONS.length === 0) {
+    container.innerHTML = `<p style="color:rgba(255,255,255,0.6); font-size:12px;">You do not have any registered event tickets in your wallet shelf yet.</p>`;
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    const url = event.target.result;
-    document.getElementById("custom-avatar-preview").src = url;
-    const radio = document.getElementById("radio-custom-avatar");
-    radio.value = url;
-    radio.checked = true;
-    document.getElementById("custom-avatar-label").style.display = "block";
-    showToast("Custom avatar picture loaded!", "var(--success)", "var(--success)");
+  USER_REGISTRATIONS.forEach(reg => {
+    const card = document.createElement("div");
+    
+    if (reg.status === "Pending") {
+      card.className = "ticket-wallet-card-pending";
+      card.innerHTML = `
+        <div style="padding: 16px; text-align: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.06); border-radius:16px;">
+          <div style="font-size:16px; margin-bottom:4px;">⏳</div>
+          <div style="font-size:12px; font-weight:800; color:#C8E84A;">Verification Pending</div>
+          <p style="font-size:10px; color:rgba(255,255,255,0.5); margin: 4px 0 0 0;">Event: ${reg.title}</p>
+        </div>
+      `;
+    } else {
+      card.className = "bookmyshow-ticket";
+      card.style.setProperty("--ticket-color", reg.color || "#8b6fd4");
+      
+      const drawerId = `drawer-${reg.registrationId}`;
+      const waLink = reg.whatsappLink ? `<a href="${reg.whatsappLink}" target="_blank" class="btn" style="background:#25D366 !important; color:white !important; font-size:11px; padding:10px; border-radius:8px; font-weight:800; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">💬 Join WhatsApp Group</a>` : "";
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(reg.location)}`;
+      
+      card.innerHTML = `
+        <div class="ticket-poster-container" style="background-image: linear-gradient(to bottom, rgba(3, 6, 17, 0.1), rgba(3, 6, 17, 0.95)), url(${reg.poster || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80'}); height:120px; background-size:cover; background-position:center; position:relative;">
+          <div style="position:absolute; top:10px; right:10px;">
+            <span class="chip">${reg.typeLabel.toUpperCase()}</span>
+          </div>
+        </div>
+        <div class="ticket-perforation-line"></div>
+        <div class="ticket-details-container" style="padding:15px; text-align:left;">
+          <h3 style="font-family: var(--font-display); font-size: 16px; font-weight:800; color:white; margin:0;">${reg.title}</h3>
+          <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:4px;">📅 ${reg.date} • ${reg.time}</div>
+          
+          <div class="ticket-frosted-pass" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); padding:10px; border-radius:10px; display:flex; align-items:center; gap:10px; margin-top:10px;">
+            <div style="background:white; padding:4px; border-radius:6px; width:52px; height:52px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <canvas id="qr-wallet-${reg.registrationId}" style="width:100%; height:100%;"></canvas>
+            </div>
+            <div>
+              <span style="font-size:8px; font-weight:800; color:#8b6fd4; text-transform:uppercase;">Verified Entry Pass</span>
+              <div style="font-size:12px; font-weight:800; color:white;">${reg.studentName}</div>
+              <div style="font-family:monospace; font-size:9.5px; color:rgba(255,255,255,0.5);">ID: ${reg.registrationId}</div>
+            </div>
+          </div>
+
+          <!-- Expandable detail drawer -->
+          <div id="${drawerId}" style="display:none; flex-direction:column; gap:8px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:10px; font-size:11px; color:rgba(255,255,255,0.6);">
+            <div>Duration: <strong style="color:white;">${reg.duration || '3 Hours'}</strong></div>
+            <div>Venue: <strong style="color:white;">${reg.location}</strong></div>
+            <div>Instructions: <span>${reg.instructions || 'Please arrive 15 minutes before the start time. Carry your student ID.'}</span></div>
+            ${waLink}
+            <a href="${mapsLink}" target="_blank" class="btn" style="background:rgba(0, 180, 216, 0.1) !important; border:1px solid #00b4d8 !important; color:#00b4d8 !important; font-size:11px; padding:10px; border-radius:8px; font-weight:800; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">📍 View Map Location</a>
+            <button type="button" class="btn" onclick="event.stopPropagation(); shareTicketPass('${reg.registrationId}', '${reg.title}')" style="background:#8b6fd4; color:white; font-size:11px; padding:10px; border:none; font-weight:800;">📤 Share Pass</button>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+            <span style="font-size:9px; font-family:monospace; color:rgba(255,255,255,0.4);">STATUS: CONFIRMED</span>
+            <span style="font-size:10.5px; font-weight:800; color:#C8E84A; cursor:pointer;" onclick="event.stopPropagation(); toggleWalletPassDrawer('${drawerId}')">Pass Info</span>
+          </div>
+        </div>
+      `;
+      
+      card.addEventListener("click", (e) => {
+        if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A" && !e.target.onclick) {
+          toggleWalletPassDrawer(drawerId);
+        }
+      });
+    }
+
+    container.appendChild(card);
+
+    if (reg.status !== "Pending") {
+      setTimeout(() => {
+        const c = document.getElementById(`qr-wallet-${reg.registrationId}`);
+        drawQR(c, reg.registrationId, reg.color || "#8b6fd4");
+      }, 50);
+    }
+  });
+}
+
+window.toggleWalletPassDrawer = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === "none" ? "flex" : "none";
+};
+
+// Web Share Pass
+window.shareTicketPass = async function(ticketId, title) {
+  const data = {
+    title: `Confirmed Entry Pass for ${title}`,
+    text: `Hey, I registered for ${title}! My Ticket ID is ${ticketId}. Register yours here:`,
+    url: window.location.origin
   };
-  reader.readAsDataURL(file);
-});
-
-document.getElementById("setup-email").addEventListener("input", function() {
-  this.value = this.value.toLowerCase();
-});
-document.getElementById("login-email").addEventListener("input", function() {
-  this.value = this.value.toLowerCase();
-});
-document.getElementById("setup-name").addEventListener("input", function() {
-  this.value = this.value.toUpperCase();
-});
-
-function switchAuthTab(mode) {
-  const loginTab = document.getElementById("auth-tab-login");
-  const registerTab = document.getElementById("auth-tab-register");
-  const loginForm = document.getElementById("auth-login-form");
-  const registerForm = document.getElementById("profile-setup-form");
-  const forgotForm = document.getElementById("auth-forgot-password-form");
-  const title = document.getElementById("setup-title");
-  const subtitle = document.getElementById("setup-subtitle");
-
-  if (forgotForm) forgotForm.style.display = "none";
-  document.getElementById("auth-tabs-container").style.display = "flex";
-
-  if (mode === "login") {
-    loginTab.classList.add("active");
-    registerTab.classList.remove("active");
-    loginForm.style.display = "block";
-    registerForm.style.display = "none";
-    title.textContent = "Welcome Back";
-    subtitle.textContent = "Sign in to discover and register for events.";
-  } else {
-    loginTab.classList.remove("active");
-    registerTab.classList.add("active");
-    loginForm.style.display = "none";
-    registerForm.style.display = "block";
-    title.textContent = "Create Profile";
-    subtitle.textContent = "Set up your credentials to access the IEDC event gateway.";
-  }
-}
-
-document.getElementById("auth-tab-login").addEventListener("click", () => switchAuthTab("login"));
-document.getElementById("auth-tab-register").addEventListener("click", () => switchAuthTab("register"));
-
-document.getElementById("btn-forgot-password").addEventListener("click", () => {
-  document.getElementById("auth-tabs-container").style.display = "none";
-  document.getElementById("auth-login-form").style.display = "none";
-  document.getElementById("auth-forgot-password-form").style.display = "block";
-  document.getElementById("setup-title").textContent = "Reset Password";
-  document.getElementById("setup-subtitle").textContent = "Enter your email to receive a password reset link.";
-});
-
-document.getElementById("btn-forgot-back").addEventListener("click", () => {
-  document.getElementById("auth-forgot-password-form").style.display = "none";
-  document.getElementById("auth-tabs-container").style.display = "flex";
-  document.getElementById("auth-login-form").style.display = "block";
-  document.getElementById("setup-title").textContent = "Welcome Back";
-  document.getElementById("setup-subtitle").textContent = "Sign in to discover and register for events.";
-});
-
-document.getElementById("auth-forgot-password-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = document.getElementById("forgot-email").value.trim().toLowerCase();
-  
-  const submitBtn = e.target.querySelector("button[type='submit']");
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Sending...";
-  
   try {
-    await FirebaseService.auth.sendPasswordResetEmail(email);
-    showToast("Password reset email sent!", "var(--success)", "var(--success)");
-    document.getElementById("forgot-email").value = "";
-    document.getElementById("btn-forgot-back").click();
-  } catch (error) {
-    showToast("Error sending reset email.", "var(--error)", "var(--error)");
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Send Reset Link";
-  }
-});
-
-function checkApprovalAndRoute(profileData) {
-  isUserLoggedIn = true;
-  document.getElementById("main-app-layout").style.display = "block";
-  if (profileData.role === "admin" || profileData.email === "admin@rit.ac.in") {
-    window.location.href = "admin.html";
-  } else if (profileData.approved === true) {
-    navigateTo("home");
-    // Show promotional banner popup widget on homepage load!
-    if (typeof showAdOverlay !== "undefined") {
-      setTimeout(showAdOverlay, 1500);
-    }
-  } else {
-    document.getElementById("pending-student-name").textContent = profileData.name || "Student";
-    navigateTo("pending");
-  }
-}
-
-document.getElementById("auth-login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = document.getElementById("login-email").value.trim().toLowerCase();
-  const password = document.getElementById("login-password").value;
-  
-  const submitBtn = e.target.querySelector("button[type='submit']");
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Verifying...";
-  
-  try {
-    let credentials;
-    let isMockAdmin = false;
-
-    if (email === "admin@rit.ac.in" && password === "admin123") {
-      isMockAdmin = true;
-      credentials = { user: { uid: "uid_admin123", email: "admin@rit.ac.in" } };
-    }
-
-    if (!isMockAdmin) {
-      credentials = await FirebaseService.auth.signInWithEmailAndPassword(email, password);
-    }
-
-    const docSnap = await FirebaseService.db.getStudentDoc(credentials.user.uid);
-    if (docSnap.exists()) {
-      USER_PROFILE = docSnap.data();
-      sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
-      updateUserProfileUI();
-      checkApprovalAndRoute(USER_PROFILE);
+    if (navigator.share) {
+      await navigator.share(data);
+      showToast("Pass shared successfully!");
     } else {
-      if (email === "admin@rit.ac.in") {
-        USER_PROFILE = {
-          uid: credentials.user.uid,
-          name: "ADMINISTRATOR",
-          email: "admin@rit.ac.in",
-          id: "ADMIN-01",
-          registerNo: "ADMIN-01",
-          department: "Administration",
-          year: "N/A",
-          yearOfStudy: "N/A",
-          phone: "+91 00000 00000",
-          collegeName: "IEDC RIT Admin",
-          avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80",
-          approved: true,
-          role: "admin"
-        };
-        await FirebaseService.db.saveStudentDoc(credentials.user.uid, USER_PROFILE);
-        sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
-        updateUserProfileUI();
-        checkApprovalAndRoute(USER_PROFILE);
-      } else {
-        throw new Error("auth/user-not-found");
-      }
-    }
-  } catch (error) {
-    showToast("Invalid credentials. Try again.", "var(--error)", "var(--error)");
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Login & Enter";
-  }
-});
-
-document.getElementById("btn-google-auth").addEventListener("click", async () => {
-  try {
-    const credentials = await FirebaseService.auth.signInWithGoogle();
-    const uid = credentials.user.uid;
-    const docSnap = await FirebaseService.db.getStudentDoc(uid);
-
-    if (docSnap.exists()) {
-      USER_PROFILE = docSnap.data();
-      sessionStorage.setItem("loggedInUserUid", uid);
-      updateUserProfileUI();
-      checkApprovalAndRoute(USER_PROFILE);
-    } else {
-      sessionStorage.setItem("loggedInUserUid", uid);
-      switchAuthTab("register");
-
-      document.getElementById("setup-name").value = (credentials.user.displayName || "").toUpperCase();
-      document.getElementById("setup-email").value = (credentials.user.email || "").toLowerCase();
-      document.getElementById("setup-password").value = "GOOGLE_AUTH_USER";
-      document.getElementById("setup-confirm-password").value = "GOOGLE_AUTH_USER";
-
-      showToast("Authenticated! Setup profile details.", "var(--galactic-purple)", "var(--galactic-purple)");
+      await navigator.clipboard.writeText(`Confirmed entry pass for ${title}! Ticket ID: ${ticketId}`);
+      showToast("Pass copied to clipboard!", "#C8E84A");
     }
   } catch (e) {
-    showToast("Google Authentication failed.", "var(--error)", "var(--error)");
+    console.warn("Share failed:", e);
   }
-});
+};
 
-document.getElementById("profile-setup-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+// Profile settings loading UI
+function updateUserProfileUI() {
+  document.getElementById("db-profile-avatar").src = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80";
+  document.getElementById("db-profile-name").textContent = USER_PROFILE.name;
+  document.getElementById("db-profile-id").textContent = USER_PROFILE.id;
+  document.getElementById("db-profile-email").textContent = USER_PROFILE.email;
+  document.getElementById("db-profile-dept").textContent = USER_PROFILE.department;
+  document.getElementById("db-profile-year").textContent = USER_PROFILE.yearOfStudy;
+  document.getElementById("db-profile-phone").textContent = USER_PROFILE.phone;
+  document.getElementById("db-profile-college").textContent = USER_PROFILE.collegeName;
+  
+  const headerAvatar = document.getElementById("app-header-avatar");
+  if (headerAvatar) headerAvatar.src = USER_PROFILE.avatar;
+}
 
-  const name = document.getElementById("setup-name").value.trim();
-  const email = document.getElementById("setup-email").value.trim().toLowerCase();
-  const password = document.getElementById("setup-password").value;
-  const confirmPassword = document.getElementById("setup-confirm-password").value;
-  const id = document.getElementById("setup-id").value.trim();
-  const department = document.getElementById("setup-department").value;
-  const yearOfStudy = sanitizeInput(document.getElementById("setup-year").value);
-  const phone = sanitizeInput(document.getElementById("setup-phone").value);
-  const college = sanitizeInput(document.getElementById("setup-college").value);
-
-  let avatar = "";
-  document.getElementsByName("setup-avatar").forEach(radio => {
-    if (radio.checked) avatar = radio.value;
+// Navigation screen management
+window.switchTab = function(tabId) {
+  document.querySelectorAll(".nav-section").forEach(sec => {
+    sec.style.display = "none";
+    sec.classList.remove("active");
   });
+  
+  const target = document.getElementById(`${tabId}-section`);
+  if (target) {
+    target.style.display = "block";
+    target.classList.add("active");
+  }
 
-  const isUpdating = sessionStorage.getItem("loggedInUserUid") !== null;
+  // Hide detailed layers
+  const detail = document.getElementById("screen-detail");
+  if (detail) {
+    detail.style.display = "none";
+    detail.classList.remove("active");
+  }
 
-  if (!isUpdating && password !== confirmPassword) {
-    showToast("Passwords do not match.", "var(--error)", "var(--error)");
+  // Update tabs states
+  document.querySelectorAll(".bottom-nav-btn").forEach(btn => btn.classList.remove("active-neon"));
+  const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
+  if (activeBtn) activeBtn.classList.add("active-neon");
+
+  if (tabId === "profile") {
+    updateUserProfileUI();
+  }
+};
+
+window.navigateTo = function(screenId) {
+  if (["home", "wallet", "news", "profile"].includes(screenId)) {
+    switchTab(screenId);
     return;
   }
-
-  const submitBtn = document.getElementById("btn-setup-submit");
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Processing...";
-
-  try {
-    const profileData = {
-      name,
-      email,
-      password,
-      registerNo: id,
-      id,
-      department,
-      year: yearOfStudy,
-      yearOfStudy,
-      phone,
-      collegeName: college,
-      avatar,
-      approved: isUpdating ? (USER_PROFILE.approved === true) : false,
-      createdAt: new Date().toISOString()
-    };
-
-    if (isUpdating) {
-      const uid = sessionStorage.getItem("loggedInUserUid");
-      await FirebaseService.db.saveStudentDoc(uid, profileData);
-      USER_PROFILE = { ...profileData, uid };
-      updateUserProfileUI();
-      
-      if (USER_PROFILE.approved === true) {
-        showToast("Profile settings saved!", "var(--success)", "var(--success)");
-        navigateTo("home");
-      } else {
-        showToast("Profile registered. Pending review.", "var(--warning)", "var(--warning)");
-        checkApprovalAndRoute(USER_PROFILE);
-      }
-    } else {
-      const credentials = await FirebaseService.auth.createUserWithEmailAndPassword(email, password, profileData);
-      USER_PROFILE = { ...profileData, uid: credentials.user.uid };
-      sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
-      updateUserProfileUI();
-      showToast("Profile submitted for approval.", "var(--warning)", "var(--warning)");
-      checkApprovalAndRoute(USER_PROFILE);
-    }
-  } catch (err) {
-    showToast("Error processing registration.", "var(--error)", "var(--error)");
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Register & Enter";
-  }
-});
-
-function updateUserProfileUI() {
-  const name = USER_PROFILE.name;
-  const email = USER_PROFILE.email;
-  const id = USER_PROFILE.id;
-  const college = USER_PROFILE.collegeName;
-  const avatar = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
-
-  document.querySelectorAll(".avatar-img").forEach(img => {
-    if (!img.closest(".avatar-option")) {
-      img.src = avatar;
+  
+  document.querySelectorAll(".screen").forEach(s => {
+    if (s.id !== "screen-detail" || screenId !== "detail") {
+      s.style.display = "none";
     }
   });
 
-  document.querySelectorAll(".dashboard-greeting").forEach(greeting => {
-    greeting.textContent = `Hey ${name.split(" ")[0]} 👋`;
-  });
-}
-
-function openProfileSetup(isEditing = false) {
-  const title = document.getElementById("setup-title");
-  const subtitle = document.getElementById("setup-subtitle");
-  const submitBtn = document.getElementById("btn-setup-submit");
-  const backBtn = document.getElementById("setup-back-btn");
-  const tabsContainer = document.getElementById("auth-tabs-container");
-  const loginForm = document.getElementById("auth-login-form");
-  const registerForm = document.getElementById("profile-setup-form");
-
-  if (isEditing) {
-    tabsContainer.style.display = "none";
-    loginForm.style.display = "none";
-    registerForm.style.display = "block";
-
-    title.textContent = "Edit Profile";
-    subtitle.textContent = "Update your credentials for the IEDC event gateway.";
-    submitBtn.textContent = "Save Changes";
-    backBtn.style.display = "flex";
-
-    document.getElementById("setup-name").value = USER_PROFILE.name || "";
-    document.getElementById("setup-email").value = USER_PROFILE.email || "";
-    document.getElementById("setup-password").value = USER_PROFILE.password || "";
-    document.getElementById("setup-confirm-password").value = USER_PROFILE.password || "";
-    document.getElementById("setup-id").value = USER_PROFILE.id || "";
-    document.getElementById("setup-department").value = USER_PROFILE.department || "";
-    document.getElementById("setup-year").value = USER_PROFILE.yearOfStudy || "";
-    document.getElementById("setup-phone").value = USER_PROFILE.phone || "";
-    document.getElementById("setup-college").value = USER_PROFILE.collegeName || "";
-  } else {
-    tabsContainer.style.display = "flex";
-    backBtn.style.display = "none";
-    switchAuthTab("login");
-  }
-
-  navigateTo("auth");
-}
-
-async function handleSignOut() {
-  await FirebaseService.auth.signOut();
-  sessionStorage.removeItem("loggedInUserUid");
-  isUserLoggedIn = false;
-  document.getElementById("main-app-layout").style.display = "none";
-  USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
-  navigateTo("auth");
-}
-
-document.querySelectorAll(".btn-logout-action").forEach(btn => {
-  btn.addEventListener("click", handleSignOut);
-});
-document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
-
-// Webhook wait screen Back/Dashboard action binder
-window.closeWaitingOverlayAndGoToWallet = function() {
-  const waitOverlay = document.getElementById("waiting-verification-overlay");
-  if (waitOverlay) waitOverlay.style.display = "none";
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  switchTab("wallet");
-};
-
-document.getElementById("btn-waiting-back").addEventListener("click", () => {
-  const waitOverlay = document.getElementById("waiting-verification-overlay");
-  if (waitOverlay) waitOverlay.style.display = "none";
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  switchTab("wallet");
-});
-
-/**
- * Standalone batch cleanup utility to remove duplicate or orphaned registrations.
- * Can be executed directly from the browser developer console (F12) by an administrator.
- */
-window.cleanupOrphanedTickets = async function() {
-  if (!useRealFirebase) {
-    console.warn("Cleanup is only available in live Firestore mode.");
-    return "Failed: Not in Firestore mode.";
-  }
-
-  try {
-    const db = firebase.firestore();
-    console.log("Starting batch cleanup of duplicate/orphaned registrations...");
-    
-    // 1. Fetch all registrations
-    const regsSnap = await db.collection("registrations").get();
-    const allRegs = [];
-    regsSnap.forEach(doc => {
-      allRegs.push({ id: doc.id, ref: doc.ref, ...doc.data() });
-    });
-
-    console.log(`Retrieved ${allRegs.length} total registration records.`);
-
-    // 2. Identify duplicates (same studentUid and eventId)
-    const grouped = {};
-    allRegs.forEach(reg => {
-      const key = `${reg.studentUid}_${reg.eventId}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-      grouped[key].push(reg);
-    });
-
-    const toDelete = [];
-    let keptConfirmed = 0;
-    let deletedDuplicates = 0;
-
-    Object.keys(grouped).forEach(key => {
-      const group = grouped[key];
-      if (group.length > 1) {
-        console.log(`Duplicate registrations found for student_event ${key} (${group.length} docs)`);
-        
-        // Sort group: Confirmed first, then oldest first
-        group.sort((a, b) => {
-          if (a.status === "Confirmed" && b.status !== "Confirmed") return -1;
-          if (a.status !== "Confirmed" && b.status === "Confirmed") return 1;
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        });
-
-        // Keep the first one (confirmed, or oldest)
-        const primary = group[0];
-        console.log(`Keeping primary registration: ${primary.id} (status: ${primary.status})`);
-        if (primary.status === "Confirmed") keptConfirmed++;
-
-        // Delete the rest
-        for (let i = 1; i < group.length; i++) {
-          const duplicate = group[i];
-          toDelete.push(duplicate.ref.delete());
-          deletedDuplicates++;
-          console.log(`Marking duplicate for deletion: ${duplicate.id} (status: ${duplicate.status})`);
-        }
-      }
-    });
-
-    // 3. Delete orphaned registrations (where student doc does not exist)
-    let deletedOrphans = 0;
-    for (const reg of allRegs) {
-      if (reg.studentUid) {
-        const studentDoc = await db.collection("students").doc(reg.studentUid).get();
-        if (!studentDoc.exists) {
-          console.log(`Orphaned registration found (student account ${reg.studentUid} does not exist): ${reg.id}`);
-          toDelete.push(reg.ref.delete());
-          deletedOrphans++;
-        }
-      }
-    }
-
-    // Resolve delete operations
-    await Promise.all(toDelete);
-    
-    const summary = `Cleanup Completed Successfully!
-----------------------------------
-Duplicates Deleted: ${deletedDuplicates}
-Orphans Deleted: ${deletedOrphans}
-Total Cleaned: ${deletedDuplicates + deletedOrphans} records.`;
-    
-    console.log(summary);
-    return summary;
-
-  } catch (err) {
-    console.error("Batch cleanup failed:", err);
-    return `Error running cleanup: ${err.message}`;
+  const target = document.getElementById(`screen-${screenId}`);
+  if (target) {
+    target.style.display = "block";
+    target.classList.add("active");
   }
 };
 
-// Dashboard tabs navigation
-function switchDashboardTab(tabId) {
-  const tabs = ["profile", "events", "notifications"];
-  tabs.forEach(t => {
-    const contentEl = document.getElementById(`db-content-${t}`);
-    if (contentEl) {
-      if (t === tabId) {
-        contentEl.style.display = "block";
-      } else {
-        contentEl.style.display = "none";
-      }
-    }
-  });
+// ==========================================
+// 06 — Administration Workspace Panel Mode
+// ==========================================
 
-  // Keep bottom navigation states synchronized
-  const bottomNavIds = {
-    profile: "nav-profile",
-    events: "nav-wallet",
-    notifications: "nav-news"
-  };
-
-  Object.entries(bottomNavIds).forEach(([subId, navId]) => {
-    const navEl = document.getElementById(navId);
-    const homeNavEl = document.getElementById("nav-home");
-    if (navEl) {
-      if (subId === tabId) {
-        navEl.classList.add("active");
-        if (homeNavEl) homeNavEl.classList.remove("active");
-      } else {
-        navEl.classList.remove("active");
-      }
-    }
-  });
+async function initAdminMode() {
+  console.log("Admin Workspace Console Activated.");
+  await loadAdminDashboard();
 }
 
-let NOTIFICATIONS_DATA = [];
-
-let announcementsUnsubscribe = null;
-let tickerUnsubscribe = null;
-
-function initRealTimeSync() {
-  if (announcementsUnsubscribe) announcementsUnsubscribe();
-  if (tickerUnsubscribe) tickerUnsubscribe();
+// Global live loader for admin.html
+window.loadAdminDashboard = async function() {
+  const tbody = document.getElementById("student-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:rgba(255,255,255,0.6);">Connecting to secure Firestore channels...</td></tr>`;
 
   if (useRealFirebase) {
-    try {
-      const db = firebase.firestore();
-      
-      // 1. Ticker Real-Time Sync
-      tickerUnsubscribe = db.collection("config").doc("ticker").onSnapshot((doc) => {
-        if (doc.exists) {
-          updateTickerUI(doc.data().text);
-        } else {
-          updateTickerUI("");
-        }
-      }, (err) => {
-        console.error("Ticker real-time sync error:", err);
-      });
-
-      // 2. Announcements Real-Time Sync
-      announcementsUnsubscribe = db.collection("announcements").onSnapshot((snap) => {
-        let items = [];
-        snap.forEach(doc => {
-          const data = doc.data();
-          items.push({
-            id: doc.id,
-            title: data.title || "",
-            body: data.message || data.body || "",
-            time: data.time || formatTimeAgo(data.createdAt),
-            createdAt: data.createdAt,
-            timestamp: data.timestamp
-          });
-        });
-        items.sort((a, b) => {
-          const timeA = a.timestamp ? (a.timestamp.toDate ? a.timestamp.toDate() : new Date(a.timestamp)) : new Date(a.createdAt || 0);
-          const timeB = b.timestamp ? (b.timestamp.toDate ? b.timestamp.toDate() : new Date(b.timestamp)) : new Date(b.createdAt || 0);
-          return timeB - timeA;
-        });
-        NOTIFICATIONS_DATA = items;
-        renderNotifications();
-      }, (err) => {
-        console.error("Announcements real-time sync error:", err);
-      });
-    } catch (e) {
-      console.error("Error starting Firestore real-time listeners:", e);
-    }
+    db.collection("registrations").onSnapshot(snap => {
+      let regs = [];
+      snap.forEach(d => regs.push({ id: d.id, ...d.data() }));
+      renderAdminTable(regs, tbody);
+    }, (err) => {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#ff4d4d;">Error: ${err.message}</td></tr>`;
+    });
   } else {
-    // Simulator polling fallbacks
-    function pollSimulator() {
-      // Ticker
-      const tickerData = JSON.parse(localStorage.getItem("firebase_mock_config_ticker") || '{"text":""}');
-      updateTickerUI(tickerData.text);
-
-      // Announcements
-      const mockAnnouncements = JSON.parse(localStorage.getItem("firebase_mock_announcements") || "[]");
-      let items = mockAnnouncements.map(a => ({
-        id: a.id,
-        title: a.title || "",
-        body: a.message || a.body || "",
-        time: a.time || formatTimeAgo(a.createdAt),
-        createdAt: a.createdAt
-      }));
-      items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      NOTIFICATIONS_DATA = items;
-      renderNotifications();
-    }
-    pollSimulator();
-    setInterval(pollSimulator, 2000);
+    // Simulator mock loads
+    setInterval(() => {
+      const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+      renderAdminTable(mockRegs, tbody);
+    }, 1500);
   }
-}
+};
 
-function updateTickerUI(text) {
-  const container = document.querySelector(".ticker");
-  if (!container) return;
-  container.innerHTML = "";
-
-  const rawText = text || "📢 Welcome to IEDC RIT Event Platform!";
-  const items = rawText.split("|");
-  items.forEach(item => {
-    const span = document.createElement("span");
-    span.className = "ticker-item";
-    span.textContent = item.trim();
-    container.appendChild(span);
-  });
-}
-
-function formatTimeAgo(dateStr) {
-  if (!dateStr) return "Just Now";
-  try {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const secs = Math.floor(diff / 1000);
-    const mins = Math.floor(secs / 60);
-    const hours = Math.floor(mins / 60);
-    const days = Math.floor(hours / 24);
-
-    if (secs < 60) return "Just Now";
-    if (mins < 60) return `${mins}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  } catch (e) {
-    return "Just Now";
+function renderAdminTable(list, tbody) {
+  tbody.innerHTML = "";
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:rgba(255,255,255,0.6);">No student registrations found in database ledger.</td></tr>`;
+    return;
   }
-}
 
-function renderNotifications() {
-  const container = document.getElementById("notifications-list-container");
-  if (!container) return;
-  container.innerHTML = "";
-  NOTIFICATIONS_DATA.forEach(n => {
-    const card = document.createElement("div");
-    card.className = "notification-card";
-    card.innerHTML = `
-      <span class="notification-title">${n.title}</span>
-      <p class="notification-body">${n.body}</p>
-      <span class="notification-time">${n.time}</span>
+  list.forEach(reg => {
+    const row = document.createElement("tr");
+    const statusClass = reg.status === "Confirmed" ? "badge-approved" : "badge-pending";
+    const approveBtn = reg.status !== "Confirmed" 
+      ? `<button class="admin-table-btn admin-table-btn-approve" onclick="triggerApprovalAction('${reg.registrationId || reg.id}', '${reg.studentEmail}', ${JSON.stringify(reg).replace(/"/g, '&quot;')})">APPROVE</button>` 
+      : `<span style="color:#4ae88a; font-weight:800; font-size:10px;">AUTHORIZED ✔️</span>`;
+
+    row.innerHTML = `
+      <td>
+        <div style="font-weight:700; color:white; text-transform:uppercase;">${reg.studentName}</div>
+        <div style="font-size:10.5px; color:rgba(255,255,255,0.6);">${reg.studentEmail}</div>
+      </td>
+      <td style="font-family:monospace; color:#E8614A; font-weight:700;">${reg.registerNo}</td>
+      <td>
+        <div>${reg.phone}</div>
+        <div style="font-size:11px; color:#C8E84A; font-weight:700;">Bank: ${reg.bankAccountName}</div>
+      </td>
+      <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${reg.eventTitle || "RITU Event"}</td>
+      <td><span class="badge-status ${statusClass}">${reg.status}</span></td>
+      <td style="text-align:right;">${approveBtn}</td>
     `;
-    container.appendChild(card);
+    tbody.appendChild(row);
   });
 }
 
-// Session Initializer Gating check
-async function initSession() {
-  initRealTimeSync();
-  const cachedUid = sessionStorage.getItem("loggedInUserUid");
-  if (cachedUid) {
+// Trigger function from admin table rows
+window.triggerApprovalAction = function(regId, email, data) {
+  if (confirm(`Authorize registration payment for student ticket #${regId}?`)) {
+    approveStudent(regId, email, data);
+  }
+};
+
+// VIP Automated Student Approvals dispatch
+window.approveStudent = async function(studentId, studentEmail, studentData) {
+  console.log(`Approving registration ID: ${studentId}`);
+  
+  if (useRealFirebase) {
     try {
-      const docSnap = await FirebaseService.db.getStudentDoc(cachedUid);
-      if (docSnap.exists()) {
-        USER_PROFILE = docSnap.data();
-        updateUserProfileUI();
-        isUserLoggedIn = true;
-        document.getElementById("main-app-layout").style.display = "block";
-        checkApprovalAndRoute(USER_PROFILE);
-      } else {
-        sessionStorage.removeItem("loggedInUserUid");
-        openProfileSetup(false);
+      await db.collection("registrations").doc(studentId).update({ status: "Confirmed" });
+      // Update student document status if registered
+      const studentsSnap = await db.collection("students").where("email", "==", studentEmail).get();
+      if (!studentsSnap.empty) {
+        const studentUid = studentsSnap.docs[0].id;
+        await db.collection("students").doc(studentUid).update({ approved: true });
       }
+      console.log(`Updated Firestore document state to Confirmed.`);
     } catch (e) {
-      openProfileSetup(false);
+      console.error("Firestore approval status update failed:", e);
     }
   } else {
-    openProfileSetup(false);
+    // Simulator approvals
+    let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+    const idx = mockRegs.findIndex(r => r.registrationId === studentId);
+    if (idx !== -1) {
+      mockRegs[idx].status = "Confirmed";
+      localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+    }
+    // Also approve student login
+    let mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
+    const user = mockUsers[studentEmail];
+    if (user && user.profileData) {
+      user.profileData.approved = true;
+      localStorage.setItem("firebase_mock_users", JSON.stringify(mockUsers));
+    }
   }
-}
-initSession();
 
-initSession();
+  // Dynamic Horizontal pass details values mapping
+  const encryptedId = CryptoJS.AES.encrypt(studentId, QR_SECRET_KEY).toString();
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(encryptedId)}`;
+  
+  const templateParams = {
+    event_name: studentData.eventTitle || "RITU Event",
+    student_name: studentData.studentName,
+    event_date: studentData.date || "June 24, 2026",
+    event_venue: studentData.location || "RIT Campus Kottayam",
+    student_college: studentData.collegeName || "RIT Kottayam",
+    ticket_id: studentId,
+    qr_code_url: qrCodeUrl,
+    whatsapp_group_link: studentData.whatsappLink || "https://chat.whatsapp.com/GzB96zW2Z2",
+    google_map_link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(studentData.location || 'RIT Kottayam')}`,
+    event_poster_url: studentData.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80",
+    to_email: studentEmail
+  };
+
+  console.log("EmailJS Automation parameters payload:", templateParams);
+
+  if (typeof emailjs !== 'undefined') {
+    try {
+      emailjs.init({ publicKey: "3eNLy2tU8mQEiQIqG" });
+      const res = await emailjs.send("service_u4ve6g2", "template_jla3p4e", templateParams);
+      console.log("EmailJS Auto verification confirmation sent:", res.status, res.text);
+      alert(`⚡ Verification successful! Student ticket approved and confirmed pass emailed to ${studentEmail}.`);
+    } catch (e) {
+      console.error("EmailJS execution exception:", e);
+      alert(`Approved manually. Notification dispatch failed (details copied to admin console logs).`);
+    }
+  } else {
+    console.warn("EmailJS SDK not found. Approvals processed locally.");
+    alert(`Authorized payment successfully (Console mock dispatcher logged details).`);
+  }
+};
