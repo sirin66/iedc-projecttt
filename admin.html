@@ -1300,12 +1300,13 @@
       const foundIdx = mockRegs.findIndex(r => r.registrationId === regId || r.id === regId);
       if (foundIdx !== -1) {
         mockRegs[foundIdx].status = "Confirmed";
+        mockRegs[foundIdx].payment_status = "Success";
         localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
       }
 
       if (useRealFirebase) {
         try {
-          await db.collection("registrations").doc(regId).update({ status: "Confirmed" });
+          await db.collection("registrations").doc(regId).update({ status: "Confirmed", payment_status: "Success" });
           console.log(`Successfully approved registration doc ${regId} in Firestore.`);
         } catch (e) {
           console.error("Firestore approve registration failed:", e);

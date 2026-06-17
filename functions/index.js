@@ -63,6 +63,7 @@ exports.smsWebhook = functions.https.onRequest(async (req, res) => {
       // Update registration status to Confirmed
       await targetDoc.ref.update({
         status: "Confirmed",
+        payment_status: "Success",
         verifiedAt: new Date().toISOString()
       });
       console.log(`Successfully confirmed registration: ${targetDoc.id}`);

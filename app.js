@@ -626,14 +626,59 @@ window.removeDetailTeamSlot = function(id) {
 
 document.getElementById("detail-btn-add-member").addEventListener("click", addDetailTeamSlot);
 
+// EmailJS Credentials safely mapping in the background for admin approval use later
+const EMAILJS_CONFIG = {
+  SERVICE_ID: "service_u4ve6g2",
+  TEMPLATE_ID: "template_jla3p4e"
+};
+
 // Hooking Register & Pay Click Event
-document.getElementById("detail-register-btn").addEventListener("click", () => {
+document.getElementById("detail-register-btn").addEventListener("click", async () => {
   if (!selectedEvent) return;
 
   const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === selectedEvent.id);
   if (isAlreadyRegistered) {
     const reg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
-    showTicket(reg);
+    if (!reg) return;
+
+    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+
+    let isSuccess = false;
+
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        const docSnap = await db.collection("registrations").doc(reg.registrationId).get();
+        if (docSnap.exists) {
+          const docData = docSnap.data();
+          if (docData.payment_status === "Success" || docData.status === "Confirmed") {
+            isSuccess = true;
+          }
+        }
+      } catch (err) {
+        console.error("Firestore verification error:", err);
+      }
+    } else {
+      // Simulator Mode check
+      try {
+        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        const mockReg = mockRegs.find(r => r.registrationId === reg.registrationId);
+        if (mockReg && (mockReg.payment_status === "Success" || mockReg.status === "Confirmed")) {
+          isSuccess = true;
+        }
+      } catch (err) {
+        console.error("Simulator verification error:", err);
+      }
+    }
+
+    if (isSuccess) {
+      showTicket(reg);
+    } else {
+      showCustomAlert(
+        "Payment Pending",
+        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
+      );
+    }
     return;
   }
 
@@ -751,6 +796,7 @@ async function handleRegistrationCheckout() {
     razorpayPaymentId: merchantTransactionId, // PhonePe Transaction ID mapped here
     checkedIn: false,
     status: amount > 0 ? "Pending" : "Confirmed",
+    payment_status: amount > 0 ? "Pending" : "Success",
     createdAt: new Date().toISOString(),
     studentUid: sessionStorage.getItem("loggedInUserUid"),
     timestamp: new Date().toISOString()
@@ -1169,14 +1215,47 @@ function renderDashboard() {
   renderNotifications();
 }
 
-window.viewPassDetails = function(ticketId) {
+window.viewPassDetails = async function(ticketId) {
   const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
   if (reg) {
-    if (reg.status === "Pending") {
-      showToast("Payment is still processing.", "var(--warning)", "var(--warning)");
-      return;
+    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+
+    let isSuccess = false;
+
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        const docSnap = await db.collection("registrations").doc(reg.registrationId || ticketId).get();
+        if (docSnap.exists) {
+          const docData = docSnap.data();
+          if (docData.payment_status === "Success" || docData.status === "Confirmed") {
+            isSuccess = true;
+          }
+        }
+      } catch (err) {
+        console.error("Firestore verification error:", err);
+      }
+    } else {
+      // Simulator Mode check
+      try {
+        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        const mockReg = mockRegs.find(r => r.registrationId === (reg.registrationId || ticketId));
+        if (mockReg && (mockReg.payment_status === "Success" || mockReg.status === "Confirmed")) {
+          isSuccess = true;
+        }
+      } catch (err) {
+        console.error("Simulator verification error:", err);
+      }
     }
-    showTicket(reg);
+
+    if (isSuccess) {
+      showTicket(reg);
+    } else {
+      showCustomAlert(
+        "Payment Pending",
+        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
+      );
+    }
   }
 };
 
