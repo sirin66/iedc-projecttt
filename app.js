@@ -802,9 +802,10 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
         statusBanner.style.display = "block";
         statusBanner.textContent = "Awaiting Admin Payment Verification...";
       }
+      alert("⚠️ Your payment is pending! Your ticket will be active once the Admin approves your registration.");
       showCustomAlert(
         "Verification Pending",
-        "Awaiting Admin Payment Verification..."
+        "⚠️ Your payment is pending! Your ticket will be active once the Admin approves your registration."
       );
     }
     return;
@@ -854,9 +855,10 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
         statusBanner.style.display = "block";
         statusBanner.textContent = "Awaiting Admin Payment Verification...";
       }
+      alert("⚠️ Your payment is pending! Your ticket will be active once the Admin approves your registration.");
       showCustomAlert(
         "Verification Pending",
-        "Awaiting Admin Payment Verification..."
+        "⚠️ Your payment is pending! Your ticket will be active once the Admin approves your registration."
       );
     }
     return;
@@ -1301,11 +1303,6 @@ function drawQRToCanvas(canvas, text, brandColor, size = 240) {
   });
 }
 
-function generateQRCode(text, brandColor) {
-  const canvas = document.getElementById("qr-canvas");
-  drawQRToCanvas(canvas, text, brandColor, 240);
-}
-
 // Draw QR inside stubs card inside wallet
 function drawTicketQRCode(canvasId, text, brandColor) {
   const canvas = document.getElementById(canvasId);
@@ -1320,6 +1317,11 @@ function drawTicketQRCode(canvasId, text, brandColor) {
     foreground: "#080810",
     level: "H"
   });
+}
+
+function generateQRCode(text, brandColor) {
+  const canvas = document.getElementById("qr-canvas");
+  drawQRToCanvas(canvas, text, brandColor, 240);
 }
 
 // ==========================================
@@ -2508,9 +2510,44 @@ function handleRealtimeRegistrationUpdate(data) {
     // IF the user document EXISTS in Firestore (meaning they are registered)
     // FORCE-HIDE the entire registration inputs form fields layout completely (element.style.display = "none";).
     if (regForm) regForm.style.display = "none";
+    
+    const formContainer = document.getElementById('registration-form-container');
+    if (formContainer) formContainer.style.display = "none";
+
     if (proceedBtn) {
-      proceedBtn.style.display = "none";
-      proceedBtn.textContent = "VIEW TICKET";
+      proceedBtn.innerText = "VIEW TICKET";
+      proceedBtn.style.display = "block";
+      proceedBtn.disabled = false;
+      proceedBtn.style.backgroundColor = "var(--nova-yellow)";
+      proceedBtn.style.color = "var(--void-black)";
+      proceedBtn.onclick = (e) => {
+        e.preventDefault();
+        if (data.payment_status === "Success" || data.status === "Confirmed") {
+          const match = EVENTS_DATA.find(e => e.id === data.eventId);
+          const regToPass = {
+            id: data.eventId,
+            registrationId: data.registrationId,
+            ticketId: data.registrationId,
+            title: data.eventTitle || (match ? match.title : "Event"),
+            type: match ? match.type : "talk",
+            typeLabel: match ? match.typeLabel : "Talk",
+            date: match ? match.date : "TBD",
+            isoDate: match ? match.isoDate : new Date().toISOString(),
+            time: match ? match.time : "TBD",
+            location: match ? match.location : "TBD",
+            host: match ? match.host : "IEDC RIT",
+            color: match ? match.color : "#C8E84A",
+            status: data.status || "Confirmed",
+            checkedIn: data.checkedIn === true,
+            razorpayPaymentId: data.razorpayPaymentId || data.utrNumber || "FREE",
+            phone: data.phone || "",
+            bankAccountName: data.bankAccountName || ""
+          };
+          showTicket(regToPass);
+        } else {
+          alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
+        }
+      };
     }
     if (viewPassBtn) viewPassBtn.style.display = "none";
 
@@ -2523,6 +2560,34 @@ function handleRealtimeRegistrationUpdate(data) {
       regBtn.disabled = false;
       regBtn.style.backgroundColor = "var(--nova-yellow)";
       regBtn.style.color = "var(--void-black)";
+      regBtn.onclick = (e) => {
+        e.preventDefault();
+        if (data.payment_status === "Success" || data.status === "Confirmed") {
+          const match = EVENTS_DATA.find(e => e.id === data.eventId);
+          const regToPass = {
+            id: data.eventId,
+            registrationId: data.registrationId,
+            ticketId: data.registrationId,
+            title: data.eventTitle || (match ? match.title : "Event"),
+            type: match ? match.type : "talk",
+            typeLabel: match ? match.typeLabel : "Talk",
+            date: match ? match.date : "TBD",
+            isoDate: match ? match.isoDate : new Date().toISOString(),
+            time: match ? match.time : "TBD",
+            location: match ? match.location : "TBD",
+            host: match ? match.host : "IEDC RIT",
+            color: match ? match.color : "#C8E84A",
+            status: data.status || "Confirmed",
+            checkedIn: data.checkedIn === true,
+            razorpayPaymentId: data.razorpayPaymentId || data.utrNumber || "FREE",
+            phone: data.phone || "",
+            bankAccountName: data.bankAccountName || ""
+          };
+          showTicket(regToPass);
+        } else {
+          alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
+        }
+      };
     }
     if (data.payment_status === "Success" || data.status === "Confirmed") {
       if (statusBanner) statusBanner.style.display = "none";
@@ -2536,15 +2601,21 @@ function handleRealtimeRegistrationUpdate(data) {
   } else {
     // ONLY show "PROCEED TO PAY" and the input fields if NO document exists at all in the database (Fresh User)
     if (regForm) regForm.style.display = "flex";
+    
+    const formContainer = document.getElementById('registration-form-container');
+    if (formContainer) formContainer.style.display = "flex";
+
     if (proceedBtn) {
       proceedBtn.style.display = "block";
-      proceedBtn.textContent = "PROCEED TO PAY";
+      proceedBtn.innerText = "PROCEED TO PAY";
+      proceedBtn.onclick = null;
     }
     if (statusBanner) statusBanner.style.display = "none";
     if (viewPassBtn) viewPassBtn.style.display = "none";
 
     if (regBtn) {
       regBtn.style.display = "flex";
+      regBtn.onclick = null;
       if (selectedEvent.seats <= 0) {
         regBtn.textContent = "Sold Out";
         regBtn.disabled = true;
@@ -2599,9 +2670,14 @@ onAuthStateChanged(auth, (user) => {
     if (useRealFirebase) {
       const firestoreDb = firebase.firestore();
 
-      const handleDocSnapshot = (doc) => {
-        if (doc && doc.exists) {
-          activeRegistrationData = doc.data();
+      let doc1Data = null;
+      let doc2Data = null;
+
+      const updateCombinedState = () => {
+        if (doc1Data) {
+          activeRegistrationData = doc1Data;
+        } else if (doc2Data) {
+          activeRegistrationData = doc2Data;
         } else {
           activeRegistrationData = null;
         }
@@ -2610,40 +2686,100 @@ onAuthStateChanged(auth, (user) => {
 
       // Listener 1: doc(db, "registrations", user.uid)
       regUnsubscribe1 = firestoreDb.collection("registrations").doc(user.uid)
-        .onSnapshot((doc1) => {
-          if (doc1.exists) {
-            handleDocSnapshot(doc1);
-          } else {
-            firestoreDb.collection("registrations").doc("reg-" + user.uid).get().then(doc2 => {
-              if (doc2.exists) {
-                handleDocSnapshot(doc2);
+        .onSnapshot((doc) => {
+          const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
+          if (docExists) {
+            document.getElementById('proceed-to-pay-btn').innerText = "VIEW TICKET";
+            document.getElementById('registration-form-container').style.display = "none";
+
+            document.getElementById('proceed-to-pay-btn').onclick = (e) => {
+              e.preventDefault();
+              if (doc.data().payment_status === "Success" || doc.data().status === "Confirmed") {
+                const match = EVENTS_DATA.find(e => e.id === doc.data().eventId);
+                const regToPass = {
+                  id: doc.data().eventId,
+                  registrationId: doc.data().registrationId,
+                  ticketId: doc.data().registrationId,
+                  title: doc.data().eventTitle || (match ? match.title : "Event"),
+                  type: match ? match.type : "talk",
+                  typeLabel: match ? match.typeLabel : "Talk",
+                  date: match ? match.date : "TBD",
+                  isoDate: match ? match.isoDate : new Date().toISOString(),
+                  time: match ? match.time : "TBD",
+                  location: match ? match.location : "TBD",
+                  host: match ? match.host : "IEDC RIT",
+                  color: match ? match.color : "#C8E84A",
+                  status: doc.data().status || "Confirmed",
+                  checkedIn: doc.data().checkedIn === true,
+                  razorpayPaymentId: doc.data().razorpayPaymentId || doc.data().utrNumber || "FREE",
+                  phone: doc.data().phone || "",
+                  bankAccountName: doc.data().bankAccountName || ""
+                };
+                showTicket(regToPass);
               } else {
-                handleDocSnapshot(null);
+                alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
               }
-            }).catch(() => {
-              handleDocSnapshot(null);
-            });
+            };
+            doc1Data = doc.data();
+          } else {
+            doc1Data = null;
+            if (!doc2Data) {
+              document.getElementById('proceed-to-pay-btn').innerText = "PROCEED TO PAY";
+              document.getElementById('registration-form-container').style.display = "flex";
+              document.getElementById('proceed-to-pay-btn').onclick = null;
+            }
           }
+          updateCombinedState();
         }, (err) => {
           console.error("Error in real-time registration snapshot 1:", err);
         });
 
       // Listener 2: doc(db, "registrations", "reg-" + user.uid)
       regUnsubscribe2 = firestoreDb.collection("registrations").doc("reg-" + user.uid)
-        .onSnapshot((doc2) => {
-          if (doc2.exists) {
-            handleDocSnapshot(doc2);
-          } else {
-            firestoreDb.collection("registrations").doc(user.uid).get().then(doc1 => {
-              if (doc1.exists) {
-                handleDocSnapshot(doc1);
+        .onSnapshot((doc) => {
+          const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
+          if (docExists) {
+            document.getElementById('proceed-to-pay-btn').innerText = "VIEW TICKET";
+            document.getElementById('registration-form-container').style.display = "none";
+
+            document.getElementById('proceed-to-pay-btn').onclick = (e) => {
+              e.preventDefault();
+              if (doc.data().payment_status === "Success" || doc.data().status === "Confirmed") {
+                const match = EVENTS_DATA.find(e => e.id === doc.data().eventId);
+                const regToPass = {
+                  id: doc.data().eventId,
+                  registrationId: doc.data().registrationId,
+                  ticketId: doc.data().registrationId,
+                  title: doc.data().eventTitle || (match ? match.title : "Event"),
+                  type: match ? match.type : "talk",
+                  typeLabel: match ? match.typeLabel : "Talk",
+                  date: match ? match.date : "TBD",
+                  isoDate: match ? match.isoDate : new Date().toISOString(),
+                  time: match ? match.time : "TBD",
+                  location: match ? match.location : "TBD",
+                  host: match ? match.host : "IEDC RIT",
+                  color: match ? match.color : "#C8E84A",
+                  status: doc.data().status || "Confirmed",
+                  checkedIn: doc.data().checkedIn === true,
+                  razorpayPaymentId: doc.data().razorpayPaymentId || doc.data().utrNumber || "FREE",
+                  phone: doc.data().phone || "",
+                  bankAccountName: doc.data().bankAccountName || ""
+                };
+                showTicket(regToPass);
               } else {
-                handleDocSnapshot(null);
+                alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
               }
-            }).catch(() => {
-              handleDocSnapshot(null);
-            });
+            };
+            doc2Data = doc.data();
+          } else {
+            doc2Data = null;
+            if (!doc1Data) {
+              document.getElementById('proceed-to-pay-btn').innerText = "PROCEED TO PAY";
+              document.getElementById('registration-form-container').style.display = "flex";
+              document.getElementById('proceed-to-pay-btn').onclick = null;
+            }
           }
+          updateCombinedState();
         }, (err) => {
           console.error("Error in real-time registration snapshot 2:", err);
         });
@@ -2654,6 +2790,45 @@ onAuthStateChanged(auth, (user) => {
         const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
         const reg = mockRegs.find(r => r.registrationId === "reg-" + user.uid || r.registrationId === user.uid || r.studentUid === user.uid);
         activeRegistrationData = reg || null;
+
+        if (activeRegistrationData) {
+          document.getElementById('proceed-to-pay-btn').innerText = "VIEW TICKET";
+          document.getElementById('registration-form-container').style.display = "none";
+
+          document.getElementById('proceed-to-pay-btn').onclick = (e) => {
+            e.preventDefault();
+            if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
+              const match = EVENTS_DATA.find(e => e.id === activeRegistrationData.eventId);
+              const regToPass = {
+                id: activeRegistrationData.eventId,
+                registrationId: activeRegistrationData.registrationId,
+                ticketId: activeRegistrationData.registrationId,
+                title: activeRegistrationData.eventTitle || (match ? match.title : "Event"),
+                type: match ? match.type : "talk",
+                typeLabel: match ? match.typeLabel : "Talk",
+                date: match ? match.date : "TBD",
+                isoDate: match ? match.isoDate : new Date().toISOString(),
+                time: match ? match.time : "TBD",
+                location: match ? match.location : "TBD",
+                host: match ? match.host : "IEDC RIT",
+                color: match ? match.color : "#C8E84A",
+                status: activeRegistrationData.status || "Confirmed",
+                checkedIn: activeRegistrationData.checkedIn === true,
+                razorpayPaymentId: activeRegistrationData.razorpayPaymentId || activeRegistrationData.utrNumber || "FREE",
+                phone: activeRegistrationData.phone || "",
+                bankAccountName: activeRegistrationData.bankAccountName || ""
+              };
+              showTicket(regToPass);
+            } else {
+              alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
+            }
+          };
+        } else {
+          document.getElementById('proceed-to-pay-btn').innerText = "PROCEED TO PAY";
+          document.getElementById('registration-form-container').style.display = "flex";
+          document.getElementById('proceed-to-pay-btn').onclick = null;
+        }
+
         handleRealtimeRegistrationUpdate(activeRegistrationData);
       };
       checkMockReg();

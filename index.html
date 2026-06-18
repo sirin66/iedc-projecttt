@@ -878,32 +878,34 @@
 
               <!-- Single-Page Checkout inputs embedded directly inside details view -->
               <form id="registration-form" class="detail-reg-box" onsubmit="event.preventDefault();">
-                <span class="section-eyebrow" id="detail-reg-eyebrow">Confirm Your Registration</span>
-                
-                <div class="input-group">
-                  <label class="input-label">Student Name</label>
-                  <input type="text" id="detail-reg-name" class="input-field" disabled>
-                </div>
-                <div class="input-group">
-                  <label class="input-label">KTU ID / Register No</label>
-                  <input type="text" id="detail-reg-ktuid" class="input-field" disabled>
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="detail-reg-bank-name">Bank Account Owner's Full Name (As shown in GPay/PhonePe)</label>
-                  <input type="text" id="detail-reg-bank-name" class="input-field" placeholder="FULL NAME AS PER BANK RECORDS" required>
-                </div>
-                <div class="input-group">
-                  <label class="input-label" for="detail-reg-phone">Contact Phone</label>
-                  <input type="tel" id="detail-reg-phone" class="input-field" placeholder="+91 98765 43210" required>
-                </div>
+                <div id="registration-form-container" style="display: flex; flex-direction: column; gap: var(--space-sm);">
+                  <span class="section-eyebrow" id="detail-reg-eyebrow">Confirm Your Registration</span>
+                  
+                  <div class="input-group">
+                    <label class="input-label">Student Name</label>
+                    <input type="text" id="detail-reg-name" class="input-field" disabled>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label">KTU ID / Register No</label>
+                    <input type="text" id="detail-reg-ktuid" class="input-field" disabled>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label" for="detail-reg-bank-name">Bank Account Owner's Full Name (As shown in GPay/PhonePe)</label>
+                    <input type="text" id="detail-reg-bank-name" class="input-field" placeholder="FULL NAME AS PER BANK RECORDS" required>
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label" for="detail-reg-phone">Contact Phone</label>
+                    <input type="tel" id="detail-reg-phone" class="input-field" placeholder="+91 98765 43210" required>
+                  </div>
 
-                <!-- Dynamic Team section for detail modal -->
-                <div id="detail-team-section" style="display: none; flex-direction: column; gap: var(--space-sm);">
-                  <span class="section-eyebrow" style="margin-bottom: 0;">Team Registrations</span>
-                  <div id="detail-team-slots-container"></div>
-                  <button type="button" class="btn-add-member" id="detail-btn-add-member" style="font-size: 11px; padding: 10px; width: 100%; border: 1.5px dashed var(--nova-yellow); color: var(--nova-yellow); background: transparent; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                    + Add Team Member
-                  </button>
+                  <!-- Dynamic Team section for detail modal -->
+                  <div id="detail-team-section" style="display: none; flex-direction: column; gap: var(--space-sm);">
+                    <span class="section-eyebrow" style="margin-bottom: 0;">Team Registrations</span>
+                    <div id="detail-team-slots-container"></div>
+                    <button type="button" class="btn-add-member" id="detail-btn-add-member" style="font-size: 11px; padding: 10px; width: 100%; border: 1.5px dashed var(--nova-yellow); color: var(--nova-yellow); background: transparent; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                      + Add Team Member
+                    </button>
+                  </div>
                 </div>
 
                 <div class="input-group" style="margin-top: var(--space-md);">
