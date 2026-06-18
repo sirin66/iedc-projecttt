@@ -517,43 +517,33 @@ function openEventDetail(event) {
 
   // Check user registration state synchronously
   if (activeRegistrationData && activeRegistrationData.eventId === event.id) {
-    if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
-      if (regForm) regForm.style.display = "none";
-      if (proceedBtn) {
-        proceedBtn.style.display = "none";
-        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-      }
-      if (regBtn) {
-        regBtn.style.display = "block";
-        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-        regBtn.disabled = false;
+    if (regForm) regForm.style.display = "none";
+    if (proceedBtn) {
+      proceedBtn.style.display = "none";
+      proceedBtn.textContent = "VIEW TICKET";
+    }
+    if (regBtn) {
+      regBtn.style.display = "flex";
+      regBtn.textContent = "VIEW TICKET";
+      regBtn.disabled = false;
+      if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
+        if (statusBanner) statusBanner.style.display = "none";
         regBtn.style.backgroundColor = "var(--nova-yellow)";
         regBtn.style.color = "var(--void-black)";
-      }
-      if (stickyCta) stickyCta.style.display = "block";
-    } else {
-      if (regForm) regForm.style.display = "none";
-      if (proceedBtn) {
-        proceedBtn.style.display = "none";
-        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-      }
-      if (statusBanner) {
-        statusBanner.style.display = "block";
-        statusBanner.textContent = "Awaiting Admin Payment Verification...";
-      }
-      if (regBtn) {
-        regBtn.style.display = "block";
-        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-        regBtn.disabled = false;
+      } else {
+        if (statusBanner) {
+          statusBanner.style.display = "block";
+          statusBanner.textContent = "Awaiting Admin Payment Verification...";
+        }
         regBtn.style.backgroundColor = "rgba(255,255,255,0.05)";
         regBtn.style.color = "var(--muted-white)";
       }
-      if (stickyCta) stickyCta.style.display = "block";
     }
+    if (stickyCta) stickyCta.style.display = "block";
   } else {
     if (regForm) regForm.style.display = "flex";
     if (stickyCta) stickyCta.style.display = "block";
-    if (regBtn) regBtn.style.display = "block";
+    if (regBtn) regBtn.style.display = "flex";
 
     if (event.seats <= 0) {
       if (regBtn) {
@@ -735,13 +725,13 @@ const EMAILJS_CONFIG = {
 document.getElementById("detail-register-btn").addEventListener("click", async () => {
   if (!selectedEvent) return;
 
-  // ROUTING THE CLICK EVENT: Check if success or if text is currently "ALREADY REGISTERED (TAP TO VIEW TICKET)"
+  // ROUTING THE CLICK EVENT: Check if success or if text is currently "VIEW TICKET"
   const isSuccess = activeRegistrationData && 
                     activeRegistrationData.eventId === selectedEvent.id && 
                     (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed");
   const btnText = document.getElementById("detail-register-btn").textContent;
 
-  if (btnText === "ALREADY REGISTERED (TAP TO VIEW TICKET)") {
+  if (btnText === "VIEW TICKET") {
     if (isSuccess) {
       showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
       let verifiedReg = null;
@@ -807,7 +797,7 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
         );
       }
     } else {
-      // Lock the click event: show the sleek glass notice below it
+      // Lock the click event: show the sleek glass notice below it or standard alert
       const statusBanner = document.getElementById("registration-status-banner");
       if (statusBanner) {
         statusBanner.style.display = "block";
@@ -815,7 +805,7 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
       }
       showCustomAlert(
         "Verification Pending",
-        "Your payment is currently awaiting admin verification. Please wait."
+        "⚠️ Your payment is pending! Your ticket will be active once the Admin approves your registration."
       );
     }
     return;
@@ -860,9 +850,14 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
     if (isSuccessVerify) {
       showTicket(reg);
     } else {
+      const statusBanner = document.getElementById("registration-status-banner");
+      if (statusBanner) {
+        statusBanner.style.display = "block";
+        statusBanner.textContent = "Awaiting Admin Payment Verification...";
+      }
       showCustomAlert(
-        "Payment Pending",
-        "Payment Pending! Please complete your Boot Camp registration payment to unlock your VIP Pass."
+        "Verification Pending",
+        "⚠️ Your payment is pending! Your ticket will be active once the Admin approves your registration."
       );
     }
     return;
@@ -1024,8 +1019,8 @@ async function handleRegistrationCheckout() {
     if (regFormInstant) regFormInstant.style.display = "none";
     const regBtnInstant = document.getElementById("detail-register-btn");
     if (regBtnInstant) {
-      regBtnInstant.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-      regBtnInstant.style.display = "block";
+      regBtnInstant.textContent = "VIEW TICKET";
+      regBtnInstant.style.display = "flex";
       regBtnInstant.disabled = false;
       regBtnInstant.style.backgroundColor = "rgba(255,255,255,0.05)";
       regBtnInstant.style.color = "var(--muted-white)";
@@ -2511,46 +2506,35 @@ function handleRealtimeRegistrationUpdate(data) {
   const isForCurrentEvent = documentExists && data.eventId === selectedEvent.id;
 
   if (documentExists && isForCurrentEvent) {
-    if (data.payment_status === "Success" || data.status === "Confirmed") {
-      // IF 'payment_status === "Success"': Change the main button text to "ALREADY REGISTERED (TAP TO VIEW TICKET)" and hide the form fields. Clicking it opens the Ticket modal.
-      if (regForm) regForm.style.display = "none";
-      if (proceedBtn) {
-        proceedBtn.style.display = "none";
-        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-      }
-      if (statusBanner) statusBanner.style.display = "none";
-      if (viewPassBtn) viewPassBtn.style.display = "none";
+    // IF the user document EXISTS in Firestore (meaning they are registered)
+    // FORCE-HIDE the entire registration inputs form fields layout completely (element.style.display = "none";).
+    if (regForm) regForm.style.display = "none";
+    if (proceedBtn) {
+      proceedBtn.style.display = "none";
+      proceedBtn.textContent = "VIEW TICKET";
+    }
+    if (viewPassBtn) viewPassBtn.style.display = "none";
 
-      if (regBtn) {
-        regBtn.style.display = "block";
-        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-        regBtn.disabled = false;
+    // Explicitly change the main action button text to: "VIEW TICKET".
+    // Ensure the button remains fully visible (element.style.display = "flex";) inside our phone mockup template.
+    if (regBtn) {
+      regBtn.style.display = "flex";
+      regBtn.textContent = "VIEW TICKET";
+      regBtn.disabled = false;
+      if (data.payment_status === "Success" || data.status === "Confirmed") {
+        if (statusBanner) statusBanner.style.display = "none";
         regBtn.style.backgroundColor = "var(--nova-yellow)";
         regBtn.style.color = "var(--void-black)";
-      }
-      if (stickyCta) stickyCta.style.display = "block";
-    } else {
-      // IF 'payment_status' is pending or empty: Keep the button text as "ALREADY REGISTERED (TAP TO VIEW TICKET)" but lock the click event, showing a sleek glass notice below it: "Awaiting Admin Payment Verification...". Hide the form fields completely.
-      if (regForm) regForm.style.display = "none";
-      if (proceedBtn) {
-        proceedBtn.style.display = "none";
-        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-      }
-      if (statusBanner) {
-        statusBanner.style.display = "block";
-        statusBanner.textContent = "Awaiting Admin Payment Verification...";
-      }
-      if (viewPassBtn) viewPassBtn.style.display = "none";
-
-      if (regBtn) {
-        regBtn.style.display = "block";
-        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-        regBtn.disabled = false;
+      } else {
+        if (statusBanner) {
+          statusBanner.style.display = "block";
+          statusBanner.textContent = "Awaiting Admin Payment Verification...";
+        }
         regBtn.style.backgroundColor = "rgba(255,255,255,0.05)";
         regBtn.style.color = "var(--muted-white)";
       }
-      if (stickyCta) stickyCta.style.display = "block";
     }
+    if (stickyCta) stickyCta.style.display = "block";
   } else {
     // ONLY show "PROCEED TO PAY" and the input fields if NO document exists at all in the database (Fresh User)
     if (regForm) regForm.style.display = "flex";
@@ -2562,7 +2546,7 @@ function handleRealtimeRegistrationUpdate(data) {
     if (viewPassBtn) viewPassBtn.style.display = "none";
 
     if (regBtn) {
-      regBtn.style.display = "block";
+      regBtn.style.display = "flex";
       if (selectedEvent.seats <= 0) {
         regBtn.textContent = "Sold Out";
         regBtn.disabled = true;
