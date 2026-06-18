@@ -500,80 +500,6 @@ document.querySelectorAll(".chip-category").forEach(pill => {
 function openEventDetail(event) {
   selectedEvent = event;
 
-  const regForm = document.getElementById("registration-form");
-  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
-  const viewPassBtn = document.getElementById("view-ticket-pass-btn");
-  const statusBanner = document.getElementById("registration-status-banner");
-  const stickyCta = document.querySelector(".sticky-cta-container");
-  const regBtn = document.getElementById("detail-register-btn");
-
-  // Force-hide all dynamic checkout views immediately to prevent flashing PROCEED TO PAY button
-  if (regForm) regForm.style.display = "none";
-  if (proceedBtn) proceedBtn.style.display = "none";
-  if (viewPassBtn) viewPassBtn.style.display = "none";
-  if (statusBanner) statusBanner.style.display = "none";
-  if (stickyCta) stickyCta.style.display = "none";
-  if (regBtn) regBtn.style.display = "none";
-
-  // Check user registration state synchronously
-  if (activeRegistrationData && activeRegistrationData.eventId === event.id) {
-    if (regForm) regForm.style.display = "none";
-
-    // ടിക്കറ്റ് ഓൾറെഡി ഉള്ളവർക്ക് രണ്ട് മെയിൻ ബട്ടണുകളിലും 'VIEW TICKET' എന്ന് നിർബന്ധപൂർവ്വം മാറ്റുക
-    if (proceedBtn) {
-      proceedBtn.style.display = "block";
-      proceedBtn.textContent = "VIEW TICKET";
-    }
-    if (regBtn) {
-      regBtn.style.display = "flex";
-      regBtn.textContent = "VIEW TICKET";
-      regBtn.disabled = false;
-      regBtn.style.backgroundColor = "var(--neon-yellow)";
-      regBtn.style.color = "rgba(6, 6, 12, 1)";
-    }
-    if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
-      if (statusBanner) statusBanner.style.display = "none";
-    } else {
-      if (statusBanner) {
-        statusBanner.style.display = "block";
-        statusBanner.textContent = "Awaiting Admin Payment Verification...";
-      }
-    }
-    if (stickyCta) stickyCta.style.display = "block";
-  } else {
-    if (regForm) regForm.style.display = "flex";
-    if (stickyCta) stickyCta.style.display = "block";
-    if (regBtn) regBtn.style.display = "flex";
-
-    if (event.seats <= 0) {
-      if (regBtn) {
-        regBtn.textContent = "Sold Out";
-        regBtn.disabled = true;
-        regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-      }
-      if (proceedBtn) {
-        proceedBtn.textContent = "Sold Out";
-        proceedBtn.disabled = true;
-        proceedBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-      }
-    } else {
-      const btnText = "PROCEED TO PAY";
-      if (regBtn) {
-        regBtn.textContent = btnText;
-        regBtn.disabled = false;
-        regBtn.style.backgroundColor = "var(--neon-yellow)";
-        regBtn.style.color = "rgba(6, 6, 12, 1)";
-      }
-      if (proceedBtn) {
-        proceedBtn.textContent = btnText;
-        proceedBtn.disabled = false;
-        proceedBtn.style.backgroundColor = "var(--neon-yellow)";
-        proceedBtn.style.color = "rgba(6, 6, 12, 1)";
-        proceedBtn.style.display = "block";
-      }
-    }
-  }
-
   // Background and titles
   const hero = document.getElementById("detail-hero");
   hero.style.setProperty("--event-color", event.color);
@@ -1021,23 +947,6 @@ async function handleRegistrationCheckout() {
     // Force action button to change text, lock click, and hide form fields layout instantly
     activeRegistrationData = registrationData;
     handleRealtimeRegistrationUpdate(registrationData);
-
-    const regFormInstant = document.getElementById("registration-form");
-    if (regFormInstant) regFormInstant.style.display = "none";
-
-    // ഈ രണ്ട് സ്ഥലത്തെ ബട്ടണുകളും ഒന്നിച്ച് ഉടനെ തന്നെ ടെക്സ്റ്റ് മാറ്റി ലോക്ക് ചെയ്യുക
-    const proceedBtnInstant = document.getElementById("proceed-to-pay-btn");
-    if (proceedBtnInstant) {
-      proceedBtnInstant.textContent = "VIEW TICKET";
-    }
-    const regBtnInstant = document.getElementById("detail-register-btn");
-    if (regBtnInstant) {
-      regBtnInstant.textContent = "VIEW TICKET";
-      regBtnInstant.style.display = "flex";
-      regBtnInstant.disabled = false;
-      regBtnInstant.style.backgroundColor = "var(--neon-yellow)";
-      regBtnInstant.style.color = "rgba(6, 6, 12, 1)";
-    }
 
     if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
@@ -2493,148 +2402,131 @@ initSession();
 
 // Helper to conditionally render the detail screen registration state in real-time
 function handleRealtimeRegistrationUpdate(data) {
+  // =====================================================================
+  // BULLETPROOF CONDITIONAL RENDERING STATE SYNCHRONIZER
+  // Multi-button targeting matrix with atomic state updates
+  // =====================================================================
+  
+  // STEP 1: ACQUIRE ALL DOM ELEMENTS SIMULTANEOUSLY
   const regForm = document.getElementById("registration-form");
-  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
-  const viewPassBtn = document.getElementById("view-ticket-pass-btn");
+  const formContainer = document.getElementById("registration-form-container");
+  const proceedBtn = document.getElementById("proceed-to-pay-btn");
+  const detailRegBtn = document.getElementById("detail-register-btn");
   const statusBanner = document.getElementById("registration-status-banner");
   const stickyCta = document.querySelector(".sticky-cta-container");
-  const regBtn = document.getElementById("detail-register-btn");
+  const viewPassBtn = document.getElementById("view-ticket-pass-btn");
 
-  // Step A: Force explicit UI reset first to prevent logic overlapping
-  if (regForm) regForm.style.display = "none";
-  if (proceedBtn) proceedBtn.style.display = "none";
-  if (viewPassBtn) viewPassBtn.style.display = "none";
-  if (statusBanner) statusBanner.style.display = "none";
-  if (stickyCta) stickyCta.style.display = "none";
-  if (regBtn) regBtn.style.display = "none";
-
+  // STEP 2: SAFETY CHECK - Return early if no active event context
   if (!selectedEvent) {
-    return; // Keep hidden if no event is currently active or selected
+    // Force all visibility to "hidden" state when no event is selected
+    if (regForm) regForm.style.display = "none";
+    if (proceedBtn) proceedBtn.style.display = "none";
+    if (detailRegBtn) detailRegBtn.style.display = "none";
+    if (statusBanner) statusBanner.style.display = "none";
+    if (stickyCta) stickyCta.style.display = "none";
+    return;
   }
 
-  // Step B: Check conditions strictly
+  // STEP 3: DETERMINE REGISTRATION STATE MATRIX
   const documentExists = data !== null && data !== undefined;
   const isForCurrentEvent = documentExists && data.eventId === selectedEvent.id;
+  const isPaymentConfirmed = documentExists && 
+    (data.payment_status === "Success" || data.status === "Confirmed");
+  const isPaymentPending = documentExists && !isPaymentConfirmed;
 
+  // =====================================================================
+  // CONDITION 1: REGISTRATION DOCUMENT EXISTS FOR ACTIVE EVENT
+  // =====================================================================
   if (documentExists && isForCurrentEvent) {
-    // IF the user document EXISTS in Firestore (meaning they are registered)
+    
+    // FORCE-HIDE form wrapper and input container completely
     if (regForm) regForm.style.display = "none";
-
-    const formContainer = document.getElementById('registration-form-container');
     if (formContainer) formContainer.style.display = "none";
 
-    // ആക്ഷൻ ബട്ടൺ 'VIEW TICKET' ആക്കി രണ്ട് സ്ഥലത്തും മാറ്റുക
+    // UPDATE BUTTON A: #proceed-to-pay-btn (inside the form)
     if (proceedBtn) {
-      proceedBtn.innerText = "VIEW TICKET";
       proceedBtn.style.display = "block";
-      proceedBtn.disabled = false;
       proceedBtn.style.backgroundColor = "var(--neon-yellow)";
       proceedBtn.style.color = "rgba(6, 6, 12, 1)";
-      proceedBtn.onclick = (e) => {
-        e.preventDefault();
-        if (data.payment_status === "Success" || data.status === "Confirmed") {
-          const match = EVENTS_DATA.find(e => e.id === data.eventId);
-          const regToPass = {
-            id: data.eventId,
-            registrationId: data.registrationId,
-            ticketId: data.registrationId,
-            title: data.eventTitle || (match ? match.title : "Event"),
-            type: match ? match.type : "talk",
-            typeLabel: match ? match.typeLabel : "Talk",
-            date: match ? match.date : "TBD",
-            isoDate: match ? match.isoDate : new Date().toISOString(),
-            time: match ? match.time : "TBD",
-            location: match ? match.location : "TBD",
-            host: match ? match.host : "IEDC RIT",
-            color: match ? match.color : "#C8E84A",
-            status: data.status || "Confirmed",
-            checkedIn: data.checkedIn === true,
-            razorpayPaymentId: data.razorpayPaymentId || data.utrNumber || "FREE",
-            phone: data.phone || "",
-            bankAccountName: data.bankAccountName || ""
-          };
-          showTicket(regToPass);
-        } else {
-          alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
-        }
-      };
+      proceedBtn.disabled = false;
+      proceedBtn.textContent = "VIEW TICKET";
+      // NOTE: Existing event listeners are preserved - do NOT clone or replace
     }
+
+    // UPDATE BUTTON B: #detail-register-btn (sticky CTA container)
+    if (detailRegBtn) {
+      detailRegBtn.style.display = "flex";
+      detailRegBtn.style.backgroundColor = "var(--neon-yellow)";
+      detailRegBtn.style.color = "rgba(6, 6, 12, 1)";
+      detailRegBtn.disabled = false;
+      detailRegBtn.textContent = "VIEW TICKET";
+      // NOTE: Existing event listeners are preserved - do NOT clone or replace
+    }
+
+    // Hide secondary buttons
     if (viewPassBtn) viewPassBtn.style.display = "none";
 
-    // സ്റ്റിക്കി സിടിഎ ബട്ടണിലും 'VIEW TICKET' ലോക്ക് ചെയ്യുക
-    if (regBtn) {
-      regBtn.style.display = "flex";
-      regBtn.textContent = "VIEW TICKET";
-      regBtn.disabled = false;
-      regBtn.style.backgroundColor = "var(--neon-yellow)";
-      regBtn.style.color = "rgba(6, 6, 12, 1)";
-      regBtn.onclick = (e) => {
-        e.preventDefault();
-        if (data.payment_status === "Success" || data.status === "Confirmed") {
-          const match = EVENTS_DATA.find(e => e.id === data.eventId);
-          const regToPass = {
-            id: data.eventId,
-            registrationId: data.registrationId,
-            ticketId: data.registrationId,
-            title: data.eventTitle || (match ? match.title : "Event"),
-            type: match ? match.type : "talk",
-            typeLabel: match ? match.typeLabel : "Talk",
-            date: match ? match.date : "TBD",
-            isoDate: match ? match.isoDate : new Date().toISOString(),
-            time: match ? match.time : "TBD",
-            location: match ? match.location : "TBD",
-            host: match ? match.host : "IEDC RIT",
-            color: match ? match.color : "#C8E84A",
-            status: data.status || "Confirmed",
-            checkedIn: data.checkedIn === true,
-            razorpayPaymentId: data.razorpayPaymentId || data.utrNumber || "FREE",
-            phone: data.phone || "",
-            bankAccountName: data.bankAccountName || ""
-          };
-          showTicket(regToPass);
-        } else {
-          alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
-        }
-      };
-    }
-    if (data.payment_status === "Success" || data.status === "Confirmed") {
+    // HANDLE PAYMENT STATUS BANNER
+    if (isPaymentConfirmed) {
+      // Payment is approved - hide the banner
       if (statusBanner) statusBanner.style.display = "none";
-    } else {
+    } else if (isPaymentPending) {
+      // Payment is pending - show verification message
       if (statusBanner) {
         statusBanner.style.display = "block";
         statusBanner.textContent = "Awaiting Admin Payment Verification...";
       }
     }
-    if (stickyCta) stickyCta.style.display = "block";
-  } else {
-    // ONLY show "PROCEED TO PAY" and the input fields if NO document exists at all in the database (Fresh User)
-    if (regForm) regForm.style.display = "flex";
 
-    const formContainer = document.getElementById('registration-form-container');
+    // Show sticky CTA container
+    if (stickyCta) stickyCta.style.display = "block";
+
+  } 
+  // =====================================================================
+  // CONDITION 2: NO REGISTRATION DOCUMENT EXISTS (FRESH USER)
+  // =====================================================================
+  else {
+    
+    // Show registration form and input fields normally
+    if (regForm) regForm.style.display = "flex";
     if (formContainer) formContainer.style.display = "flex";
 
+    // UPDATE BUTTON A: #proceed-to-pay-btn to initial "PROCEED TO PAY" state
     if (proceedBtn) {
       proceedBtn.style.display = "block";
-      proceedBtn.innerText = "PROCEED TO PAY";
-      proceedBtn.onclick = null;
+      proceedBtn.style.backgroundColor = "var(--neon-yellow)";
+      proceedBtn.style.color = "rgba(6, 6, 12, 1)";
+      proceedBtn.disabled = false;
+      proceedBtn.textContent = "PROCEED TO PAY";
+      // NOTE: Existing event listeners are preserved - do NOT clone or replace
     }
+
+    // UPDATE BUTTON B: #detail-register-btn
+    if (detailRegBtn) {
+      detailRegBtn.style.display = "flex";
+      
+      // Check if event is sold out
+      if (selectedEvent.seats !== undefined && selectedEvent.seats <= 0) {
+        // Disabled sold-out state - NO coordinate shift
+        detailRegBtn.textContent = "Sold Out";
+        detailRegBtn.disabled = true;
+        detailRegBtn.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+        detailRegBtn.style.color = "var(--muted-white)";
+      } else {
+        // Available - show proceed button
+        detailRegBtn.textContent = "PROCEED TO PAY";
+        detailRegBtn.disabled = false;
+        detailRegBtn.style.backgroundColor = "var(--neon-yellow)";
+        detailRegBtn.style.color = "rgba(6, 6, 12, 1)";
+      }
+      // NOTE: Existing event listeners are preserved - do NOT clone or replace
+    }
+
+    // Hide status banner and secondary pass button
     if (statusBanner) statusBanner.style.display = "none";
     if (viewPassBtn) viewPassBtn.style.display = "none";
 
-    if (regBtn) {
-      regBtn.style.display = "flex";
-      regBtn.onclick = null;
-      if (selectedEvent.seats <= 0) {
-        regBtn.textContent = "Sold Out";
-        regBtn.disabled = true;
-        regBtn.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-      } else {
-        regBtn.textContent = "PROCEED TO PAY";
-        regBtn.disabled = false;
-        regBtn.style.backgroundColor = "var(--neon-yellow)";
-        regBtn.style.color = "rgba(6, 6, 12, 1)";
-      }
-    }
+    // Show sticky CTA container
     if (stickyCta) stickyCta.style.display = "block";
   }
 }
