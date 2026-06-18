@@ -907,9 +907,19 @@
                 </div>
 
                 <div class="input-group" style="margin-top: var(--space-md);">
-                  <button type="submit" id="modal-pay-btn" class="card-btn-register" style="width: 100%;">Proceed to Pay</button>
+                  <button type="submit" id="proceed-to-pay-btn" class="card-btn-register" style="width: 100%;">Proceed to Pay</button>
                 </div>
               </form>
+
+              <!-- Sleek Glass Status Banner -->
+              <div id="registration-status-banner" class="detail-feature-card" style="display: none; padding: var(--space-md); text-align: center; margin-top: var(--space-sm); font-size: 13px; font-weight: 600; color: var(--neon-yellow); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);">
+                Registration Received! Awaiting Admin Payment Verification.
+              </div>
+
+              <!-- Custom Horizontal Dynamic View Ticket Pass Button -->
+              <button type="button" id="view-ticket-pass-btn" class="btn" style="display: none; width: 100%; margin-top: var(--space-sm); background: var(--neon-purple) !important; color: var(--white-pure) !important; font-weight: 700; padding: 14px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 15px rgba(139, 111, 212, 0.3);">
+                View Ticket Pass
+              </button>
 
               <!-- Dynamic UPI Checkout Container -->
               <div id="detail-upi-checkout-container" style="display: none; flex-direction: column; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">

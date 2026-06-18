@@ -14,6 +14,7 @@ let USER_PROFILE = {
 };
 
 let selectedEvent = null;
+let activeRegistrationData = null;
 let currentFilter = "all";
 let searchQuery = "";
 let countdownInterval = null;
@@ -582,49 +583,11 @@ function openEventDetail(event) {
   startDetailCountdown(event.isoDate);
 
   // Reset payment checkout screen states
-  document.getElementById("registration-form").style.display = "flex";
   document.getElementById("detail-upi-checkout-container").style.display = "none";
   document.getElementById("ticket-container").style.display = "none";
-  
-  const stickyCta = document.querySelector(".sticky-cta-container");
-  if (stickyCta) stickyCta.style.display = "block";
 
-  // Gating registration buttons
-  const regBtn = document.getElementById("detail-register-btn");
-  const modalPayBtn = document.getElementById("modal-pay-btn");
-  const isAlreadyRegistered = USER_REGISTRATIONS.some(r => r.id === event.id);
-
-  if (isAlreadyRegistered) {
-    regBtn.textContent = "View Ticket Pass";
-    regBtn.style.backgroundColor = "var(--galactic-purple)";
-    regBtn.style.color = "var(--white-pure)";
-    if (modalPayBtn) {
-      modalPayBtn.textContent = "View Ticket Pass";
-      modalPayBtn.style.backgroundColor = "var(--galactic-purple)";
-      modalPayBtn.style.color = "var(--white-pure)";
-    }
-  } else if (event.seats <= 0) {
-    regBtn.textContent = "Sold Out";
-    regBtn.disabled = true;
-    regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-    if (modalPayBtn) {
-      modalPayBtn.textContent = "Sold Out";
-      modalPayBtn.disabled = true;
-      modalPayBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-    }
-  } else {
-    const btnText = event.price && event.price !== "Free" ? "Proceed to Pay" : "Confirm Free Register";
-    regBtn.textContent = btnText;
-    regBtn.disabled = false;
-    regBtn.style.backgroundColor = "var(--nova-yellow)";
-    regBtn.style.color = "var(--void-black)";
-    if (modalPayBtn) {
-      modalPayBtn.textContent = btnText;
-      modalPayBtn.disabled = false;
-      modalPayBtn.style.backgroundColor = "var(--nova-yellow)";
-      modalPayBtn.style.color = "var(--void-black)";
-    }
-  }
+  // Apply real-time registration visibility state
+  handleRealtimeRegistrationUpdate(activeRegistrationData);
 
   navigateTo("detail");
 }
@@ -764,10 +727,12 @@ async function handleRegistrationCheckout() {
   const eventId = selectedEvent.id || selectedEvent.eventId;
 
   // Set checkout processing status
-  const modalPayBtn = document.getElementById("modal-pay-btn");
-  const originalBtnText = modalPayBtn.textContent;
-  modalPayBtn.disabled = true;
-  modalPayBtn.textContent = "Checking details...";
+  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+  const originalBtnText = proceedBtn ? proceedBtn.textContent : "Proceed to Pay";
+  if (proceedBtn) {
+    proceedBtn.disabled = true;
+    proceedBtn.textContent = "Checking details...";
+  }
 
   // 1. Strict Duplicate Registration Check (Before Payment)
   let hasDuplicate = false;
@@ -796,8 +761,11 @@ async function handleRegistrationCheckout() {
 
   if (hasDuplicate) {
     // Restore button
-    modalPayBtn.disabled = false;
-    modalPayBtn.textContent = originalBtnText;
+    const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+    if (proceedBtn) {
+      proceedBtn.disabled = false;
+      proceedBtn.textContent = originalBtnText;
+    }
 
     // Close the detail modal
     if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -809,8 +777,11 @@ async function handleRegistrationCheckout() {
   }
 
   // Restore button text for future opens
-  modalPayBtn.disabled = false;
-  modalPayBtn.textContent = originalBtnText;
+  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+  if (proceedBtn) {
+    proceedBtn.disabled = false;
+    proceedBtn.textContent = originalBtnText;
+  }
 
   // Parse team members names if present
   const teamInputs = document.querySelectorAll(".detail-team-member-name");
@@ -831,8 +802,9 @@ async function handleRegistrationCheckout() {
     amount = amountMatch ? parseInt(amountMatch[0]) : 0;
   }
 
-  // Compile registration data
-  const registrationId = "reg-" + Math.floor(Math.random() * 900000 + 100000);
+  // Compile registration data using user.uid for direct real-time snapshot sync
+  const studentUid = sessionStorage.getItem("loggedInUserUid") || (USER_PROFILE && USER_PROFILE.uid) || (firebase.auth().currentUser && firebase.auth().currentUser.uid);
+  const registrationId = "reg-" + studentUid;
   const merchantTransactionId = "TXN_" + registrationId;
   const registrationData = {
     registrationId,
@@ -2326,7 +2298,99 @@ async function initSession() {
 
 initSession();
 
-// Register the requested authentication observer to conditionally manage bottom navigation bar visibility
+// Helper to conditionally render the detail screen registration state in real-time
+function handleRealtimeRegistrationUpdate(data) {
+  const regForm = document.getElementById("registration-form");
+  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+  const viewPassBtn = document.getElementById("view-ticket-pass-btn");
+  const statusBanner = document.getElementById("registration-status-banner");
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  const regBtn = document.getElementById("detail-register-btn");
+
+  if (selectedEvent && data && data.eventId === selectedEvent.id) {
+    if (data.payment_status === "Success" || data.status === "Confirmed") {
+      // 1. Paid & Verified -> HIDE inputs and HIDE proceed-to-pay, SHOW View Ticket Pass
+      if (regForm) regForm.style.display = "none";
+      if (proceedBtn) proceedBtn.style.display = "none";
+      if (statusBanner) statusBanner.style.display = "none";
+      if (viewPassBtn) {
+        viewPassBtn.style.display = "block";
+        viewPassBtn.onclick = () => {
+          // Zero-Trust Gateway security check
+          const activeUid = sessionStorage.getItem("loggedInUserUid");
+          if (useRealFirebase) {
+            firebase.firestore().collection("registrations").doc("reg-" + activeUid).get().then(docSnap => {
+              if (docSnap.exists && (docSnap.data().payment_status === "Success" || docSnap.data().status === "Confirmed")) {
+                showTicket(docSnap.data());
+              } else {
+                showCustomAlert("Access Denied", "Security Check Failed: Your payment verification is not complete.");
+              }
+            }).catch(() => {
+              showCustomAlert("Connection Error", "Could not verify ticket status with server.");
+            });
+          } else {
+            const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+            const reg = mockRegs.find(r => r.registrationId === "reg-" + activeUid || r.studentUid === activeUid);
+            if (reg && (reg.payment_status === "Success" || reg.status === "Confirmed")) {
+              showTicket(reg);
+            } else {
+              showCustomAlert("Access Denied", "Security Check Failed: Simulated payment verification is not complete.");
+            }
+          }
+        };
+      }
+      if (stickyCta) stickyCta.style.display = "none";
+    } else {
+      // 2. Pending -> HIDE inputs and HIDE proceed-to-pay, SHOW Status Banner
+      if (regForm) regForm.style.display = "none";
+      if (proceedBtn) proceedBtn.style.display = "none";
+      if (viewPassBtn) viewPassBtn.style.display = "none";
+      if (statusBanner) {
+        statusBanner.style.display = "block";
+        statusBanner.textContent = "Registration Received! Awaiting Admin Payment Verification.";
+      }
+      if (stickyCta) stickyCta.style.display = "none";
+    }
+  } else {
+    // 3. No document / Fresh registration
+    if (regForm) regForm.style.display = "flex";
+    if (proceedBtn) proceedBtn.style.display = "block";
+    if (viewPassBtn) viewPassBtn.style.display = "none";
+    if (statusBanner) statusBanner.style.display = "none";
+    if (stickyCta) stickyCta.style.display = "block";
+
+    if (selectedEvent) {
+      if (selectedEvent.seats <= 0) {
+        if (regBtn) {
+          regBtn.textContent = "Sold Out";
+          regBtn.disabled = true;
+          regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+        }
+        if (proceedBtn) {
+          proceedBtn.textContent = "Sold Out";
+          proceedBtn.disabled = true;
+          proceedBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+        }
+      } else {
+        const btnText = selectedEvent.price && selectedEvent.price !== "Free" ? "Proceed to Pay" : "Confirm Free Register";
+        if (regBtn) {
+          regBtn.textContent = btnText;
+          regBtn.disabled = false;
+          regBtn.style.backgroundColor = "var(--nova-yellow)";
+          regBtn.style.color = "var(--void-black)";
+        }
+        if (proceedBtn) {
+          proceedBtn.textContent = btnText;
+          proceedBtn.disabled = false;
+          proceedBtn.style.backgroundColor = "var(--nova-yellow)";
+          proceedBtn.style.color = "var(--void-black)";
+        }
+      }
+    }
+  }
+}
+
+// Register the requested authentication observer to conditionally manage bottom navigation bar visibility and auth sync
 onAuthStateChanged(auth, (user) => {
   const bottomNav = document.getElementById("bottom-nav") || document.querySelector(".bottom-nav");
   if (bottomNav) {
@@ -2352,5 +2416,35 @@ onAuthStateChanged(auth, (user) => {
       bottomNav.classList.add("nav-hidden");
       bottomNav.style.setProperty("display", "none", "important");
     }
+  }
+
+  // REAL-TIME AUTH & STATE SYNC
+  if (user) {
+    const regDocId = "reg-" + user.uid;
+    if (useRealFirebase) {
+      const firestoreDb = firebase.firestore();
+      firestoreDb.collection("registrations").doc(regDocId)
+        .onSnapshot((doc) => {
+          activeRegistrationData = doc.exists ? doc.data() : null;
+          handleRealtimeRegistrationUpdate(activeRegistrationData);
+        }, (err) => {
+          console.error("Error in real-time registration snapshot:", err);
+        });
+    } else {
+      // Simulated LocalStorage real-time sync for mock mode
+      if (window.mockRegInterval) clearInterval(window.mockRegInterval);
+      const checkMockReg = () => {
+        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+        const reg = mockRegs.find(r => r.registrationId === regDocId || r.studentUid === user.uid);
+        activeRegistrationData = reg || null;
+        handleRealtimeRegistrationUpdate(activeRegistrationData);
+      };
+      checkMockReg();
+      window.mockRegInterval = setInterval(checkMockReg, 1000);
+    }
+  } else {
+    if (window.mockRegInterval) clearInterval(window.mockRegInterval);
+    activeRegistrationData = null;
+    handleRealtimeRegistrationUpdate(null);
   }
 });
