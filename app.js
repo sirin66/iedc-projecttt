@@ -535,7 +535,7 @@ function openEventDetail(event) {
       if (regForm) regForm.style.display = "none";
       if (proceedBtn) {
         proceedBtn.style.display = "none";
-        proceedBtn.textContent = "Awaiting Admin Payment Verification...";
+        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
       }
       if (statusBanner) {
         statusBanner.style.display = "block";
@@ -543,8 +543,8 @@ function openEventDetail(event) {
       }
       if (regBtn) {
         regBtn.style.display = "block";
-        regBtn.textContent = "Awaiting Admin Payment Verification...";
-        regBtn.disabled = true;
+        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
+        regBtn.disabled = false;
         regBtn.style.backgroundColor = "rgba(255,255,255,0.05)";
         regBtn.style.color = "var(--muted-white)";
       }
@@ -741,68 +741,81 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
                     (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed");
   const btnText = document.getElementById("detail-register-btn").textContent;
 
-  if (isSuccess || btnText === "ALREADY REGISTERED (TAP TO VIEW TICKET)") {
-    showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
-    let verifiedReg = null;
+  if (btnText === "ALREADY REGISTERED (TAP TO VIEW TICKET)") {
+    if (isSuccess) {
+      showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
+      let verifiedReg = null;
 
-    if (useRealFirebase) {
-      try {
-        const db = firebase.firestore();
-        const activeUid = sessionStorage.getItem("loggedInUserUid") || (activeRegistrationData && activeRegistrationData.studentUid);
-        if (activeUid) {
-          const docSnap1 = await db.collection("registrations").doc("reg-" + activeUid).get();
-          if (docSnap1.exists && (docSnap1.data().payment_status === "Success" || docSnap1.data().status === "Confirmed")) {
-            verifiedReg = docSnap1.data();
-          } else {
-            const docSnap2 = await db.collection("registrations").doc(activeUid).get();
-            if (docSnap2.exists && (docSnap2.data().payment_status === "Success" || docSnap2.data().status === "Confirmed")) {
-              verifiedReg = docSnap2.data();
+      if (useRealFirebase) {
+        try {
+          const db = firebase.firestore();
+          const activeUid = sessionStorage.getItem("loggedInUserUid") || (activeRegistrationData && activeRegistrationData.studentUid);
+          if (activeUid) {
+            const docSnap1 = await db.collection("registrations").doc("reg-" + activeUid).get();
+            if (docSnap1.exists && (docSnap1.data().payment_status === "Success" || docSnap1.data().status === "Confirmed")) {
+              verifiedReg = docSnap1.data();
+            } else {
+              const docSnap2 = await db.collection("registrations").doc(activeUid).get();
+              if (docSnap2.exists && (docSnap2.data().payment_status === "Success" || docSnap2.data().status === "Confirmed")) {
+                verifiedReg = docSnap2.data();
+              }
             }
           }
+        } catch (err) {
+          console.error("Firestore verification error:", err);
         }
-      } catch (err) {
-        console.error("Firestore verification error:", err);
-      }
-    } else {
-      // Simulator Mode check
-      try {
-        const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-        const activeUid = sessionStorage.getItem("loggedInUserUid");
-        const mockReg = mockRegs.find(r => (r.registrationId === "reg-" + activeUid || r.registrationId === activeUid || r.studentUid === activeUid) && (r.payment_status === "Success" || r.status === "Confirmed"));
-        if (mockReg) {
-          verifiedReg = mockReg;
+      } else {
+        // Simulator Mode check
+        try {
+          const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+          const activeUid = sessionStorage.getItem("loggedInUserUid");
+          const mockReg = mockRegs.find(r => (r.registrationId === "reg-" + activeUid || r.registrationId === activeUid || r.studentUid === activeUid) && (r.payment_status === "Success" || r.status === "Confirmed"));
+          if (mockReg) {
+            verifiedReg = mockReg;
+          }
+        } catch (err) {
+          console.error("Simulator verification error:", err);
         }
-      } catch (err) {
-        console.error("Simulator verification error:", err);
       }
-    }
 
-    if (verifiedReg) {
-      const match = EVENTS_DATA.find(e => e.id === verifiedReg.eventId);
-      const regToPass = {
-        id: verifiedReg.eventId,
-        registrationId: verifiedReg.registrationId,
-        ticketId: verifiedReg.registrationId,
-        title: verifiedReg.eventTitle || (match ? match.title : "Event"),
-        type: match ? match.type : "talk",
-        typeLabel: match ? match.typeLabel : "Talk",
-        date: match ? match.date : "TBD",
-        isoDate: match ? match.isoDate : new Date().toISOString(),
-        time: match ? match.time : "TBD",
-        location: match ? match.location : "TBD",
-        host: match ? match.host : "IEDC RIT",
-        color: match ? match.color : "#C8E84A",
-        status: verifiedReg.status || "Confirmed",
-        checkedIn: verifiedReg.checkedIn === true,
-        razorpayPaymentId: verifiedReg.razorpayPaymentId || verifiedReg.utrNumber || "FREE",
-        phone: verifiedReg.phone || "",
-        bankAccountName: verifiedReg.bankAccountName || ""
-      };
-      showTicket(regToPass);
+      if (verifiedReg) {
+        const match = EVENTS_DATA.find(e => e.id === verifiedReg.eventId);
+        const regToPass = {
+          id: verifiedReg.eventId,
+          registrationId: verifiedReg.registrationId,
+          ticketId: verifiedReg.registrationId,
+          title: verifiedReg.eventTitle || (match ? match.title : "Event"),
+          type: match ? match.type : "talk",
+          typeLabel: match ? match.typeLabel : "Talk",
+          date: match ? match.date : "TBD",
+          isoDate: match ? match.isoDate : new Date().toISOString(),
+          time: match ? match.time : "TBD",
+          location: match ? match.location : "TBD",
+          host: match ? match.host : "IEDC RIT",
+          color: match ? match.color : "#C8E84A",
+          status: verifiedReg.status || "Confirmed",
+          checkedIn: verifiedReg.checkedIn === true,
+          razorpayPaymentId: verifiedReg.razorpayPaymentId || verifiedReg.utrNumber || "FREE",
+          phone: verifiedReg.phone || "",
+          bankAccountName: verifiedReg.bankAccountName || ""
+        };
+        showTicket(regToPass);
+      } else {
+        showCustomAlert(
+          "Access Denied",
+          "Security Check Failed: Your payment verification is not complete."
+        );
+      }
     } else {
+      // Lock the click event: show the sleek glass notice below it
+      const statusBanner = document.getElementById("registration-status-banner");
+      if (statusBanner) {
+        statusBanner.style.display = "block";
+        statusBanner.textContent = "Awaiting Admin Payment Verification...";
+      }
       showCustomAlert(
-        "Access Denied",
-        "Security Check Failed: Your payment verification is not complete."
+        "Verification Pending",
+        "Your payment is currently awaiting admin verification. Please wait."
       );
     }
     return;
@@ -1001,6 +1014,21 @@ async function handleRegistrationCheckout() {
       } catch (err) {
         console.error("Firestore pending registration failed:", err);
       }
+    }
+
+    // Force action button to change text, lock click, and hide form fields layout instantly
+    activeRegistrationData = registrationData;
+    handleRealtimeRegistrationUpdate(registrationData);
+
+    const regFormInstant = document.getElementById("registration-form");
+    if (regFormInstant) regFormInstant.style.display = "none";
+    const regBtnInstant = document.getElementById("detail-register-btn");
+    if (regBtnInstant) {
+      regBtnInstant.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
+      regBtnInstant.style.display = "block";
+      regBtnInstant.disabled = false;
+      regBtnInstant.style.backgroundColor = "rgba(255,255,255,0.05)";
+      regBtnInstant.style.color = "var(--muted-white)";
     }
 
     if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -1218,6 +1246,7 @@ async function completeUpiRegistration(registrationData) {
   showToast("Registration Confirmed! Enjoy your event.", "var(--success)", "var(--success)");
 
   // Hide checkout views and show success ticket block inside details modal
+  activeRegistrationData = registrationData;
   document.getElementById("detail-upi-checkout-container").style.display = "none";
   document.getElementById("registration-form").style.display = "none";
   const stickyCta = document.querySelector(".sticky-cta-container");
@@ -2478,85 +2507,74 @@ function handleRealtimeRegistrationUpdate(data) {
   }
 
   // Step B: Check conditions strictly
-  const isForCurrentEvent = data && data.eventId === selectedEvent.id;
+  const documentExists = data !== null && data !== undefined;
+  const isForCurrentEvent = documentExists && data.eventId === selectedEvent.id;
 
-  if (isForCurrentEvent && (data.payment_status === "Success" || data.status === "Confirmed")) {
-    // Condition 1: Paid & Verified -> Dynamically change button text and force-hide inputs form section
-    if (regForm) regForm.style.display = "none";
-    if (proceedBtn) {
-      proceedBtn.style.display = "none";
-      proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-    }
-    if (statusBanner) statusBanner.style.display = "none";
-    if (viewPassBtn) viewPassBtn.style.display = "none";
+  if (documentExists && isForCurrentEvent) {
+    if (data.payment_status === "Success" || data.status === "Confirmed") {
+      // IF 'payment_status === "Success"': Change the main button text to "ALREADY REGISTERED (TAP TO VIEW TICKET)" and hide the form fields. Clicking it opens the Ticket modal.
+      if (regForm) regForm.style.display = "none";
+      if (proceedBtn) {
+        proceedBtn.style.display = "none";
+        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
+      }
+      if (statusBanner) statusBanner.style.display = "none";
+      if (viewPassBtn) viewPassBtn.style.display = "none";
 
-    // Show action button inside the sticky cta and change its inner text
-    if (regBtn) {
-      regBtn.style.display = "block";
-      regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
-      regBtn.disabled = false;
-      regBtn.style.backgroundColor = "var(--nova-yellow)";
-      regBtn.style.color = "var(--void-black)";
+      if (regBtn) {
+        regBtn.style.display = "block";
+        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
+        regBtn.disabled = false;
+        regBtn.style.backgroundColor = "var(--nova-yellow)";
+        regBtn.style.color = "var(--void-black)";
+      }
+      if (stickyCta) stickyCta.style.display = "block";
+    } else {
+      // IF 'payment_status' is pending or empty: Keep the button text as "ALREADY REGISTERED (TAP TO VIEW TICKET)" but lock the click event, showing a sleek glass notice below it: "Awaiting Admin Payment Verification...". Hide the form fields completely.
+      if (regForm) regForm.style.display = "none";
+      if (proceedBtn) {
+        proceedBtn.style.display = "none";
+        proceedBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
+      }
+      if (statusBanner) {
+        statusBanner.style.display = "block";
+        statusBanner.textContent = "Awaiting Admin Payment Verification...";
+      }
+      if (viewPassBtn) viewPassBtn.style.display = "none";
+
+      if (regBtn) {
+        regBtn.style.display = "block";
+        regBtn.textContent = "ALREADY REGISTERED (TAP TO VIEW TICKET)";
+        regBtn.disabled = false;
+        regBtn.style.backgroundColor = "rgba(255,255,255,0.05)";
+        regBtn.style.color = "var(--muted-white)";
+      }
+      if (stickyCta) stickyCta.style.display = "block";
     }
-    if (stickyCta) stickyCta.style.display = "block";
-  } else if (isForCurrentEvent && data.payment_status !== "Success") {
-    // Condition 2: Pending Admin Verification -> Hide form fields, change button text or show status notice
-    if (regForm) regForm.style.display = "none";
-    if (proceedBtn) {
-      proceedBtn.style.display = "none";
-      proceedBtn.textContent = "Awaiting Admin Payment Verification...";
-    }
-    if (viewPassBtn) viewPassBtn.style.display = "none";
-    
-    if (statusBanner) {
-      statusBanner.style.display = "block";
-      statusBanner.textContent = "Awaiting Admin Payment Verification...";
-    }
-    if (regBtn) {
-      regBtn.style.display = "block";
-      regBtn.textContent = "Awaiting Admin Payment Verification...";
-      regBtn.disabled = true;
-      regBtn.style.backgroundColor = "rgba(255,255,255,0.05)";
-      regBtn.style.color = "var(--muted-white)";
-    }
-    if (stickyCta) stickyCta.style.display = "block";
   } else {
-    // Condition 3: No document exists (Fresh User) -> Display forms normally and keep button text
+    // ONLY show "PROCEED TO PAY" and the input fields if NO document exists at all in the database (Fresh User)
     if (regForm) regForm.style.display = "flex";
-    if (proceedBtn) proceedBtn.style.display = "block";
-    if (viewPassBtn) viewPassBtn.style.display = "none";
+    if (proceedBtn) {
+      proceedBtn.style.display = "block";
+      proceedBtn.textContent = "PROCEED TO PAY";
+    }
     if (statusBanner) statusBanner.style.display = "none";
-    if (stickyCta) stickyCta.style.display = "block";
-    if (regBtn) regBtn.style.display = "block";
+    if (viewPassBtn) viewPassBtn.style.display = "none";
 
-    if (selectedEvent) {
+    if (regBtn) {
+      regBtn.style.display = "block";
       if (selectedEvent.seats <= 0) {
-        if (regBtn) {
-          regBtn.textContent = "Sold Out";
-          regBtn.disabled = true;
-          regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-        }
-        if (proceedBtn) {
-          proceedBtn.textContent = "Sold Out";
-          proceedBtn.disabled = true;
-          proceedBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
-        }
+        regBtn.textContent = "Sold Out";
+        regBtn.disabled = true;
+        regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
       } else {
-        const btnText = "PROCEED TO PAY";
-        if (regBtn) {
-          regBtn.textContent = btnText;
-          regBtn.disabled = false;
-          regBtn.style.backgroundColor = "var(--nova-yellow)";
-          regBtn.style.color = "var(--void-black)";
-        }
-        if (proceedBtn) {
-          proceedBtn.textContent = btnText;
-          proceedBtn.disabled = false;
-          proceedBtn.style.backgroundColor = "var(--nova-yellow)";
-          proceedBtn.style.color = "var(--void-black)";
-        }
+        regBtn.textContent = "PROCEED TO PAY";
+        regBtn.disabled = false;
+        regBtn.style.backgroundColor = "var(--nova-yellow)";
+        regBtn.style.color = "var(--void-black)";
       }
     }
+    if (stickyCta) stickyCta.style.display = "block";
   }
 }
 
@@ -2600,26 +2618,28 @@ onAuthStateChanged(auth, (user) => {
       const firestoreDb = firebase.firestore();
 
       const handleDocSnapshot = (doc) => {
-        if (doc.exists) {
+        if (doc && doc.exists) {
           activeRegistrationData = doc.data();
-          handleRealtimeRegistrationUpdate(activeRegistrationData);
+        } else {
+          activeRegistrationData = null;
         }
+        handleRealtimeRegistrationUpdate(activeRegistrationData);
       };
 
       // Listener 1: doc(db, "registrations", user.uid)
       regUnsubscribe1 = firestoreDb.collection("registrations").doc(user.uid)
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            handleDocSnapshot(doc);
+        .onSnapshot((doc1) => {
+          if (doc1.exists) {
+            handleDocSnapshot(doc1);
           } else {
-            // Check listener 2 doc if listener 1 doesn't exist
-            firestoreDb.collection("registrations").doc("reg-" + user.uid).get().then(d => {
-              if (d.exists) {
-                handleDocSnapshot(d);
+            firestoreDb.collection("registrations").doc("reg-" + user.uid).get().then(doc2 => {
+              if (doc2.exists) {
+                handleDocSnapshot(doc2);
               } else {
-                activeRegistrationData = null;
-                handleRealtimeRegistrationUpdate(null);
+                handleDocSnapshot(null);
               }
+            }).catch(() => {
+              handleDocSnapshot(null);
             });
           }
         }, (err) => {
@@ -2628,9 +2648,19 @@ onAuthStateChanged(auth, (user) => {
 
       // Listener 2: doc(db, "registrations", "reg-" + user.uid)
       regUnsubscribe2 = firestoreDb.collection("registrations").doc("reg-" + user.uid)
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            handleDocSnapshot(doc);
+        .onSnapshot((doc2) => {
+          if (doc2.exists) {
+            handleDocSnapshot(doc2);
+          } else {
+            firestoreDb.collection("registrations").doc(user.uid).get().then(doc1 => {
+              if (doc1.exists) {
+                handleDocSnapshot(doc1);
+              } else {
+                handleDocSnapshot(null);
+              }
+            }).catch(() => {
+              handleDocSnapshot(null);
+            });
           }
         }, (err) => {
           console.error("Error in real-time registration snapshot 2:", err);
