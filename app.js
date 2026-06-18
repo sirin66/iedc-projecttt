@@ -2306,17 +2306,29 @@ function handleRealtimeRegistrationUpdate(data) {
   const stickyCta = document.querySelector(".sticky-cta-container");
   const regBtn = document.getElementById("detail-register-btn");
 
+  // Step A: Force explicit UI reset first to prevent logic overlapping
+  if (regForm) regForm.style.display = "none";
+  if (proceedBtn) proceedBtn.style.display = "none";
+  if (viewPassBtn) viewPassBtn.style.display = "none";
+  if (statusBanner) statusBanner.style.display = "none";
+  if (stickyCta) stickyCta.style.display = "none";
+
+  // Step B: Check conditions strictly
   if (selectedEvent && data && data.eventId === selectedEvent.id) {
     if (data.payment_status === "Success" || data.status === "Confirmed") {
-      // 1. Paid & Verified -> HIDE inputs and HIDE proceed-to-pay, SHOW View Ticket Pass
+      // Condition 1: Paid & Verified
       if (regForm) regForm.style.display = "none";
       if (proceedBtn) proceedBtn.style.display = "none";
-      if (statusBanner) statusBanner.style.display = "none";
       if (viewPassBtn) {
-        viewPassBtn.style.display = "block";
-        viewPassBtn.onclick = () => {
-          // Zero-Trust Gateway security check
-          const activeUid = sessionStorage.getItem("loggedInUserUid");
+        viewPassBtn.style.display = "flex";
+        // Zero-Trust Click Interception: double checks active Firestore/Mock state upon click
+        viewPassBtn.onclick = (e) => {
+          e.preventDefault();
+          const activeUid = sessionStorage.getItem("loggedInUserUid") || (firebase.auth().currentUser && firebase.auth().currentUser.uid);
+          if (!activeUid) {
+            showCustomAlert("Access Denied", "No authenticated user session found.");
+            return;
+          }
           if (useRealFirebase) {
             firebase.firestore().collection("registrations").doc("reg-" + activeUid).get().then(docSnap => {
               if (docSnap.exists && (docSnap.data().payment_status === "Success" || docSnap.data().status === "Confirmed")) {
@@ -2340,7 +2352,7 @@ function handleRealtimeRegistrationUpdate(data) {
       }
       if (stickyCta) stickyCta.style.display = "none";
     } else {
-      // 2. Pending -> HIDE inputs and HIDE proceed-to-pay, SHOW Status Banner
+      // Condition 2: Pending Admin Verification
       if (regForm) regForm.style.display = "none";
       if (proceedBtn) proceedBtn.style.display = "none";
       if (viewPassBtn) viewPassBtn.style.display = "none";
@@ -2351,7 +2363,7 @@ function handleRealtimeRegistrationUpdate(data) {
       if (stickyCta) stickyCta.style.display = "none";
     }
   } else {
-    // 3. No document / Fresh registration
+    // Condition 3: No document exists (Fresh User)
     if (regForm) regForm.style.display = "flex";
     if (proceedBtn) proceedBtn.style.display = "block";
     if (viewPassBtn) viewPassBtn.style.display = "none";
@@ -2422,8 +2434,23 @@ onAuthStateChanged(auth, (user) => {
     const regDocId = "reg-" + user.uid;
     if (useRealFirebase) {
       const firestoreDb = firebase.firestore();
+      
+      // Step A: Clean real-time onSnapshot listener pointing to registrations/reg-user.uid
       firestoreDb.collection("registrations").doc(regDocId)
         .onSnapshot((doc) => {
+          // Inside snapshot callback, force an explicit UI reset before applying conditions
+          const regForm = document.getElementById("registration-form");
+          const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+          const viewPassBtn = document.getElementById("view-ticket-pass-btn");
+          const statusBanner = document.getElementById("registration-status-banner");
+          const stickyCta = document.querySelector(".sticky-cta-container");
+          
+          if (regForm) regForm.style.display = "none";
+          if (proceedBtn) proceedBtn.style.display = "none";
+          if (viewPassBtn) viewPassBtn.style.display = "none";
+          if (statusBanner) statusBanner.style.display = "none";
+          if (stickyCta) stickyCta.style.display = "none";
+
           activeRegistrationData = doc.exists ? doc.data() : null;
           handleRealtimeRegistrationUpdate(activeRegistrationData);
         }, (err) => {
@@ -2433,6 +2460,19 @@ onAuthStateChanged(auth, (user) => {
       // Simulated LocalStorage real-time sync for mock mode
       if (window.mockRegInterval) clearInterval(window.mockRegInterval);
       const checkMockReg = () => {
+        // Step A: Explicit UI reset for mock mode to match production architecture
+        const regForm = document.getElementById("registration-form");
+        const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+        const viewPassBtn = document.getElementById("view-ticket-pass-btn");
+        const statusBanner = document.getElementById("registration-status-banner");
+        const stickyCta = document.querySelector(".sticky-cta-container");
+        
+        if (regForm) regForm.style.display = "none";
+        if (proceedBtn) proceedBtn.style.display = "none";
+        if (viewPassBtn) viewPassBtn.style.display = "none";
+        if (statusBanner) statusBanner.style.display = "none";
+        if (stickyCta) stickyCta.style.display = "none";
+
         const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
         const reg = mockRegs.find(r => r.registrationId === regDocId || r.studentUid === user.uid);
         activeRegistrationData = reg || null;
