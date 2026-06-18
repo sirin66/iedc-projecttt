@@ -1,6 +1,6 @@
-// ==========================================
+// ==========================================================================
 // 01 — APPLICATION STATE & CONFIGURATION
-// ==========================================
+// ==========================================================================
 
 let EVENTS_DATA = [];
 let USER_REGISTRATIONS = [];
@@ -112,15 +112,15 @@ async function switchTab(tabName) {
 
   // 1. Hide all navigation sections completely
   document.querySelectorAll('.nav-section').forEach(section => {
-      section.style.display = 'none';
-      section.classList.remove('active');
+    section.style.display = 'none';
+    section.classList.remove('active');
   });
-  
+
   // 2. Unhide the targeted section smoothly
   const activeSection = document.getElementById(`${tabName}-section`);
   if (activeSection) {
-      activeSection.style.display = 'block';
-      activeSection.classList.add('active');
+    activeSection.style.display = 'block';
+    activeSection.classList.add('active');
   }
 
   // Hide any overlay screens if open (e.g. auth, pending, detail, ticket)
@@ -147,11 +147,11 @@ async function switchTab(tabName) {
 
   // 3. Update active neon state on bottom icons
   document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
-      btn.classList.remove('active-neon');
+    btn.classList.remove('active-neon');
   });
   const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
   if (activeBtn) {
-      activeBtn.classList.add('active-neon');
+    activeBtn.classList.add('active-neon');
   }
 
   // 4. Trigger data syncing and layout rendering
@@ -244,7 +244,7 @@ async function syncEvents() {
   if (useRealFirebase) {
     try {
       const db = firebase.firestore();
-      
+
       const eventsSnap = await db.collection("events").get();
       eventsSnap.forEach(doc => {
         const evt = doc.data();
@@ -286,7 +286,7 @@ async function syncRegistrations() {
       if (registrationsUnsubscribe) {
         registrationsUnsubscribe();
       }
-      
+
       const db = firebase.firestore();
       registrationsUnsubscribe = db.collection("registrations")
         .where("studentUid", "==", cachedUid)
@@ -323,7 +323,7 @@ async function syncRegistrations() {
           if (activeScreen && ["profile-section", "wallet-section", "news-section"].includes(activeScreen.id)) {
             renderDashboard();
           }
-          
+
           resolve();
         }, (err) => {
           console.error("Registrations snapshot stream error:", err);
@@ -374,16 +374,16 @@ async function syncRegistrations() {
 function renderHomeEvents() {
   const listContainer = document.getElementById("events-list-container");
   const featuredContainer = document.getElementById("featured-card-container");
-  
+
   listContainer.innerHTML = "";
   featuredContainer.innerHTML = "";
 
   // Filter query logic
   let filtered = EVENTS_DATA.filter(evt => {
     const matchesCategory = currentFilter === "all" || evt.type === currentFilter;
-    const matchesSearch = evt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          evt.host.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          evt.typeLabel.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = evt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      evt.host.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      evt.typeLabel.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -518,17 +518,18 @@ function openEventDetail(event) {
   // Check user registration state synchronously
   if (activeRegistrationData && activeRegistrationData.eventId === event.id) {
     if (regForm) regForm.style.display = "none";
+
+    // ടിക്കറ്റ് ഓൾറെഡി ഉള്ളവർക്ക് രണ്ട് മെയിൻ ബട്ടണുകളിലും 'VIEW TICKET' എന്ന് നിർബന്ധപൂർവ്വം മാറ്റുക
     if (proceedBtn) {
-      proceedBtn.style.display = "none";
+      proceedBtn.style.display = "block";
       proceedBtn.textContent = "VIEW TICKET";
     }
     if (regBtn) {
       regBtn.style.display = "flex";
       regBtn.textContent = "VIEW TICKET";
       regBtn.disabled = false;
-      // DYNAMICALLY ensure the button keeps its neon-green styling (keeps var(--nova-yellow))
-      regBtn.style.backgroundColor = "var(--nova-yellow)";
-      regBtn.style.color = "var(--void-black)";
+      regBtn.style.backgroundColor = "var(--neon-yellow)";
+      regBtn.style.color = "rgba(6, 6, 12, 1)";
     }
     if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
       if (statusBanner) statusBanner.style.display = "none";
@@ -560,14 +561,14 @@ function openEventDetail(event) {
       if (regBtn) {
         regBtn.textContent = btnText;
         regBtn.disabled = false;
-        regBtn.style.backgroundColor = "var(--nova-yellow)";
-        regBtn.style.color = "var(--void-black)";
+        regBtn.style.backgroundColor = "var(--neon-yellow)";
+        regBtn.style.color = "rgba(6, 6, 12, 1)";
       }
       if (proceedBtn) {
         proceedBtn.textContent = btnText;
         proceedBtn.disabled = false;
-        proceedBtn.style.backgroundColor = "var(--nova-yellow)";
-        proceedBtn.style.color = "var(--void-black)";
+        proceedBtn.style.backgroundColor = "var(--neon-yellow)";
+        proceedBtn.style.color = "rgba(6, 6, 12, 1)";
         proceedBtn.style.display = "block";
       }
     }
@@ -584,10 +585,10 @@ function openEventDetail(event) {
   } else {
     hero.style.backgroundImage = "";
   }
-  
+
   document.getElementById("detail-title").textContent = event.title;
   document.getElementById("detail-description").textContent = event.description || "No description available.";
-  
+
   // Feature grid values
   document.getElementById("detail-feat-date").textContent = event.date || "TBD";
   document.getElementById("detail-feat-time").textContent = event.time || "TBD";
@@ -606,7 +607,7 @@ function openEventDetail(event) {
   const hostParts = (event.host || "Organized by IEDC RIT").split(", ");
   document.getElementById("detail-host").textContent = hostParts[0] || "IEDC Speaker";
   document.getElementById("detail-host-qual").textContent = hostParts.slice(1).join(", ") || "IEDC Guest Host";
-  
+
   const linkedin = document.getElementById("detail-host-linkedin");
   if (event.speakerLinkedin) {
     linkedin.href = event.speakerLinkedin;
@@ -699,12 +700,12 @@ function addDetailTeamSlot() {
   div.id = `detail-member-row-${teamMemberCount}`;
   div.innerHTML = `
     <input type="text" class="input-field detail-team-member-name" placeholder="Member #${teamMemberCount} Name" required style="flex:1;">
-    <button type="button" class="btn-remove-member" onclick="removeDetailTeamSlot(${teamMemberCount})">&times;</button>
+    <button type="button" class="btn-remove-member" onclick="removeDetailTeamSlot(${teamMemberCount})">×</button>
   `;
   container.appendChild(div);
 }
 
-window.removeDetailTeamSlot = function(id) {
+window.removeDetailTeamSlot = function (id) {
   const row = document.getElementById(`detail-member-row-${id}`);
   if (row) {
     row.remove();
@@ -725,9 +726,9 @@ document.getElementById("detail-register-btn").addEventListener("click", async (
   if (!selectedEvent) return;
 
   // ROUTING THE CLICK EVENT: Check if success or if text is currently "VIEW TICKET"
-  const isSuccess = activeRegistrationData && 
-                    activeRegistrationData.eventId === selectedEvent.id && 
-                    (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed");
+  const isSuccess = activeRegistrationData &&
+    activeRegistrationData.eventId === selectedEvent.id &&
+    (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed");
   const btnText = document.getElementById("detail-register-btn").textContent;
 
   if (btnText === "VIEW TICKET") {
@@ -889,7 +890,7 @@ async function handleRegistrationCheckout() {
     showToast("Please enter contact phone number.", "var(--error)", "var(--error)");
     return;
   }
-  
+
   const ktuid = USER_PROFILE.id || "";
   const eventId = selectedEvent.id || selectedEvent.eventId;
 
@@ -995,12 +996,17 @@ async function handleRegistrationCheckout() {
     // Save pending registration to database/localStorage first
     try {
       let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-      mockRegs.push(registrationData);
+      if (!mockRegs.some(r => r.registrationId === registrationId)) {
+        mockRegs.push(registrationData);
+      } else {
+        const idx = mockRegs.findIndex(r => r.registrationId === registrationId);
+        mockRegs[idx] = registrationData;
+      }
       localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
     } catch (e) {
       console.error("Local mock pending registration failed:", e);
     }
-    
+
     localStorage.setItem("pending_phonepe_registration", JSON.stringify(registrationData));
 
     if (useRealFirebase) {
@@ -1018,13 +1024,19 @@ async function handleRegistrationCheckout() {
 
     const regFormInstant = document.getElementById("registration-form");
     if (regFormInstant) regFormInstant.style.display = "none";
+
+    // ഈ രണ്ട് സ്ഥലത്തെ ബട്ടണുകളും ഒന്നിച്ച് ഉടനെ തന്നെ ടെക്സ്റ്റ് മാറ്റി ലോക്ക് ചെയ്യുക
+    const proceedBtnInstant = document.getElementById("proceed-to-pay-btn");
+    if (proceedBtnInstant) {
+      proceedBtnInstant.textContent = "VIEW TICKET";
+    }
     const regBtnInstant = document.getElementById("detail-register-btn");
     if (regBtnInstant) {
       regBtnInstant.textContent = "VIEW TICKET";
       regBtnInstant.style.display = "flex";
       regBtnInstant.disabled = false;
-      regBtnInstant.style.backgroundColor = "var(--nova-yellow)";
-      regBtnInstant.style.color = "var(--void-black)";
+      regBtnInstant.style.backgroundColor = "var(--neon-yellow)";
+      regBtnInstant.style.color = "rgba(6, 6, 12, 1)";
     }
 
     if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -1117,7 +1129,7 @@ function watchPendingVerification(registrationId, registrationData) {
         .onSnapshot((doc) => {
           if (doc.exists) {
             const data = doc.data();
-            if (data.status === "Confirmed") {
+            if (data.status === "Confirmed" || data.payment_status === "Success") {
               if (currentVerificationUnsubscribe) {
                 currentVerificationUnsubscribe();
                 currentVerificationUnsubscribe = null;
@@ -1137,7 +1149,7 @@ function watchPendingVerification(registrationId, registrationData) {
     try {
       let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
       const reg = mockRegs.find(r => r.registrationId === registrationId);
-      if (reg && reg.status === "Confirmed") {
+      if (reg && (reg.status === "Confirmed" || reg.payment_status === "Success")) {
         clearInterval(simulatorPollingInterval);
         simulatorPollingInterval = null;
         handleVerificationSuccess(reg);
@@ -1169,7 +1181,7 @@ async function handleVerificationSuccess(registrationData) {
   const regForm = document.getElementById("registration-form");
   const upiCheckoutContainer = document.getElementById("detail-upi-checkout-container");
   const stickyCta = document.querySelector(".sticky-cta-container");
-  
+
   if (regForm) regForm.style.display = "none";
   if (upiCheckoutContainer) upiCheckoutContainer.style.display = "none";
   if (stickyCta) stickyCta.style.display = "none";
@@ -1187,7 +1199,6 @@ async function handleVerificationSuccess(registrationData) {
   await syncRegistrations();
 }
 
-
 async function completeUpiRegistration(registrationData) {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
@@ -1195,7 +1206,6 @@ async function completeUpiRegistration(registrationData) {
   triggerConfetti();
 
   // Save registration ledger to Firestore / Simulator
-  // Mock registrations write
   try {
     let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
     if (!mockRegs.some(r => r.registrationId === registrationData.registrationId)) {
@@ -1213,7 +1223,7 @@ async function completeUpiRegistration(registrationData) {
       mockEvents[evIdx].seats = Math.max(0, (mockEvents[evIdx].seats || 50) - 1);
       localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
     }
-    
+
     let mockTours = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
     let tourIdx = mockTours.findIndex(t => t.id === registrationData.eventId);
     if (tourIdx !== -1) {
@@ -1229,7 +1239,7 @@ async function completeUpiRegistration(registrationData) {
     try {
       const db = firebase.firestore();
       await db.collection("registrations").doc(registrationData.registrationId).set(registrationData);
-      
+
       const targetCol = selectedEvent.type === "tournament" ? "tournaments" : "events";
       await db.collection(targetCol).doc(registrationData.eventId).update({
         seats: firebase.firestore.FieldValue.increment(-1)
@@ -1249,7 +1259,7 @@ async function completeUpiRegistration(registrationData) {
   if (stickyCta) stickyCta.style.display = "none";
 
   document.getElementById("ticket-container").style.display = "flex";
-  
+
   // Render canvas QR code on the spot
   drawQRToCanvas(document.getElementById("ticket-qr-canvas"), registrationData.registrationId, selectedEvent.color || "#8B6FD4", 180);
 
@@ -1262,7 +1272,7 @@ function showTicket(registration) {
   document.getElementById("ticket-date").textContent = registration.date;
   document.getElementById("ticket-loc").textContent = registration.location;
   document.getElementById("ticket-id-text").textContent = `TICKET ID: ${registration.ticketId}`;
-  
+
   const typeTag = document.getElementById("ticket-type-tag");
   typeTag.textContent = registration.typeLabel;
   typeTag.className = `ticket-event-type chip chip-${registration.type}`;
@@ -1292,7 +1302,7 @@ function encryptRegistrationId(id) {
 function drawQRToCanvas(canvas, text, brandColor, size = 240) {
   if (!canvas) return;
   const encryptedText = encryptRegistrationId(text);
-  
+
   new QRious({
     element: canvas,
     value: encryptedText,
@@ -1350,7 +1360,7 @@ function renderDashboard() {
 
   const completedCount = USER_REGISTRATIONS.filter(r => r.checkedIn === true).length;
   const upcomingCount = USER_REGISTRATIONS.filter(r => r.checkedIn !== true).length;
-  
+
   document.getElementById("stat-attended").textContent = completedCount;
   document.getElementById("stat-upcoming").textContent = upcomingCount;
   document.getElementById("stat-certs").textContent = completedCount;
@@ -1366,10 +1376,10 @@ function renderDashboard() {
       const card = document.createElement("div");
       card.className = "ticket-wallet-card";
       card.style.setProperty("--ticket-color", reg.color);
-      
+
       const isPending = reg.status === "Pending";
       const isChecked = reg.checkedIn === true;
-      
+
       let badgeStyle = "background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.25); color: #22c55e; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;";
       let statusText = "✅ Confirmed";
       if (isPending) {
@@ -1380,11 +1390,11 @@ function renderDashboard() {
         statusText = "Checked In";
       }
 
-      const qrSection = isPending 
+      const qrSection = isPending
         ? `<div style="font-size:9px; color:#eab308; font-weight:700; max-width:80px; text-align:center; line-height:1.3;">Pending Verification</div>`
         : `<canvas id="qr-canvas-${reg.ticketId}"></canvas>`;
 
-      const footerAction = isPending 
+      const footerAction = isPending
         ? `<span style="color:var(--muted-white); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Pending Verification</span>`
         : `<span style="color:var(--nova-yellow); cursor:pointer; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;" onclick="viewPassDetails('${reg.ticketId}')">Present Pass</span>`;
 
@@ -1410,7 +1420,7 @@ function renderDashboard() {
         </div>
       `;
       listContainer.appendChild(card);
-      
+
       // Draw live canvas QR code inside card ONLY if confirmed
       if (!isPending) {
         drawTicketQRCode(`qr-canvas-${reg.ticketId}`, reg.ticketId, reg.color);
@@ -1421,7 +1431,7 @@ function renderDashboard() {
   renderNotifications();
 }
 
-window.viewPassDetails = async function(ticketId) {
+window.viewPassDetails = async function (ticketId) {
   const reg = USER_REGISTRATIONS.find(r => r.ticketId === ticketId);
   if (reg) {
     showToast("Authenticating ticket status...", "var(--galactic-purple)", "var(--galactic-purple)");
@@ -1472,7 +1482,7 @@ window.viewPassDetails = async function(ticketId) {
 function triggerConfetti() {
   const canvas = document.getElementById("confetti-canvas");
   const ctx = canvas.getContext("2d");
-  
+
   canvas.width = canvas.parentElement.clientWidth;
   canvas.height = canvas.parentElement.clientHeight;
 
@@ -1501,7 +1511,7 @@ function triggerConfetti() {
 
   function drawConfetti() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     let active = false;
 
     particles.forEach(p => {
@@ -1534,19 +1544,19 @@ function triggerConfetti() {
 function showToast(message, borderColor = "var(--galactic-purple)", iconColor = "var(--galactic-purple)") {
   const toast = document.getElementById("app-toast");
   const textSpan = document.getElementById("toast-text");
-  
+
   textSpan.textContent = message;
   toast.style.setProperty("--border-color", borderColor);
   toast.style.setProperty("--icon-color", iconColor);
 
   toast.classList.add("show");
-  
+
   setTimeout(() => {
     toast.classList.remove("show");
   }, 2500);
 }
 
-window.showCustomAlert = function(title, message) {
+window.showCustomAlert = function (title, message) {
   const overlay = document.getElementById("custom-alert-overlay");
   const titleEl = document.getElementById("custom-alert-title");
   const msgEl = document.getElementById("custom-alert-message");
@@ -1555,7 +1565,7 @@ window.showCustomAlert = function(title, message) {
   if (overlay) overlay.style.display = "flex";
 };
 
-window.closeCustomAlert = function() {
+window.closeCustomAlert = function () {
   const overlay = document.getElementById("custom-alert-overlay");
   if (overlay) overlay.style.display = "none";
 };
@@ -1566,10 +1576,10 @@ function updateStatusBarTime() {
   const now = new Date();
   let hr = now.getHours();
   let min = now.getMinutes();
-  
+
   hr = hr < 10 ? '0' + hr : hr;
   min = min < 10 ? '0' + min : min;
-  
+
   timeText.textContent = `${hr}:${min}`;
 }
 setInterval(updateStatusBarTime, 60000);
@@ -1585,13 +1595,13 @@ const FirebaseService = {
       if (useRealFirebase) {
         const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
         const uid = userCredential.user.uid;
-        
+
         await firebase.firestore().collection("students").doc(uid).set({
           uid,
           ...profileData,
           email: email.toLowerCase()
         });
-        
+
         return { user: { uid, email } };
       } else {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -1599,7 +1609,7 @@ const FirebaseService = {
         if (users[email.toLowerCase()]) {
           throw new Error("auth/email-already-in-use");
         }
-        
+
         const uid = "uid_" + Math.random().toString(36).substr(2, 9);
         users[email.toLowerCase()] = {
           uid,
@@ -1615,7 +1625,7 @@ const FirebaseService = {
         return { user: { uid, email } };
       }
     },
-    
+
     signInWithEmailAndPassword: async (email, password) => {
       if (useRealFirebase) {
         const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
@@ -1673,7 +1683,7 @@ const FirebaseService = {
       }
     }
   },
-  
+
   db: {
     getStudentDoc: async (uid) => {
       if (useRealFirebase) {
@@ -1693,7 +1703,7 @@ const FirebaseService = {
         return { exists: () => false };
       }
     },
-    
+
     saveStudentDoc: async (uid, data) => {
       if (useRealFirebase) {
         await firebase.firestore().collection("students").doc(uid).set(data, { merge: true });
@@ -1715,7 +1725,7 @@ const FirebaseService = {
 
 function seedMockDatabase() {
   let users = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
-  
+
   if (!users["sirin@rit.ac.in"]) {
     users["sirin@rit.ac.in"] = {
       uid: "uid_sirin123",
@@ -1723,10 +1733,10 @@ function seedMockDatabase() {
       password: "password123",
       profileData: {
         uid: "uid_sirin123",
-        name: "SIRIN MATHEWS",
+        name: "SIRIN J DEVASSIA",
         email: "sirin@rit.ac.in",
-        id: "RIT22CS089",
-        registerNo: "RIT22CS089",
+        id: "KTE25RAI029",
+        registerNo: "KTE25RAI029",
         department: "Computer Science & Engineering",
         year: "3rd Year",
         yearOfStudy: "3rd Year",
@@ -1858,7 +1868,7 @@ document.getElementById("btn-upload-avatar").addEventListener("click", () => {
   document.getElementById("setup-avatar-upload").click();
 });
 
-document.getElementById("setup-avatar-upload").addEventListener("change", function(e) {
+document.getElementById("setup-avatar-upload").addEventListener("change", function (e) {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -1870,7 +1880,7 @@ document.getElementById("setup-avatar-upload").addEventListener("change", functi
   }
 
   const reader = new FileReader();
-  reader.onload = function(event) {
+  reader.onload = function (event) {
     const url = event.target.result;
     document.getElementById("custom-avatar-preview").src = url;
     const radio = document.getElementById("radio-custom-avatar");
@@ -1882,13 +1892,13 @@ document.getElementById("setup-avatar-upload").addEventListener("change", functi
   reader.readAsDataURL(file);
 });
 
-document.getElementById("setup-email").addEventListener("input", function() {
+document.getElementById("setup-email").addEventListener("input", function () {
   this.value = this.value.toLowerCase();
 });
-document.getElementById("login-email").addEventListener("input", function() {
+document.getElementById("login-email").addEventListener("input", function () {
   this.value = this.value.toLowerCase();
 });
-document.getElementById("setup-name").addEventListener("input", function() {
+document.getElementById("setup-name").addEventListener("input", function () {
   this.value = this.value.toUpperCase();
 });
 
@@ -1943,11 +1953,11 @@ document.getElementById("btn-forgot-back").addEventListener("click", () => {
 document.getElementById("auth-forgot-password-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("forgot-email").value.trim().toLowerCase();
-  
+
   const submitBtn = e.target.querySelector("button[type='submit']");
   submitBtn.disabled = true;
   submitBtn.textContent = "Sending...";
-  
+
   try {
     await FirebaseService.auth.sendPasswordResetEmail(email);
     showToast("Password reset email sent!", "var(--success)", "var(--success)");
@@ -1980,11 +1990,11 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
   e.preventDefault();
   const email = document.getElementById("login-email").value.trim().toLowerCase();
   const password = document.getElementById("login-password").value;
-  
+
   const submitBtn = e.target.querySelector("button[type='submit']");
   submitBtn.disabled = true;
   submitBtn.textContent = "Verifying...";
-  
+
   try {
     let credentials;
     let isMockAdmin = false;
@@ -2045,7 +2055,7 @@ document.getElementById("btn-google-auth").addEventListener("click", async () =>
     const uid = credentials.user.uid;
     const docSnap = await FirebaseService.db.getStudentDoc(uid);
 
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       USER_PROFILE = docSnap.data();
       sessionStorage.setItem("loggedInUserUid", uid);
       if (authStateCallback) authStateCallback({ uid: uid });
@@ -2119,7 +2129,7 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
       await FirebaseService.db.saveStudentDoc(uid, profileData);
       USER_PROFILE = { ...profileData, uid };
       updateUserProfileUI();
-      
+
       if (USER_PROFILE.approved === true) {
         showToast("Profile settings saved!", "var(--success)", "var(--success)");
         navigateTo("home");
@@ -2214,7 +2224,7 @@ document.querySelectorAll(".btn-logout-action").forEach(btn => {
 document.getElementById("btn-pending-logout").addEventListener("click", handleSignOut);
 
 // Webhook wait screen Back/Dashboard action binder
-window.closeWaitingOverlayAndGoToWallet = function() {
+window.closeWaitingOverlayAndGoToWallet = function () {
   const waitOverlay = document.getElementById("waiting-verification-overlay");
   if (waitOverlay) waitOverlay.style.display = "none";
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
@@ -2232,7 +2242,7 @@ document.getElementById("btn-waiting-back").addEventListener("click", () => {
  * Standalone batch cleanup utility to remove duplicate or orphaned registrations.
  * Can be executed directly from the browser developer console (F12) by an administrator.
  */
-window.cleanupOrphanedTickets = async function() {
+window.cleanupOrphanedTickets = async function () {
   if (!useRealFirebase) {
     console.warn("Cleanup is only available in live Firestore mode.");
     return "Failed: Not in Firestore mode.";
@@ -2241,7 +2251,7 @@ window.cleanupOrphanedTickets = async function() {
   try {
     const db = firebase.firestore();
     console.log("Starting batch cleanup of duplicate/orphaned registrations...");
-    
+
     // 1. Fetch all registrations
     const regsSnap = await db.collection("registrations").get();
     const allRegs = [];
@@ -2269,7 +2279,7 @@ window.cleanupOrphanedTickets = async function() {
       const group = grouped[key];
       if (group.length > 1) {
         console.log(`Duplicate registrations found for student_event ${key} (${group.length} docs)`);
-        
+
         // Sort group: Confirmed first, then oldest first
         group.sort((a, b) => {
           if (a.status === "Confirmed" && b.status !== "Confirmed") return -1;
@@ -2307,13 +2317,13 @@ window.cleanupOrphanedTickets = async function() {
 
     // Resolve delete operations
     await Promise.all(toDelete);
-    
+
     const summary = `Cleanup Completed Successfully!
 ----------------------------------
 Duplicates Deleted: ${deletedDuplicates}
 Orphans Deleted: ${deletedOrphans}
 Total Cleaned: ${deletedDuplicates + deletedOrphans} records.`;
-    
+
     console.log(summary);
     return summary;
 
@@ -2365,7 +2375,7 @@ function initDynamicContentListeners() {
   if (useRealFirebase) {
     try {
       const db = firebase.firestore();
-      
+
       // Announcements real-time listener
       announcementsUnsubscribe = db.collection("announcements")
         .orderBy("timestamp", "desc")
@@ -2389,7 +2399,7 @@ function initDynamicContentListeners() {
 
 function initMockDynamicContentListeners() {
   console.log("Setting up simulator fallback for announcements...");
-  
+
   function checkMockAnnouncements() {
     let mockAnnouncements = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
     if (mockAnnouncements.length === 0) {
@@ -2402,9 +2412,9 @@ function initMockDynamicContentListeners() {
     }
     renderLiveAnnouncements(mockAnnouncements);
   }
-  
+
   checkMockAnnouncements();
-  
+
   setInterval(() => {
     checkMockAnnouncements();
   }, 1500);
@@ -2414,11 +2424,11 @@ function renderLiveAnnouncements(announcementsList) {
   const container = document.getElementById("notifications-list-container");
   if (!container) return;
   container.innerHTML = "";
-  
+
   announcementsList.forEach(n => {
     const card = document.createElement("div");
     card.className = "notification-card";
-    
+
     let timeLabel = n.time || "Just Now";
     if (n.timestamp && !n.time) {
       timeLabel = new Date(n.timestamp).toLocaleDateString('en-US', {
@@ -2428,7 +2438,7 @@ function renderLiveAnnouncements(announcementsList) {
         minute: '2-digit'
       });
     }
-    
+
     card.innerHTML = `
       <span class="notification-title">${n.title}</span>
       <p class="notification-body">${n.body || n.content || ''}</p>
@@ -2510,16 +2520,17 @@ function handleRealtimeRegistrationUpdate(data) {
     // IF the user document EXISTS in Firestore (meaning they are registered)
     // FORCE-HIDE the entire registration inputs form fields layout completely (element.style.display = "none";).
     if (regForm) regForm.style.display = "none";
-    
+
     const formContainer = document.getElementById('registration-form-container');
     if (formContainer) formContainer.style.display = "none";
 
+    // ആക്ഷൻ ബട്ടൺ 'VIEW TICKET' ആക്കി രണ്ട് സ്ഥലത്തും മാറ്റുക
     if (proceedBtn) {
       proceedBtn.innerText = "VIEW TICKET";
       proceedBtn.style.display = "block";
       proceedBtn.disabled = false;
-      proceedBtn.style.backgroundColor = "var(--nova-yellow)";
-      proceedBtn.style.color = "var(--void-black)";
+      proceedBtn.style.backgroundColor = "var(--neon-yellow)";
+      proceedBtn.style.color = "rgba(6, 6, 12, 1)";
       proceedBtn.onclick = (e) => {
         e.preventDefault();
         if (data.payment_status === "Success" || data.status === "Confirmed") {
@@ -2551,15 +2562,13 @@ function handleRealtimeRegistrationUpdate(data) {
     }
     if (viewPassBtn) viewPassBtn.style.display = "none";
 
-    // Explicitly change the main action button text to: "VIEW TICKET".
-    // Ensure the button remains fully visible (element.style.display = "flex";) inside our phone mockup template.
-    // Ensure it keeps its neon-green styling.
+    // സ്റ്റിക്കി സിടിഎ ബട്ടണിലും 'VIEW TICKET' ലോക്ക് ചെയ്യുക
     if (regBtn) {
       regBtn.style.display = "flex";
       regBtn.textContent = "VIEW TICKET";
       regBtn.disabled = false;
-      regBtn.style.backgroundColor = "var(--nova-yellow)";
-      regBtn.style.color = "var(--void-black)";
+      regBtn.style.backgroundColor = "var(--neon-yellow)";
+      regBtn.style.color = "rgba(6, 6, 12, 1)";
       regBtn.onclick = (e) => {
         e.preventDefault();
         if (data.payment_status === "Success" || data.status === "Confirmed") {
@@ -2601,7 +2610,7 @@ function handleRealtimeRegistrationUpdate(data) {
   } else {
     // ONLY show "PROCEED TO PAY" and the input fields if NO document exists at all in the database (Fresh User)
     if (regForm) regForm.style.display = "flex";
-    
+
     const formContainer = document.getElementById('registration-form-container');
     if (formContainer) formContainer.style.display = "flex";
 
@@ -2623,8 +2632,8 @@ function handleRealtimeRegistrationUpdate(data) {
       } else {
         regBtn.textContent = "PROCEED TO PAY";
         regBtn.disabled = false;
-        regBtn.style.backgroundColor = "var(--nova-yellow)";
-        regBtn.style.color = "var(--void-black)";
+        regBtn.style.backgroundColor = "var(--neon-yellow)";
+        regBtn.style.color = "rgba(6, 6, 12, 1)";
       }
     }
     if (stickyCta) stickyCta.style.display = "block";
@@ -2689,45 +2698,9 @@ onAuthStateChanged(auth, (user) => {
         .onSnapshot((doc) => {
           const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
           if (docExists) {
-            document.getElementById('proceed-to-pay-btn').innerText = "VIEW TICKET";
-            document.getElementById('registration-form-container').style.display = "none";
-
-            document.getElementById('proceed-to-pay-btn').onclick = (e) => {
-              e.preventDefault();
-              if (doc.data().payment_status === "Success" || doc.data().status === "Confirmed") {
-                const match = EVENTS_DATA.find(e => e.id === doc.data().eventId);
-                const regToPass = {
-                  id: doc.data().eventId,
-                  registrationId: doc.data().registrationId,
-                  ticketId: doc.data().registrationId,
-                  title: doc.data().eventTitle || (match ? match.title : "Event"),
-                  type: match ? match.type : "talk",
-                  typeLabel: match ? match.typeLabel : "Talk",
-                  date: match ? match.date : "TBD",
-                  isoDate: match ? match.isoDate : new Date().toISOString(),
-                  time: match ? match.time : "TBD",
-                  location: match ? match.location : "TBD",
-                  host: match ? match.host : "IEDC RIT",
-                  color: match ? match.color : "#C8E84A",
-                  status: doc.data().status || "Confirmed",
-                  checkedIn: doc.data().checkedIn === true,
-                  razorpayPaymentId: doc.data().razorpayPaymentId || doc.data().utrNumber || "FREE",
-                  phone: doc.data().phone || "",
-                  bankAccountName: doc.data().bankAccountName || ""
-                };
-                showTicket(regToPass);
-              } else {
-                alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
-              }
-            };
             doc1Data = doc.data();
           } else {
             doc1Data = null;
-            if (!doc2Data) {
-              document.getElementById('proceed-to-pay-btn').innerText = "PROCEED TO PAY";
-              document.getElementById('registration-form-container').style.display = "flex";
-              document.getElementById('proceed-to-pay-btn').onclick = null;
-            }
           }
           updateCombinedState();
         }, (err) => {
@@ -2739,45 +2712,9 @@ onAuthStateChanged(auth, (user) => {
         .onSnapshot((doc) => {
           const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
           if (docExists) {
-            document.getElementById('proceed-to-pay-btn').innerText = "VIEW TICKET";
-            document.getElementById('registration-form-container').style.display = "none";
-
-            document.getElementById('proceed-to-pay-btn').onclick = (e) => {
-              e.preventDefault();
-              if (doc.data().payment_status === "Success" || doc.data().status === "Confirmed") {
-                const match = EVENTS_DATA.find(e => e.id === doc.data().eventId);
-                const regToPass = {
-                  id: doc.data().eventId,
-                  registrationId: doc.data().registrationId,
-                  ticketId: doc.data().registrationId,
-                  title: doc.data().eventTitle || (match ? match.title : "Event"),
-                  type: match ? match.type : "talk",
-                  typeLabel: match ? match.typeLabel : "Talk",
-                  date: match ? match.date : "TBD",
-                  isoDate: match ? match.isoDate : new Date().toISOString(),
-                  time: match ? match.time : "TBD",
-                  location: match ? match.location : "TBD",
-                  host: match ? match.host : "IEDC RIT",
-                  color: match ? match.color : "#C8E84A",
-                  status: doc.data().status || "Confirmed",
-                  checkedIn: doc.data().checkedIn === true,
-                  razorpayPaymentId: doc.data().razorpayPaymentId || doc.data().utrNumber || "FREE",
-                  phone: doc.data().phone || "",
-                  bankAccountName: doc.data().bankAccountName || ""
-                };
-                showTicket(regToPass);
-              } else {
-                alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
-              }
-            };
             doc2Data = doc.data();
           } else {
             doc2Data = null;
-            if (!doc1Data) {
-              document.getElementById('proceed-to-pay-btn').innerText = "PROCEED TO PAY";
-              document.getElementById('registration-form-container').style.display = "flex";
-              document.getElementById('proceed-to-pay-btn').onclick = null;
-            }
           }
           updateCombinedState();
         }, (err) => {
@@ -2790,45 +2727,6 @@ onAuthStateChanged(auth, (user) => {
         const mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
         const reg = mockRegs.find(r => r.registrationId === "reg-" + user.uid || r.registrationId === user.uid || r.studentUid === user.uid);
         activeRegistrationData = reg || null;
-
-        if (activeRegistrationData) {
-          document.getElementById('proceed-to-pay-btn').innerText = "VIEW TICKET";
-          document.getElementById('registration-form-container').style.display = "none";
-
-          document.getElementById('proceed-to-pay-btn').onclick = (e) => {
-            e.preventDefault();
-            if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
-              const match = EVENTS_DATA.find(e => e.id === activeRegistrationData.eventId);
-              const regToPass = {
-                id: activeRegistrationData.eventId,
-                registrationId: activeRegistrationData.registrationId,
-                ticketId: activeRegistrationData.registrationId,
-                title: activeRegistrationData.eventTitle || (match ? match.title : "Event"),
-                type: match ? match.type : "talk",
-                typeLabel: match ? match.typeLabel : "Talk",
-                date: match ? match.date : "TBD",
-                isoDate: match ? match.isoDate : new Date().toISOString(),
-                time: match ? match.time : "TBD",
-                location: match ? match.location : "TBD",
-                host: match ? match.host : "IEDC RIT",
-                color: match ? match.color : "#C8E84A",
-                status: activeRegistrationData.status || "Confirmed",
-                checkedIn: activeRegistrationData.checkedIn === true,
-                razorpayPaymentId: activeRegistrationData.razorpayPaymentId || activeRegistrationData.utrNumber || "FREE",
-                phone: activeRegistrationData.phone || "",
-                bankAccountName: activeRegistrationData.bankAccountName || ""
-              };
-              showTicket(regToPass);
-            } else {
-              alert("⚠️ Your registration is received! Your ticket will be active once the Admin approves your payment.");
-            }
-          };
-        } else {
-          document.getElementById('proceed-to-pay-btn').innerText = "PROCEED TO PAY";
-          document.getElementById('registration-form-container').style.display = "flex";
-          document.getElementById('proceed-to-pay-btn').onclick = null;
-        }
-
         handleRealtimeRegistrationUpdate(activeRegistrationData);
       };
       checkMockReg();
