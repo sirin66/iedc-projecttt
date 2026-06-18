@@ -761,7 +761,6 @@ async function handleRegistrationCheckout() {
 
   if (hasDuplicate) {
     // Restore button
-    const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
     if (proceedBtn) {
       proceedBtn.disabled = false;
       proceedBtn.textContent = originalBtnText;
@@ -777,7 +776,6 @@ async function handleRegistrationCheckout() {
   }
 
   // Restore button text for future opens
-  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
   if (proceedBtn) {
     proceedBtn.disabled = false;
     proceedBtn.textContent = originalBtnText;
@@ -1963,10 +1961,10 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
 });
 
 function updateUserProfileUI() {
-  const name = USER_PROFILE.name;
-  const email = USER_PROFILE.email;
-  const id = USER_PROFILE.id;
-  const college = USER_PROFILE.collegeName;
+  const name = USER_PROFILE.name || "Student";
+  const email = USER_PROFILE.email || "N/A";
+  const id = USER_PROFILE.id || "N/A";
+  const college = USER_PROFILE.collegeName || "N/A";
   const avatar = USER_PROFILE.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 
   document.querySelectorAll(".avatar-img").forEach(img => {
@@ -1975,8 +1973,9 @@ function updateUserProfileUI() {
     }
   });
 
+  const displayName = name.trim() ? name : "Student";
   document.querySelectorAll(".dashboard-greeting").forEach(greeting => {
-    greeting.textContent = `Hey ${name.split(" ")[0]} 👋`;
+    greeting.textContent = `Hey ${displayName.split(" ")[0]} 👋`;
   });
 }
 
