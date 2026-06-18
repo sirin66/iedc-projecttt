@@ -500,6 +500,41 @@ document.querySelectorAll(".chip-category").forEach(pill => {
 function openEventDetail(event) {
   selectedEvent = event;
 
+  const regForm = document.getElementById("registration-form");
+  const proceedBtn = document.getElementById("proceed-to-pay-btn") || document.getElementById("modal-pay-btn");
+  const viewPassBtn = document.getElementById("view-ticket-pass-btn");
+  const statusBanner = document.getElementById("registration-status-banner");
+  const stickyCta = document.querySelector(".sticky-cta-container");
+  const regBtn = document.getElementById("detail-register-btn");
+
+  // Force-hide all dynamic checkout views immediately to prevent flashing PROCEED TO PAY button
+  if (regForm) regForm.style.display = "none";
+  if (proceedBtn) proceedBtn.style.display = "none";
+  if (viewPassBtn) viewPassBtn.style.display = "none";
+  if (statusBanner) statusBanner.style.display = "none";
+  if (stickyCta) stickyCta.style.display = "none";
+  if (regBtn) regBtn.style.display = "none";
+
+  // Check user registration state synchronously
+  if (activeRegistrationData && activeRegistrationData.eventId === event.id) {
+    if (activeRegistrationData.payment_status === "Success" || activeRegistrationData.status === "Confirmed") {
+      // Direct success logic to avoid flash
+      if (viewPassBtn) viewPassBtn.style.display = "flex";
+    } else {
+      // Direct pending banner logic to avoid flash
+      if (statusBanner) {
+        statusBanner.style.display = "block";
+        statusBanner.textContent = "Registration Received! Awaiting Admin Payment Verification.";
+      }
+    }
+  } else {
+    // Direct fresh user logic
+    if (regForm) regForm.style.display = "flex";
+    if (proceedBtn) proceedBtn.style.display = "block";
+    if (stickyCta) stickyCta.style.display = "block";
+    if (regBtn) regBtn.style.display = "block";
+  }
+
   // Background and titles
   const hero = document.getElementById("detail-hero");
   hero.style.setProperty("--event-color", event.color);
@@ -1105,6 +1140,7 @@ function encryptRegistrationId(id) {
   }
 }
 
+// Canvas rendering with direct brand colour parameters maps correctly
 function drawQRToCanvas(canvas, text, brandColor, size = 240) {
   if (!canvas) return;
   const encryptedText = encryptRegistrationId(text);
@@ -2312,13 +2348,19 @@ function handleRealtimeRegistrationUpdate(data) {
   if (viewPassBtn) viewPassBtn.style.display = "none";
   if (statusBanner) statusBanner.style.display = "none";
   if (stickyCta) stickyCta.style.display = "none";
+  if (regBtn) regBtn.style.display = "none";
+
+  if (!selectedEvent) {
+    return; // Keep hidden if no event is currently active or selected
+  }
 
   // Step B: Check conditions strictly
-  if (selectedEvent && data && data.eventId === selectedEvent.id) {
+  if (data && data.eventId === selectedEvent.id) {
     if (data.payment_status === "Success" || data.status === "Confirmed") {
       // Condition 1: Paid & Verified
       if (regForm) regForm.style.display = "none";
       if (proceedBtn) proceedBtn.style.display = "none";
+      if (regBtn) regBtn.style.display = "none";
       if (viewPassBtn) {
         viewPassBtn.style.display = "flex";
         // Zero-Trust Click Interception: double checks active Firestore/Mock state upon click
@@ -2355,6 +2397,7 @@ function handleRealtimeRegistrationUpdate(data) {
       // Condition 2: Pending Admin Verification
       if (regForm) regForm.style.display = "none";
       if (proceedBtn) proceedBtn.style.display = "none";
+      if (regBtn) regBtn.style.display = "none";
       if (viewPassBtn) viewPassBtn.style.display = "none";
       if (statusBanner) {
         statusBanner.style.display = "block";
@@ -2366,6 +2409,7 @@ function handleRealtimeRegistrationUpdate(data) {
     // Condition 3: No document exists (Fresh User)
     if (regForm) regForm.style.display = "flex";
     if (proceedBtn) proceedBtn.style.display = "block";
+    if (regBtn) regBtn.style.display = "block";
     if (viewPassBtn) viewPassBtn.style.display = "none";
     if (statusBanner) statusBanner.style.display = "none";
     if (stickyCta) stickyCta.style.display = "block";
