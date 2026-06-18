@@ -54,6 +54,29 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
 }
 sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
+// Initialize auth and mock/real onAuthStateChanged listener wrapper
+let authStateCallback = null;
+const auth = useRealFirebase ? firebase.auth() : {
+  onAuthStateChanged: (callback) => {
+    authStateCallback = callback;
+    const cachedUid = sessionStorage.getItem("loggedInUserUid");
+    if (cachedUid) {
+      callback({ uid: cachedUid });
+    } else {
+      callback(null);
+    }
+    return () => { authStateCallback = null; };
+  }
+};
+
+function onAuthStateChanged(authInstance, callback) {
+  if (useRealFirebase && authInstance && typeof authInstance.onAuthStateChanged === "function") {
+    return authInstance.onAuthStateChanged(callback);
+  } else if (authInstance && typeof authInstance.onAuthStateChanged === "function") {
+    return authInstance.onAuthStateChanged(callback);
+  }
+}
+
 // ==========================================
 // 02 — DOM ELEMENTS REGISTRY
 // ==========================================
@@ -78,6 +101,14 @@ const QR_SECRET_KEY = "RITU_GATEWAY_SECURE_2026_KEY";
 async function switchTab(tabName) {
   if (detailCountdownInterval) clearInterval(detailCountdownInterval);
 
+  // STRICT SECURITY CHECK: Do not allow navigation to inner tabs if not logged in
+  const cachedUid = sessionStorage.getItem("loggedInUserUid");
+  if (!cachedUid) {
+    console.warn("Access denied: User not authenticated.");
+    navigateTo("auth");
+    return;
+  }
+
   // 1. Hide all navigation sections completely
   document.querySelectorAll('.nav-section').forEach(section => {
       section.style.display = 'none';
@@ -100,9 +131,18 @@ async function switchTab(tabName) {
     }
   });
 
-  // Ensure bottom navigation bar is visible when tab sections are active
-  const bottomNav = document.querySelector(".bottom-nav");
-  if (bottomNav) bottomNav.style.display = "flex";
+  // Ensure bottom navigation bar is visible when tab sections are active if logged in
+  const bottomNav = document.getElementById("bottom-nav") || document.querySelector(".bottom-nav");
+  if (bottomNav) {
+    const cachedUid = sessionStorage.getItem("loggedInUserUid");
+    if (cachedUid) {
+      bottomNav.classList.remove("nav-hidden");
+      bottomNav.style.setProperty("display", "grid", "important");
+    } else {
+      bottomNav.classList.add("nav-hidden");
+      bottomNav.style.setProperty("display", "none", "important");
+    }
+  }
 
   // 3. Update active neon state on bottom icons
   document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
@@ -156,11 +196,23 @@ async function navigateTo(screenId) {
   const presentationContainer = document.querySelector(".presentation-container");
   if (presentationContainer) presentationContainer.style.display = "flex";
 
-  const bottomNav = document.querySelector(".bottom-nav");
+  const bottomNav = document.getElementById("bottom-nav") || document.querySelector(".bottom-nav");
   if (screenId === "auth" || screenId === "pending") {
-    if (bottomNav) bottomNav.style.display = "none";
+    if (bottomNav) {
+      bottomNav.classList.add("nav-hidden");
+      bottomNav.style.setProperty("display", "none", "important");
+    }
   } else {
-    if (bottomNav) bottomNav.style.display = "flex";
+    const cachedUid = sessionStorage.getItem("loggedInUserUid");
+    if (cachedUid && bottomNav) {
+      bottomNav.classList.remove("nav-hidden");
+      bottomNav.style.setProperty("display", "grid", "important");
+    } else {
+      if (bottomNav) {
+        bottomNav.classList.add("nav-hidden");
+        bottomNav.style.setProperty("display", "none", "important");
+      }
+    }
   }
 }
 
@@ -1796,6 +1848,7 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
     if (docSnap.exists()) {
       USER_PROFILE = docSnap.data();
       sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+      if (authStateCallback) authStateCallback({ uid: credentials.user.uid });
       updateUserProfileUI();
       checkApprovalAndRoute(USER_PROFILE);
     } else {
@@ -1817,6 +1870,7 @@ document.getElementById("auth-login-form").addEventListener("submit", async (e) 
         };
         await FirebaseService.db.saveStudentDoc(credentials.user.uid, USER_PROFILE);
         sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+        if (authStateCallback) authStateCallback({ uid: credentials.user.uid });
         updateUserProfileUI();
         checkApprovalAndRoute(USER_PROFILE);
       } else {
@@ -1840,10 +1894,12 @@ document.getElementById("btn-google-auth").addEventListener("click", async () =>
     if (docSnap.exists()) {
       USER_PROFILE = docSnap.data();
       sessionStorage.setItem("loggedInUserUid", uid);
+      if (authStateCallback) authStateCallback({ uid: uid });
       updateUserProfileUI();
       checkApprovalAndRoute(USER_PROFILE);
     } else {
       sessionStorage.setItem("loggedInUserUid", uid);
+      if (authStateCallback) authStateCallback({ uid: uid });
       switchAuthTab("register");
 
       document.getElementById("setup-name").value = (credentials.user.displayName || "").toUpperCase();
@@ -1921,6 +1977,7 @@ document.getElementById("profile-setup-form").addEventListener("submit", async (
       const credentials = await FirebaseService.auth.createUserWithEmailAndPassword(email, password, profileData);
       USER_PROFILE = { ...profileData, uid: credentials.user.uid };
       sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
+      if (authStateCallback) authStateCallback({ uid: credentials.user.uid });
       updateUserProfileUI();
       showToast("Profile submitted for approval.", "var(--warning)", "var(--warning)");
       checkApprovalAndRoute(USER_PROFILE);
@@ -1991,6 +2048,7 @@ function openProfileSetup(isEditing = false) {
 async function handleSignOut() {
   await FirebaseService.auth.signOut();
   sessionStorage.removeItem("loggedInUserUid");
+  if (authStateCallback) authStateCallback(null);
   USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
   navigateTo("auth");
 }
@@ -2298,6 +2356,7 @@ async function initSession() {
         checkApprovalAndRoute(USER_PROFILE);
       } else {
         sessionStorage.removeItem("loggedInUserUid");
+        if (authStateCallback) authStateCallback(null);
         openProfileSetup(false);
       }
     } catch (e) {
@@ -2309,3 +2368,32 @@ async function initSession() {
 }
 
 initSession();
+
+// Register the requested authentication observer to conditionally manage bottom navigation bar visibility
+onAuthStateChanged(auth, (user) => {
+  const bottomNav = document.getElementById("bottom-nav") || document.querySelector(".bottom-nav");
+  if (bottomNav) {
+    if (user) {
+      // User is logged in. Verify approval status before showing
+      const cachedUid = sessionStorage.getItem("loggedInUserUid") || (user && user.uid);
+      if (cachedUid) {
+        FirebaseService.db.getStudentDoc(cachedUid).then(docSnap => {
+          if (docSnap.exists) {
+            const profileData = docSnap.data();
+            if (profileData.approved === true) {
+              bottomNav.classList.remove("nav-hidden");
+              bottomNav.style.setProperty("display", "grid", "important");
+            } else {
+              bottomNav.classList.add("nav-hidden");
+              bottomNav.style.setProperty("display", "none", "important");
+            }
+          }
+        });
+      }
+    } else {
+      // Strictly ensure it remains completely hidden
+      bottomNav.classList.add("nav-hidden");
+      bottomNav.style.setProperty("display", "none", "important");
+    }
+  }
+});
