@@ -2518,7 +2518,6 @@ function handleRealtimeRegistrationUpdate(data) {
 
   if (documentExists && isForCurrentEvent) {
     // IF the user document EXISTS in Firestore (meaning they are registered)
-    // FORCE-HIDE the entire registration inputs form fields layout completely (element.style.display = "none";).
     if (regForm) regForm.style.display = "none";
 
     const formContainer = document.getElementById('registration-form-container');

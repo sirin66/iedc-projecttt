@@ -1320,7 +1320,6 @@
               <circle cx="12" cy="7" r="4" />
             </svg>
             <div class="nav-dot"></div>
-          </div>
         </nav>
 
         <canvas id="confetti-canvas"></canvas>
@@ -1345,7 +1344,10 @@
   <script src="app.js"></script>
 
   <script>
-    // Fetch and listen for real-time news ticker updates from Firebase / LocalStorage
+    // ==========================================
+    // REAL-TIME DYNAMIC UI STATE CONTROLLER
+    // ==========================================
+
     function initRealtimeNewsTicker() {
       const tickerContainer = document.querySelector(".ticker");
       if (!tickerContainer) return;
@@ -1399,7 +1401,7 @@
       setTimeout(() => {
         const authScreen = document.getElementById("screen-auth");
         if (authScreen && authScreen.classList.contains("active")) {
-          // If on login, do not show ad overlay until session is verified
+          // ലോഗിൻ സ്ക്രീനിൽ ആണെങ്കിൽ പരസ്യം കാണിക്കില്ല
         } else {
           showAdOverlay();
         }
@@ -1487,12 +1489,10 @@
             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo.png/320px-UPI-Logo.png"
               alt="UPI" style="max-height: 100%; max-width: 100%; object-fit: contain;">
           </div>
-
           <div
             style="background: white; padding: 8px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.25); margin-bottom: 8px;">
             <canvas id="waiting-upi-qr-canvas" style="display: block; width: 130px; height: 130px;"></canvas>
           </div>
-
           <span
             style="font-size: 10px; color: var(--neon-yellow); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
             ⚡ Tap to Pay via App
