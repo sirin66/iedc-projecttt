@@ -2211,25 +2211,7 @@ function initDynamicContentListeners() {
     try {
       const db = firebase.firestore();
       
-      // 1. News Ticker real-time listener
-      newsTickerUnsubscribe = db.collection("news_ticker").doc("current")
-        .onSnapshot((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            if (data && data.text) {
-              renderNewsTicker(data.text);
-            }
-          } else {
-            console.log("News ticker document does not exist in Firestore. Seeding default text.");
-            db.collection("news_ticker").doc("current").set({
-              text: "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!"
-            }).catch(e => console.error("Error seeding news ticker:", e));
-          }
-        }, (err) => {
-          console.error("News ticker snapshot error:", err);
-        });
-
-      // 2. Announcements real-time listener
+      // Announcements real-time listener
       announcementsUnsubscribe = db.collection("announcements")
         .orderBy("timestamp", "desc")
         .onSnapshot((snapshot) => {
@@ -2251,16 +2233,7 @@ function initDynamicContentListeners() {
 }
 
 function initMockDynamicContentListeners() {
-  console.log("Setting up simulator fallback for news ticker and announcements...");
-  
-  function checkMockTicker() {
-    let mockTicker = localStorage.getItem("mock_news_ticker");
-    if (!mockTicker) {
-      mockTicker = "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!";
-      localStorage.setItem("mock_news_ticker", mockTicker);
-    }
-    renderNewsTicker(mockTicker);
-  }
+  console.log("Setting up simulator fallback for announcements...");
   
   function checkMockAnnouncements() {
     let mockAnnouncements = JSON.parse(localStorage.getItem("mock_announcements") || "[]");
@@ -2275,27 +2248,11 @@ function initMockDynamicContentListeners() {
     renderLiveAnnouncements(mockAnnouncements);
   }
   
-  checkMockTicker();
   checkMockAnnouncements();
   
   setInterval(() => {
-    checkMockTicker();
     checkMockAnnouncements();
   }, 1500);
-}
-
-function renderNewsTicker(text) {
-  const tickerContainer = document.querySelector(".ticker");
-  if (!tickerContainer) return;
-  tickerContainer.innerHTML = "";
-  
-  const items = text.split("|").map(i => i.trim()).filter(Boolean);
-  items.forEach(item => {
-    const span = document.createElement("span");
-    span.className = "ticker-item";
-    span.textContent = item;
-    tickerContainer.appendChild(span);
-  });
 }
 
 function renderLiveAnnouncements(announcementsList) {

@@ -1240,8 +1240,62 @@
   <script src="app.js"></script>
   
   <script>
+    // Fetch and listen for real-time news ticker updates from Firebase / LocalStorage
+    function initRealtimeNewsTicker() {
+      const tickerContainer = document.querySelector(".ticker");
+      if (!tickerContainer) return;
+
+      const renderTicker = (text) => {
+        tickerContainer.innerHTML = "";
+        const items = text.split("|").map(i => i.trim()).filter(Boolean);
+        items.forEach(item => {
+          const span = document.createElement("span");
+          span.className = "ticker-item";
+          span.textContent = item;
+          tickerContainer.appendChild(span);
+        });
+      };
+
+      // We securely check session settings to determine Firebase status
+      const useRealFirebase = sessionStorage.getItem("useRealFirebase") === "true";
+
+      if (useRealFirebase && typeof firebase !== "undefined") {
+        try {
+          const db = firebase.firestore();
+          db.collection("news_ticker").doc("current").onSnapshot((doc) => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (data && data.text) {
+                renderTicker(data.text);
+              }
+            } else {
+              // Default fallback ticker text
+              const defaultText = "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!";
+              renderTicker(defaultText);
+            }
+          }, (err) => {
+            console.error("Firestore news ticker stream error:", err);
+          });
+        } catch (e) {
+          console.error("Failed to initialize Firestore ticker listener:", e);
+        }
+      } else {
+        // Fallback to LocalStorage simulator check
+        const checkMockTicker = () => {
+          const mockTicker = localStorage.getItem("mock_news_ticker") || "📢 Next Hackathon registration closes this Friday! | 🔥 Cash prizes up to ₹25,000 for tournaments! | 💡 Earn KTU Activity Points for all certified events! | 🚀 Join the RIT IEDC WhatsApp community for real-time alerts!";
+          renderTicker(mockTicker);
+        };
+        checkMockTicker();
+        // Set interval to poll local storage updates in simulation mode
+        setInterval(checkMockTicker, 1500);
+      }
+    }
+
     // Initial Ad Overlay Popup controller
     window.addEventListener('DOMContentLoaded', () => {
+      // Initialize news ticker updates
+      initRealtimeNewsTicker();
+
       setTimeout(() => {
         // Show Ad only if user is on authentication/home screen on load
         const authScreen = document.getElementById("screen-auth");
