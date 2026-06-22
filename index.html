@@ -211,6 +211,105 @@
     .nav-hidden {
       display: none !important;
     }
+
+    /* Merchandise Slider, Cards & Cart Styling */
+    #merch-slider-container {
+      display: flex;
+      overflow-x: auto;
+      gap: var(--space-md);
+      padding: var(--space-sm) 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-behavior: smooth;
+    }
+    #merch-slider-container::-webkit-scrollbar {
+      display: none;
+    }
+    .merch-card {
+      min-width: 220px;
+      width: 220px;
+      flex-shrink: 0;
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .merch-img {
+      width: 100%;
+      height: 130px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: var(--space-xs);
+    }
+    .merch-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--white-pure);
+      margin-bottom: 2px;
+    }
+    .merch-price {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--neon-yellow);
+      margin-bottom: var(--space-xs);
+    }
+    .merch-select {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: white;
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 11px;
+      outline: none;
+    }
+    .product-qty-input {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: white;
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 11px;
+      outline: none;
+      text-align: center;
+    }
+    .btn-add-to-cart {
+      background: var(--neon-purple) !important;
+      color: var(--white-pure) !important;
+      box-shadow: 0 0 12px rgba(139, 111, 212, 0.3) !important;
+      border: none !important;
+      cursor: pointer;
+      width: 100%;
+      padding: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+      margin-top: var(--space-xs);
+    }
+    .btn-add-to-cart:hover {
+      box-shadow: 0 0 20px rgba(139, 111, 212, 0.5) !important;
+      transform: translateY(-1px);
+    }
+    .btn-cancel-order {
+      background: rgba(232, 97, 74, 0.12) !important;
+      border: 1px solid var(--neon-coral) !important;
+      color: var(--neon-coral) !important;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-cancel-order:hover {
+      background: rgba(232, 97, 74, 0.2) !important;
+      box-shadow: 0 0 12px rgba(232, 97, 74, 0.3) !important;
+    }
   </style>
 
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -465,6 +564,234 @@
       border-color: var(--neon-yellow);
       color: var(--neon-yellow);
     }
+
+    /* ==========================================
+       PREMIUM GLASSMORPHIC CHATBOT WIDGET STYLES
+       ========================================== */
+    .chatbot-launcher {
+      position: absolute;
+      bottom: 88px;
+      right: 16px;
+      width: 50px;
+      height: 50px;
+      background: rgba(139, 111, 212, 0.25);
+      border: 1px solid rgba(139, 111, 212, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 9999;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.4), 0 0 15px rgba(139, 111, 212, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .chatbot-launcher:hover {
+      transform: scale(1.05) rotate(10deg);
+      background: rgba(139, 111, 212, 0.35);
+      border-color: var(--neon-purple);
+      box-shadow: 0 12px 32px 0 rgba(139, 111, 212, 0.5), 0 0 20px rgba(139, 111, 212, 0.6);
+    }
+
+    .chatbot-window {
+      position: absolute;
+      bottom: 148px;
+      right: 16px;
+      width: 340px;
+      height: 440px;
+      max-height: calc(100% - 180px);
+      max-width: calc(100% - 32px);
+      background: rgba(10, 10, 20, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 111, 212, 0.15);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: var(--font-sans);
+      animation: chatbotFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes chatbotFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .chatbot-header {
+      padding: var(--space-md);
+      background: rgba(139, 111, 212, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chatbot-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white-pure);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .chatbot-glow-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--neon-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--neon-green);
+      display: inline-block;
+      animation: pulseGreen 2s infinite;
+    }
+
+    @keyframes pulseGreen {
+      0% {
+        box-shadow: 0 0 0 0 rgba(74, 232, 138, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(74, 232, 138, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(74, 232, 138, 0);
+      }
+    }
+
+    .chatbot-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted-white);
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .chatbot-close-btn:hover {
+      color: var(--neon-coral);
+      transform: scale(1.1);
+    }
+
+    .chatbot-messages {
+      flex: 1;
+      padding: var(--space-md);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    }
+
+    .chatbot-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .chatbot-messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .chatbot-message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-word;
+      animation: messageSlideIn 0.25s ease-out;
+    }
+
+    @keyframes messageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chatbot-message.bot-message {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--white-pure);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chatbot-message.user-message {
+      background: var(--neon-purple);
+      color: var(--white-pure);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(139, 111, 212, 0.25);
+    }
+
+    .chatbot-footer {
+      padding: var(--space-md);
+      background: rgba(6, 6, 12, 0.4);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      gap: var(--space-sm);
+      align-items: center;
+    }
+
+    .chatbot-footer input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      color: white;
+      padding: 10px 12px;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .chatbot-footer input:focus {
+      border-color: var(--neon-purple);
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: 0 0 10px rgba(139, 111, 212, 0.2);
+    }
+
+    .chatbot-footer button {
+      background: var(--neon-purple);
+      color: var(--white-pure);
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(139, 111, 212, 0.2);
+    }
+
+    .chatbot-footer button:hover {
+      background: #9d83e6;
+      box-shadow: 0 4px 20px rgba(139, 111, 212, 0.4);
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 
@@ -545,7 +872,7 @@
           </div>
         </div>
 
-        <div id="screen-auth" class="screen full-height active">
+        <div id="screen-auth" class="screen full-height active" style="display: block;">
           <div class="btn-back" id="setup-back-btn" style="display: none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -789,547 +1116,649 @@
           </div>
         </div>
 
-        <div id="home-section" class="screen nav-section active">
-          <div class="ticker-wrap">
-            <div class="ticker" id="news-ticker-text">
-              <span class="ticker-item">📢 Next Hackathon registration closes this Friday!</span>
-              <span class="ticker-item">🔥 Cash prizes up to ₹25,000 for tournaments!</span>
-              <span class="ticker-item">💡 Earn KTU Activity Points for all certified events!</span>
-              <span class="ticker-item">🚀 Join the RIT IEDC WhatsApp community for real-time alerts!</span>
-            </div>
-          </div>
+        <!-- Main Logged-in Dashboard Container -->
+        <div id="main-dashboard-layout" style="display: none;">
 
-          <div class="app-header">
-            <div class="logo-wrapper">
-              <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
-                style="display: block;">
-                <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
-                <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
-                <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(255,255,255,0.4)" />
-                <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
-                  fill="#FFFFFF" letter-spacing="-0.5">IEDC</text>
-                <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
-                  fill="#FFFFFF" letter-spacing="-0.5">RIT</text>
-                <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
-                  stroke-linejoin="round" />
-                <circle cx="74" cy="32" r="3" fill="#E8614A" />
+          <div id="home-section" class="screen nav-section active">
+            <div class="ticker-wrap">
+              <div class="ticker" id="news-ticker-text">
+                <span class="ticker-item">📢 Next Hackathon registration closes this Friday!</span>
+                <span class="ticker-item">🔥 Cash prizes up to ₹25,000 for tournaments!</span>
+                <span class="ticker-item">💡 Earn KTU Activity Points for all certified events!</span>
+                <span class="ticker-item">🚀 Join the RIT IEDC WhatsApp community for real-time alerts!</span>
+              </div>
+            </div>
+
+            <div class="app-header">
+              <div class="logo-wrapper">
+                <svg width="84" height="40" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
+                  style="display: block;">
+                  <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
+                  <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
+                  <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(255,255,255,0.4)" />
+                  <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
+                    fill="#FFFFFF" letter-spacing="-0.5">IEDC</text>
+                  <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950" font-size="18"
+                    fill="#FFFFFF" letter-spacing="-0.5">RIT</text>
+                  <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                  <circle cx="74" cy="32" r="3" fill="#E8614A" />
+                </svg>
+              </div>
+              <div style="display: flex; align-items: center; gap: 16px; margin-left: auto;">
+                <!-- Floating Cart Icon badge -->
+                <div id="merch-cart-btn" style="position: relative; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                  🛒
+                  <span id="merch-cart-icon" style="position: absolute; top: -5px; right: -5px; background: var(--neon-purple); color: white; border-radius: 50%; font-size: 9px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid rgba(255,255,255,0.2);">0</span>
+                </div>
+                <div class="avatar-wrapper" id="profile-avatar-trigger" style="width: 32px; height: 32px; cursor: pointer;">
+                  <img class="avatar-img"
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
+                    alt="Profile">
+                </div>
+              </div>
+            </div>
+
+            <div class="search-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-            </div>
-            <div class="avatar-wrapper" id="profile-avatar-trigger" style="width: 32px; height: 32px; cursor: pointer;">
-              <img class="avatar-img"
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                alt="Profile">
-            </div>
-          </div>
-
-          <div class="search-wrapper">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="search-input" class="search-input" placeholder="Search hackathons, talks..."
-              autocomplete="off">
-          </div>
-
-          <div class="categories-scroll" id="categories-scroll">
-            <span class="chip chip-category active" data-category="all">All</span>
-            <span class="chip chip-category" data-category="workshop">Workshops</span>
-            <span class="chip chip-category" data-category="talk">Talks</span>
-            <span class="chip chip-category" data-category="hackathon">Hackathons</span>
-            <span class="chip chip-category" data-category="tournament">Tournaments</span>
-          </div>
-
-          <div class="screen-content">
-            <div class="section-eyebrow">Featured Spotlight</div>
-            <div id="featured-card-container"></div>
-
-            <div class="home-section-title">
-              <span class="section-eyebrow">Discover Events</span>
+              <input type="text" id="search-input" class="search-input" placeholder="Search hackathons, talks..."
+                autocomplete="off">
             </div>
 
-            <div class="home-list-container" id="events-list-container"></div>
+            <div class="categories-scroll" id="categories-scroll">
+              <span class="chip chip-category active" data-category="all">All</span>
+              <span class="chip chip-category" data-category="workshop">Workshops</span>
+              <span class="chip chip-category" data-category="talk">Talks</span>
+              <span class="chip chip-category" data-category="hackathon">Hackathons</span>
+              <span class="chip chip-category" data-category="tournament">Tournaments</span>
+            </div>
+
+            <div class="screen-content main-content" style="overflow-y: auto !important; max-height: calc(100vh - 140px); padding-bottom: 80px;">
+              <!-- IEDC Merchandise Section -->
+              <div class="home-section-title" style="margin-top: var(--space-xs); margin-bottom: var(--space-xs);">
+                <span class="section-eyebrow">IEDC Official Merchandise</span>
+              </div>
+              <div id="merch-slider-container">
+                <!-- Product cards will be loaded here dynamically -->
+              </div>
+
+              <!-- My Orders History Section -->
+              <div id="student-orders-history-section" style="margin-top: var(--space-md); display: none;">
+                <div class="home-section-title">
+                  <span class="section-eyebrow">My Merchandise Orders</span>
+                </div>
+                <div id="student-orders-list" style="display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-xs);">
+                  <!-- Dynamic order cards here -->
+                </div>
+              </div>
+
+              <div class="section-eyebrow">Featured Spotlight</div>
+              <div id="featured-card-container"></div>
+
+              <div class="home-section-title">
+                <span class="section-eyebrow">Discover Events</span>
+              </div>
+
+              <div class="home-list-container" id="events-list-container"></div>
+            </div>
+
+            <div id="screen-detail" class="screen full-height"
+              style="background: rgba(8, 8, 16, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+              <div class="btn-back" id="detail-back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </div>
+
+              <div class="hero-section" id="detail-hero">
+                <div class="hero-shape"></div>
+                <div class="hero-chip-wrapper" id="detail-type-chip-container"></div>
+                <h1 class="hero-title" id="detail-title">Dynamic Event Title</h1>
+                <div class="hero-meta-row" id="detail-meta-row"></div>
+              </div>
+
+              <div class="screen-content detail-content">
+                <div>
+                  <span class="section-eyebrow">About Event</span>
+                  <p class="body-desc" id="detail-description">
+                    Dynamic body description text goes here. Content details will be loaded based on the selected card
+                    from home.
+                  </p>
+                </div>
+
+                <div id="detail-countdown-container"
+                  style="display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(255,255,255,0.08); font-size: 13px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span id="detail-countdown-timer">Ticking clock starting...</span>
+                </div>
+
+                <div class="detail-features-grid">
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-date">24 June</div>
+                    <div class="detail-feature-lbl">Date</div>
+                  </div>
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-time">10:00 AM</div>
+                    <div class="detail-feature-lbl">Time</div>
+                  </div>
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-seats">15 Seats</div>
+                    <div class="detail-feature-lbl">Seats Left</div>
+                  </div>
+                  <div class="detail-feature-card">
+                    <div class="detail-feature-val" id="detail-feat-price">Free</div>
+                    <div class="detail-feature-lbl">Entry Fee</div>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="section-eyebrow">Speaker / Host Profile</span>
+                  <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                    <div id="detail-speaker-info">
+                      <p class="body-desc" id="detail-host"
+                        style="font-weight: 700; color: var(--neon-purple); font-size: 14px; margin-bottom: 2px;">Speaker
+                        Name</p>
+                      <p id="detail-host-qual" style="font-size: 11px; color: var(--muted-white);">Speaker Qualification
+                      </p>
+                    </div>
+                    <a id="detail-host-linkedin" href="#" target="_blank"
+                      style="margin-left: auto; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: #0077b5; color: white; text-decoration: none;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
+                <div id="detail-location-container">
+                  <span class="section-eyebrow">Venue / Portal</span>
+                  <div id="detail-venue-info" style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: var(--white-pure);">
+                      <span>📍</span>
+                      <span id="detail-location-text" style="font-size: 13px; font-weight: 700;">Seminar Hall</span>
+                    </div>
+                    <a id="detail-location-map-link" href="#" target="_blank"
+                      style="font-size: 12px; color: var(--neon-yellow); text-decoration: underline; font-weight: 700; margin-left: 24px;">View
+                      Location in Google Maps</a>
+
+                    <div id="detail-location-meeting"
+                      style="display: none; flex-direction: column; gap: 4px; margin-left: 24px;">
+                      <span
+                        style="font-size: 11px; color: var(--neon-green); font-weight: 700; letter-spacing: 0.5px;">SECURE
+                        MEETING LINK:</span>
+                      <a id="detail-meeting-link" href="#" target="_blank"
+                        style="font-size: 13px; color: var(--neon-blue); text-decoration: underline; font-weight: 700;">
+                        Join Virtual Room (Zoom/Meet)
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <form id="registration-form" class="detail-reg-box" onsubmit="event.preventDefault();">
+                  <div id="registration-form-container"
+                    style="display: flex; flex-direction: column; gap: var(--space-sm);">
+                    <span class="section-eyebrow" id="detail-reg-eyebrow">Confirm Your Registration</span>
+
+                    <div class="input-group">
+                      <label class="input-label">Student Name</label>
+                      <input type="text" id="detail-reg-name" class="input-field" disabled>
+                    </div>
+                    <div class="input-group">
+                      <label class="input-label">KTU ID / Register No</label>
+                      <input type="text" id="detail-reg-ktuid" class="input-field" disabled>
+                    </div>
+                    <div class="input-group">
+                      <label class="input-label" for="detail-reg-bank-name">Bank Account Owner's Full Name (As shown in
+                        GPay/PhonePe)</label>
+                      <input type="text" id="detail-reg-bank-name" class="input-field"
+                        placeholder="FULL NAME AS PER BANK RECORDS" required>
+                    </div>
+                    <div class="input-group">
+                      <label class="input-label" for="detail-reg-phone">Contact Phone</label>
+                      <input type="tel" id="detail-reg-phone" class="input-field" placeholder="+91 98765 43210" required>
+                    </div>
+
+                    <div id="detail-team-section" style="display: none; flex-direction: column; gap: var(--space-sm);">
+                      <span class="section-eyebrow" style="margin-bottom: 0;">Team Registrations</span>
+                      <div id="detail-team-slots-container"></div>
+                      <button type="button" class="btn-add-member" id="detail-btn-add-member"
+                        style="font-size: 11px; padding: 10px; width: 100%; border: 1.5px dashed var(--neon-yellow); color: var(--neon-yellow); background: transparent; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                        + Add Team Member
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="input-group" style="margin-top: var(--space-md);">
+                    <button type="submit" id="proceed-to-pay-btn" class="card-btn-register" style="width: 100%;">Proceed
+                      to Pay</button>
+                  </div>
+                </form>
+
+                <div id="registration-status-banner" class="detail-feature-card"
+                  style="display: none; padding: var(--space-md); text-align: center; margin-top: var(--space-sm); font-size: 13px; font-weight: 600; color: var(--neon-yellow); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(16px); border-radius: 12px;">
+                  Registration Received! Awaiting Admin Payment Verification.
+                </div>
+
+                <button type="button" id="view-ticket-pass-btn" class="btn"
+                  style="display: none; width: 100%; margin-top: var(--space-sm); background: var(--neon-purple) !important; color: var(--white-pure) !important; font-weight: 700; padding: 14px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; box-shadow: 0 0 15px rgba(139, 111, 212, 0.3);">
+                  View Ticket Pass
+                </button>
+
+                <div id="detail-upi-checkout-container"
+                  style="display: none; flex-direction: column; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
+
+                  <div id="upi-desktop-view"
+                    style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm);">
+                    <span class="section-eyebrow" style="color: var(--neon-yellow); font-weight: 700;">Scan QR to
+                      Pay</span>
+                    <p class="body-desc"
+                      style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.4; color: var(--muted-white);">
+                      Scan this dynamic UPI QR code with GPay, PhonePe, Paytm, or BHIM.
+                    </p>
+                    <div
+                      style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin: 10px 0;">
+                      <img id="detail-upi-qr-image" src="" alt="Dynamic UPI QR Code"
+                        style="width: 180px; height: 180px; display: block; object-fit: contain;">
+                    </div>
+                  </div>
+
+                  <div id="upi-mobile-view"
+                    style="display: none; flex-direction: column; align-items: center; gap: var(--space-sm);">
+                    <span class="section-eyebrow" style="color: var(--neon-yellow); font-weight: 700;">Pay with UPI
+                      App</span>
+                    <p class="body-desc"
+                      style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.4; color: var(--muted-white);">
+                      We are launching Google Pay / PhonePe...
+                    </p>
+                    <a id="detail-upi-mobile-link" href="#" class="btn"
+                      style="background: rgba(255,255,255,0.1); border: 1px solid var(--neon-yellow); color: var(--neon-yellow); font-size: 13px; padding: 12px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; text-decoration: none; margin: 10px 0;">
+                      ⚡ Click to Open UPI App Again
+                    </a>
+                  </div>
+
+                  <div style="font-size: 16px; font-weight: 800; color: var(--white-pure);">
+                    Amount Due: <span id="detail-upi-amount-label" style="color: var(--neon-yellow);">₹0</span>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                    <button type="button" id="detail-upi-confirm-btn" class="btn"
+                      style="background: var(--neon-green); color: #080810; font-size: 13px; padding: 14px; border-radius: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; width: 100%; border: none; cursor: pointer;">
+                      I Have Paid (Confirm Enrollment)
+                    </button>
+                    <button type="button" id="detail-upi-cancel-btn" class="btn"
+                      style="background: transparent; color: var(--muted-white); font-size: 11px; padding: 8px; border-radius: 8px; font-weight: 600; text-transform: uppercase; width: 100%; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                      Cancel & Go Back
+                    </button>
+                  </div>
+                </div>
+
+                <div id="ticket-container"
+                  style="display: none; flex-direction: column; align-items: center; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
+                  <span class="section-eyebrow" style="color: var(--neon-green); font-weight: 700;">Enrollment
+                    Confirmed</span>
+                  <div
+                    style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
+                    <canvas id="ticket-qr-canvas" style="display: block; width: 180px; height: 180px;"></canvas>
+                  </div>
+                  <p class="body-desc" style="font-size: 12px; color: var(--muted-white); margin-top: 4px;">Present this
+                    Canvas QR code at the check-in gate.</p>
+                  <button type="button" onclick="switchTab('wallet')" class="btn"
+                    style="background: var(--neon-purple); color: var(--white-pure); width: 100%;">Open Ticket
+                    Wallet</button>
+                </div>
+
+              </div>
+
+              <div class="sticky-cta-container">
+                <button class="btn btn-primary sticky-cta-btn" id="detail-register-btn" style="width: 100%;">Register &
+                  Pay</button>
+              </div>
+            </div>
           </div>
 
-          <div id="screen-detail" class="screen full-height"
-            style="background: rgba(8, 8, 16, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-            <div class="btn-back" id="detail-back-btn">
+          <div id="screen-ticket" class="screen full-height"
+            style="background: rgba(8, 8, 16, 0.96); backdrop-filter: blur(20px);">
+            <div class="btn-back" id="ticket-back-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </div>
 
-            <div class="hero-section" id="detail-hero">
-              <div class="hero-shape"></div>
-              <div class="hero-chip-wrapper" id="detail-type-chip-container"></div>
-              <h1 class="hero-title" id="detail-title">Dynamic Event Title</h1>
-              <div class="hero-meta-row" id="detail-meta-row"></div>
+            <div class="screen-content ticket-screen-content" style="padding-top: 60px;">
+              <span class="section-eyebrow" style="text-align: center;">Successfully Registered!</span>
+              <h1 class="h2-title" style="margin-top: var(--space-xs); text-align: center;">Get Ready to Innovate</h1>
+
+              <div class="ticket-wrapper">
+                <div class="ticket-inner">
+                  <div class="ticket-qr-area">
+                    <div class="ticket-qr-header">
+                      <div class="logo-wrapper">
+                        <svg width="72" height="34" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
+                          style="display: block;">
+                          <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
+                          <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
+                          <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(8,8,16,0.3)" />
+                          <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950"
+                            font-size="18" fill="#080810" letter-spacing="-0.5">IEDC</text>
+                          <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950"
+                            font-size="18" fill="#080810" letter-spacing="-0.5">RIT</text>
+                          <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                          <circle cx="74" cy="32" r="3" fill="#E8614A" />
+                        </svg>
+                      </div>
+                      <span class="ticket-event-type chip" id="ticket-type-tag">HACKATHON</span>
+                    </div>
+                    <div class="ticket-qr-canvas-container">
+                      <canvas id="qr-canvas" class="ticket-qr-canvas"></canvas>
+                    </div>
+                    <span class="ticket-scan-prompt">Scan at Entry Gate</span>
+                  </div>
+
+                  <div class="ticket-perforation"></div>
+
+                  <div class="ticket-info-area">
+                    <div class="ticket-event-name" id="ticket-event-name">InnovateRIT Hackathon</div>
+
+                    <div class="ticket-details-grid">
+                      <div class="ticket-detail-item">
+                        <span class="ticket-detail-lbl">Attendee</span>
+                        <span class="ticket-detail-val" id="ticket-attendee">Sirin</span>
+                      </div>
+                      <div class="ticket-detail-item">
+                        <span class="ticket-detail-lbl">Date</span>
+                        <span class="ticket-detail-val" id="ticket-date">24 June, 2026</span>
+                      </div>
+                      <div class="ticket-detail-item">
+                        <span class="ticket-detail-lbl">Location</span>
+                        <span class="ticket-detail-val" id="ticket-loc">RIT Seminar Hall</span>
+                      </div>
+                      <div class="ticket-detail-item">
+                        <span class="ticket-detail-lbl">College</span>
+                        <span class="ticket-detail-val" id="ticket-college">Rajiv Gandhi Institute of Technology</span>
+                      </div>
+                    </div>
+
+                    <span class="ticket-id" id="ticket-id-text">TICKET ID: IEDC-90823-RIT</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ticket-actions">
+                <button class="btn btn-secondary" id="btn-ticket-download">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Download
+                </button>
+                <button class="btn btn-ghost" id="btn-ticket-share">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
+                  </svg>
+                  Share
+                </button>
+              </div>
             </div>
+          </div>
 
-            <div class="screen-content detail-content">
-              <div>
-                <span class="section-eyebrow">About Event</span>
-                <p class="body-desc" id="detail-description">
-                  Dynamic body description text goes here. Content details will be loaded based on the selected card
-                  from home.
-                </p>
+          <div id="profile-section" class="screen nav-section" style="display: none;">
+            <div class="screen-content" style="padding-bottom: 100px;">
+              <div class="dashboard-header"
+                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
+                <div>
+                  <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
+                  <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+                </div>
+                <button class="btn btn-secondary btn-logout-action"
+                  style="padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
+                  Logout
+                </button>
               </div>
 
-              <div id="detail-countdown-container"
-                style="display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(255,255,255,0.08); font-size: 13px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <span id="detail-countdown-timer">Ticking clock starting...</span>
-              </div>
-
-              <div class="detail-features-grid">
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-date">24 June</div>
-                  <div class="detail-feature-lbl">Date</div>
-                </div>
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-time">10:00 AM</div>
-                  <div class="detail-feature-lbl">Time</div>
-                </div>
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-seats">15 Seats</div>
-                  <div class="detail-feature-lbl">Seats Left</div>
-                </div>
-                <div class="detail-feature-card">
-                  <div class="detail-feature-val" id="detail-feat-price">Free</div>
-                  <div class="detail-feature-lbl">Entry Fee</div>
-                </div>
-              </div>
-
-              <div>
-                <span class="section-eyebrow">Speaker / Host Profile</span>
-                <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-                  <div id="detail-speaker-info">
-                    <p class="body-desc" id="detail-host"
-                      style="font-weight: 700; color: var(--neon-purple); font-size: 14px; margin-bottom: 2px;">Speaker
-                      Name</p>
-                    <p id="detail-host-qual" style="font-size: 11px; color: var(--muted-white);">Speaker Qualification
-                    </p>
-                  </div>
-                  <a id="detail-host-linkedin" href="#" target="_blank"
-                    style="margin-left: auto; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: #0077b5; color: white; text-decoration: none;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path
-                        d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              <div id="detail-location-container">
-                <span class="section-eyebrow">Venue / Portal</span>
-                <div id="detail-venue-info" style="display: flex; flex-direction: column; gap: 6px;">
-                  <div style="display: flex; align-items: center; gap: 8px; color: var(--white-pure);">
-                    <span>📍</span>
-                    <span id="detail-location-text" style="font-size: 13px; font-weight: 700;">Seminar Hall</span>
-                  </div>
-                  <a id="detail-location-map-link" href="#" target="_blank"
-                    style="font-size: 12px; color: var(--neon-yellow); text-decoration: underline; font-weight: 700; margin-left: 24px;">View
-                    Location in Google Maps</a>
-
-                  <div id="detail-location-meeting"
-                    style="display: none; flex-direction: column; gap: 4px; margin-left: 24px;">
-                    <span
-                      style="font-size: 11px; color: var(--neon-green); font-weight: 700; letter-spacing: 0.5px;">SECURE
-                      MEETING LINK:</span>
-                    <a id="detail-meeting-link" href="#" target="_blank"
-                      style="font-size: 13px; color: var(--neon-blue); text-decoration: underline; font-weight: 700;">
-                      Join Virtual Room (Zoom/Meet)
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <form id="registration-form" class="detail-reg-box" onsubmit="event.preventDefault();">
-                <div id="registration-form-container"
-                  style="display: flex; flex-direction: column; gap: var(--space-sm);">
-                  <span class="section-eyebrow" id="detail-reg-eyebrow">Confirm Your Registration</span>
-
-                  <div class="input-group">
-                    <label class="input-label">Student Name</label>
-                    <input type="text" id="detail-reg-name" class="input-field" disabled>
-                  </div>
-                  <div class="input-group">
-                    <label class="input-label">KTU ID / Register No</label>
-                    <input type="text" id="detail-reg-ktuid" class="input-field" disabled>
-                  </div>
-                  <div class="input-group">
-                    <label class="input-label" for="detail-reg-bank-name">Bank Account Owner's Full Name (As shown in
-                      GPay/PhonePe)</label>
-                    <input type="text" id="detail-reg-bank-name" class="input-field"
-                      placeholder="FULL NAME AS PER BANK RECORDS" required>
-                  </div>
-                  <div class="input-group">
-                    <label class="input-label" for="detail-reg-phone">Contact Phone</label>
-                    <input type="tel" id="detail-reg-phone" class="input-field" placeholder="+91 98765 43210" required>
-                  </div>
-
-                  <div id="detail-team-section" style="display: none; flex-direction: column; gap: var(--space-sm);">
-                    <span class="section-eyebrow" style="margin-bottom: 0;">Team Registrations</span>
-                    <div id="detail-team-slots-container"></div>
-                    <button type="button" class="btn-add-member" id="detail-btn-add-member"
-                      style="font-size: 11px; padding: 10px; width: 100%; border: 1.5px dashed var(--neon-yellow); color: var(--neon-yellow); background: transparent; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                      + Add Team Member
-                    </button>
-                  </div>
-                </div>
-
-                <div class="input-group" style="margin-top: var(--space-md);">
-                  <button type="submit" id="proceed-to-pay-btn" class="card-btn-register" style="width: 100%;">Proceed
-                    to Pay</button>
-                </div>
-              </form>
-
-              <div id="registration-status-banner" class="detail-feature-card"
-                style="display: none; padding: var(--space-md); text-align: center; margin-top: var(--space-sm); font-size: 13px; font-weight: 600; color: var(--neon-yellow); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(16px); border-radius: 12px;">
-                Registration Received! Awaiting Admin Payment Verification.
-              </div>
-
-              <button type="button" id="view-ticket-pass-btn" class="btn"
-                style="display: none; width: 100%; margin-top: var(--space-sm); background: var(--neon-purple) !important; color: var(--white-pure) !important; font-weight: 700; padding: 14px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; border: none; cursor: pointer; box-shadow: 0 0 15px rgba(139, 111, 212, 0.3);">
-                View Ticket Pass
-              </button>
-
-              <div id="detail-upi-checkout-container"
-                style="display: none; flex-direction: column; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
-
-                <div id="upi-desktop-view"
-                  style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm);">
-                  <span class="section-eyebrow" style="color: var(--neon-yellow); font-weight: 700;">Scan QR to
-                    Pay</span>
-                  <p class="body-desc"
-                    style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.4; color: var(--muted-white);">
-                    Scan this dynamic UPI QR code with GPay, PhonePe, Paytm, or BHIM.
-                  </p>
-                  <div
-                    style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin: 10px 0;">
-                    <img id="detail-upi-qr-image" src="" alt="Dynamic UPI QR Code"
-                      style="width: 180px; height: 180px; display: block; object-fit: contain;">
-                  </div>
-                </div>
-
-                <div id="upi-mobile-view"
-                  style="display: none; flex-direction: column; align-items: center; gap: var(--space-sm);">
-                  <span class="section-eyebrow" style="color: var(--neon-yellow); font-weight: 700;">Pay with UPI
-                    App</span>
-                  <p class="body-desc"
-                    style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.4; color: var(--muted-white);">
-                    We are launching Google Pay / PhonePe...
-                  </p>
-                  <a id="detail-upi-mobile-link" href="#" class="btn"
-                    style="background: rgba(255,255,255,0.1); border: 1px solid var(--neon-yellow); color: var(--neon-yellow); font-size: 13px; padding: 12px; border-radius: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; text-decoration: none; margin: 10px 0;">
-                    ⚡ Click to Open UPI App Again
-                  </a>
-                </div>
-
-                <div style="font-size: 16px; font-weight: 800; color: var(--white-pure);">
-                  Amount Due: <span id="detail-upi-amount-label" style="color: var(--neon-yellow);">₹0</span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-                  <button type="button" id="detail-upi-confirm-btn" class="btn"
-                    style="background: var(--neon-green); color: #080810; font-size: 13px; padding: 14px; border-radius: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; width: 100%; border: none; cursor: pointer;">
-                    I Have Paid (Confirm Enrollment)
-                  </button>
-                  <button type="button" id="detail-upi-cancel-btn" class="btn"
-                    style="background: transparent; color: var(--muted-white); font-size: 11px; padding: 8px; border-radius: 8px; font-weight: 600; text-transform: uppercase; width: 100%; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    Cancel & Go Back
-                  </button>
-                </div>
-              </div>
-
-              <div id="ticket-container"
-                style="display: none; flex-direction: column; align-items: center; gap: var(--space-md); padding: var(--space-md); border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1.5px solid rgba(255,255,255,0.08); margin-top: var(--space-sm); text-align: center;">
-                <span class="section-eyebrow" style="color: var(--neon-green); font-weight: 700;">Enrollment
-                  Confirmed</span>
+              <div id="db-content-profile">
                 <div
-                  style="background: white; padding: 12px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
-                  <canvas id="ticket-qr-canvas" style="display: block; width: 180px; height: 180px;"></canvas>
+                  style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); padding: var(--space-md) 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: var(--space-md);">
+                  <div class="avatar-wrapper" style="width: 80px; height: 80px; border-color: var(--neon-yellow);">
+                    <img class="avatar-img" id="db-profile-avatar" src="" alt="Profile Picture">
+                  </div>
+                  <h2 class="h3-title" id="db-profile-name"
+                    style="margin-top: var(--space-xs); margin-bottom: 0; font-size: 18px;">Student</h2>
+                  <span class="chip"
+                    style="background: rgba(200,232,74,0.1); border-color: var(--neon-yellow); color: var(--neon-yellow);">Student
+                    Account</span>
                 </div>
-                <p class="body-desc" style="font-size: 12px; color: var(--muted-white); margin-top: 4px;">Present this
-                  Canvas QR code at the check-in gate.</p>
-                <button type="button" onclick="switchTab('wallet')" class="btn"
-                  style="background: var(--neon-purple); color: var(--white-pure); width: 100%;">Open Ticket
-                  Wallet</button>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+                  <div class="detail-feature-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <span class="ticket-detail-lbl" style="font-size: 10px;">KTU ID / Reg No</span>
+                    <span class="ticket-detail-val" id="db-profile-id"
+                      style="color: var(--white-pure); font-size: 13px;">N/A</span>
+                  </div>
+                  <div class="detail-feature-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <span class="ticket-detail-lbl" style="font-size: 10px;">Email Address</span>
+                    <span class="ticket-detail-val" id="db-profile-email"
+                      style="color: var(--white-pure); font-size: 13px;">N/A</span>
+                  </div>
+                  <div class="detail-feature-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <span class="ticket-detail-lbl" style="font-size: 10px;">Department</span>
+                    <span class="ticket-detail-val" id="db-profile-dept"
+                      style="color: var(--white-pure); font-size: 13px;">N/A</span>
+                  </div>
+                  <div class="detail-feature-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <span class="ticket-detail-lbl" style="font-size: 10px;">Year of Study</span>
+                    <span class="ticket-detail-val" id="db-profile-year"
+                      style="color: var(--white-pure); font-size: 13px;">N/A</span>
+                  </div>
+                  <div class="detail-feature-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <span class="ticket-detail-lbl" style="font-size: 10px;">Phone Number</span>
+                    <span class="ticket-detail-val" id="db-profile-phone"
+                      style="color: var(--white-pure); font-size: 13px;">N/A</span>
+                  </div>
+                  <div class="detail-feature-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <span class="ticket-detail-lbl" style="font-size: 10px;">College</span>
+                    <span class="ticket-detail-val" id="db-profile-college"
+                      style="color: var(--white-pure); font-size: 13px;">N/A</span>
+                  </div>
+                </div>
               </div>
-
-            </div>
-
-            <div class="sticky-cta-container">
-              <button class="btn btn-primary sticky-cta-btn" id="detail-register-btn" style="width: 100%;">Register &
-                Pay</button>
             </div>
           </div>
-        </div>
 
-        <div id="screen-ticket" class="screen full-height"
-          style="background: rgba(8, 8, 16, 0.96); backdrop-filter: blur(20px);">
-          <div class="btn-back" id="ticket-back-btn">
+          <div id="wallet-section" class="screen nav-section" style="display: none;">
+            <div class="screen-content" style="padding-bottom: 100px;">
+              <div class="dashboard-header"
+                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
+                <div>
+                  <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
+                  <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+                </div>
+                <button class="btn btn-secondary btn-logout-action"
+                  style="padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
+                  Logout
+                </button>
+              </div>
+
+              <div id="db-content-events">
+                <div class="stats-row"
+                  style="margin-bottom: var(--space-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm);">
+                  <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
+                    <span class="stat-num" id="stat-attended" style="font-size: 20px;">0</span>
+                    <span class="stat-lbl" style="font-size: 9px;">Attended</span>
+                  </div>
+                  <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
+                    <span class="stat-num" id="stat-upcoming" style="font-size: 20px;">0</span>
+                    <span class="stat-lbl" style="font-size: 9px;">Active</span>
+                  </div>
+                  <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
+                    <span class="stat-num" id="stat-certs" style="font-size: 20px;">0</span>
+                    <span class="stat-lbl" style="font-size: 9px;">Certs</span>
+                  </div>
+                </div>
+
+                <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">My
+                  Tickets & Passes Wallet</h2>
+                <div class="dashboard-list" id="dashboard-list-container"
+                  style="display: flex; flex-direction: column; gap: var(--space-md);">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="news-section" class="screen nav-section" style="display: none;">
+            <div class="screen-content" style="padding-bottom: 100px;">
+              <div class="dashboard-header"
+                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
+                <div>
+                  <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
+                  <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+                </div>
+                <button class="btn btn-secondary btn-logout-action"
+                  style="padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
+                  Logout
+                </button>
+              </div>
+
+              <div id="db-content-notifications">
+                <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">
+                  Recent Announcements</h2>
+                <div class="dashboard-list" id="notifications-list-container"
+                  style="display: flex; flex-direction: column; gap: var(--space-md);">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <nav id="bottom-nav" class="bottom-nav nav-hidden">
+            <div class="nav-item bottom-nav-btn active-neon" id="nav-home" data-tab="home">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+            <div class="nav-item bottom-nav-btn" id="nav-wallet" data-tab="wallet">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M20 12V8H4v4M4 12v6h16v-6M4 12h16" />
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+            <div class="nav-item bottom-nav-btn" id="nav-news" data-tab="news">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
+                <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+            <div class="nav-item bottom-nav-btn" id="nav-profile" data-tab="profile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <div class="nav-dot"></div>
+            </div>
+          </nav>
+
+          <canvas id="confetti-canvas"></canvas>
+
+          <div id="app-toast" class="toast">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
             </svg>
+            <span id="toast-text">Registration Success!</span>
           </div>
 
-          <div class="screen-content ticket-screen-content" style="padding-top: 60px;">
-            <span class="section-eyebrow" style="text-align: center;">Successfully Registered!</span>
-            <h1 class="h2-title" style="margin-top: var(--space-xs); text-align: center;">Get Ready to Innovate</h1>
-
-            <div class="ticket-wrapper">
-              <div class="ticket-inner">
-                <div class="ticket-qr-area">
-                  <div class="ticket-qr-header">
-                    <div class="logo-wrapper">
-                      <svg width="72" height="34" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg"
-                        style="display: block;">
-                        <path d="M16 2 L20 8 H12 Z" fill="#E8614A" />
-                        <path d="M38 1 L41 6 H35 Z" fill="#E8614A" />
-                        <rect x="3" y="24" width="4" height="4" transform="rotate(45 5 26)" fill="rgba(8,8,16,0.3)" />
-                        <text x="10" y="19" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950"
-                          font-size="18" fill="#080810" letter-spacing="-0.5">IEDC</text>
-                        <text x="10" y="36" font-family="'Outfit', 'Arial Black', sans-serif" font-weight="950"
-                          font-size="18" fill="#080810" letter-spacing="-0.5">RIT</text>
-                        <path d="M54 32 H60 V25 H66 V18" stroke="#00B4D8" stroke-width="5" stroke-linecap="round"
-                          stroke-linejoin="round" />
-                        <circle cx="74" cy="32" r="3" fill="#E8614A" />
-                      </svg>
-                    </div>
-                    <span class="ticket-event-type chip" id="ticket-type-tag">HACKATHON</span>
-                  </div>
-                  <div class="ticket-qr-canvas-container">
-                    <canvas id="qr-canvas" class="ticket-qr-canvas"></canvas>
-                  </div>
-                  <span class="ticket-scan-prompt">Scan at Entry Gate</span>
-                </div>
-
-                <div class="ticket-perforation"></div>
-
-                <div class="ticket-info-area">
-                  <div class="ticket-event-name" id="ticket-event-name">InnovateRIT Hackathon</div>
-
-                  <div class="ticket-details-grid">
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">Attendee</span>
-                      <span class="ticket-detail-val" id="ticket-attendee">Sirin</span>
-                    </div>
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">Date</span>
-                      <span class="ticket-detail-val" id="ticket-date">24 June, 2026</span>
-                    </div>
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">Location</span>
-                      <span class="ticket-detail-val" id="ticket-loc">RIT Seminar Hall</span>
-                    </div>
-                    <div class="ticket-detail-item">
-                      <span class="ticket-detail-lbl">College</span>
-                      <span class="ticket-detail-val" id="ticket-college">Rajiv Gandhi Institute of Technology</span>
-                    </div>
-                  </div>
-
-                  <span class="ticket-id" id="ticket-id-text">TICKET ID: IEDC-90823-RIT</span>
-                </div>
+          <!-- ==========================================
+               PREMIUM GLASSMORPHIC CHATBOT WIDGET HTML
+               ========================================== -->
+          <div id="chat-bot-launcher-btn" class="chatbot-launcher">💬</div>
+          
+          <div id="chat-bot-window-container" class="chatbot-window" style="display: none;">
+            <div class="chatbot-header">
+              <div class="chatbot-title">
+                <span class="chatbot-glow-dot"></span>
+                IEDC AI Assistant
+              </div>
+              <button id="chat-bot-close-btn" class="chatbot-close-btn">&times;</button>
+            </div>
+            <div id="chat-bot-messages-box" class="chatbot-messages">
+              <div class="chatbot-message bot-message">
+                How can I help you with IEDC events
               </div>
             </div>
-
-            <div class="ticket-actions">
-              <button class="btn btn-secondary" id="btn-ticket-download">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                </svg>
-                Download
-              </button>
-              <button class="btn btn-ghost" id="btn-ticket-share">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
-                </svg>
-                Share
-              </button>
+            <div class="chatbot-footer">
+              <input type="text" id="chat-bot-input" placeholder="Ask about IEDC events...">
+              <button id="chat-bot-send-btn">Send</button>
             </div>
           </div>
-        </div>
 
-        <div id="profile-section" class="screen nav-section" style="display: none;">
-          <div class="screen-content" style="padding-bottom: 100px;">
-            <div class="dashboard-header"
-              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
-              <div>
-                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+          <!-- ==========================================
+               IEDC MERCHANDISE MODALS
+               ========================================== -->
+          <!-- Cart Modal -->
+          <div id="merch-cart-modal" class="ad-overlay" style="display: none; justify-content: center; align-items: center; position: fixed; z-index: 10000; width: 100vw; height: 100vh;">
+            <div class="ad-modal" style="max-width: 360px; width: 90%; background: rgba(10, 10, 20, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 24px;">
+              <button class="ad-close-btn" id="merch-cart-close-btn">&times;</button>
+              <div class="ad-tag" style="color: var(--neon-purple);">Cart Items</div>
+              <h3 style="font-family: var(--font-display); font-size: 20px !important; font-weight: 850; margin-bottom: var(--space-sm); line-height: 1.2;">Your Cart</h3>
+              
+              <div id="cart-items-container" style="display: flex; flex-direction: column; gap: var(--space-sm); max-height: 200px; overflow-y: auto; margin-bottom: var(--space-md); padding-right: 4px;">
+                <!-- Cart items dynamically rendered here -->
               </div>
-              <button class="btn btn-secondary btn-logout-action"
-                style="padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
-                Logout
-              </button>
-            </div>
-
-            <div id="db-content-profile">
-              <div
-                style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); padding: var(--space-md) 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: var(--space-md);">
-                <div class="avatar-wrapper" style="width: 80px; height: 80px; border-color: var(--neon-yellow);">
-                  <img class="avatar-img" id="db-profile-avatar" src="" alt="Profile Picture">
-                </div>
-                <h2 class="h3-title" id="db-profile-name"
-                  style="margin-top: var(--space-xs); margin-bottom: 0; font-size: 18px;">Student</h2>
-                <span class="chip"
-                  style="background: rgba(200,232,74,0.1); border-color: var(--neon-yellow); color: var(--neon-yellow);">Student
-                  Account</span>
+              
+              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: var(--space-md); color: white;">
+                <span>Total Amount:</span>
+                <span id="cart-total-label" style="color: var(--neon-yellow);">₹0</span>
               </div>
-
-              <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">KTU ID / Reg No</span>
-                  <span class="ticket-detail-val" id="db-profile-id"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Email Address</span>
-                  <span class="ticket-detail-val" id="db-profile-email"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Department</span>
-                  <span class="ticket-detail-val" id="db-profile-dept"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Year of Study</span>
-                  <span class="ticket-detail-val" id="db-profile-year"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">Phone Number</span>
-                  <span class="ticket-detail-val" id="db-profile-phone"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-                <div class="detail-feature-card"
-                  style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                  <span class="ticket-detail-lbl" style="font-size: 10px;">College</span>
-                  <span class="ticket-detail-val" id="db-profile-college"
-                    style="color: var(--white-pure); font-size: 13px;">N/A</span>
-                </div>
-              </div>
+              
+              <button id="cart-proceed-btn" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 13px !important; background: var(--neon-purple) !important; color: white !important; box-shadow: 0 0 15px rgba(139,111,212,0.3) !important;">Proceed to Pay</button>
             </div>
           </div>
-        </div>
 
-        <div id="wallet-section" class="screen nav-section" style="display: none;">
-          <div class="screen-content" style="padding-bottom: 100px;">
-            <div class="dashboard-header"
-              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
-              <div>
-                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
+          <!-- Merchandise Payment Modal -->
+          <div id="merch-payment-modal" class="ad-overlay" style="display: none; justify-content: center; align-items: center; position: fixed; z-index: 10000; width: 100vw; height: 100vh;">
+            <div class="ad-modal" style="max-width: 360px; width: 90%; text-align: center; background: rgba(10, 10, 20, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 24px;">
+              <button class="ad-close-btn" id="merch-payment-close-btn">&times;</button>
+              <div class="ad-tag" style="color: var(--neon-purple);">Payment Verification</div>
+              <h3 style="font-family: var(--font-display); font-size: 20px !important; font-weight: 850; margin-bottom: var(--space-xs); line-height: 1.2;">Scan & Pay</h3>
+              
+              <div style="font-size: 18px; font-weight: 800; color: white; margin-bottom: var(--space-xs);">
+                Total Amount: <span id="merch-pay-amount-label" style="color: var(--neon-yellow);">₹0</span>
               </div>
-              <button class="btn btn-secondary btn-logout-action"
-                style="padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
-                Logout
-              </button>
-            </div>
-
-            <div id="db-content-events">
-              <div class="stats-row"
-                style="margin-bottom: var(--space-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm);">
-                <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
-                  <span class="stat-num" id="stat-attended" style="font-size: 20px;">0</span>
-                  <span class="stat-lbl" style="font-size: 9px;">Attended</span>
-                </div>
-                <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
-                  <span class="stat-num" id="stat-upcoming" style="font-size: 20px;">0</span>
-                  <span class="stat-lbl" style="font-size: 9px;">Active</span>
-                </div>
-                <div class="stat-card" style="padding: var(--space-sm) var(--space-md);">
-                  <span class="stat-num" id="stat-certs" style="font-size: 20px;">0</span>
-                  <span class="stat-lbl" style="font-size: 9px;">Certs</span>
-                </div>
+              
+              <div style="background: white; padding: 10px; border-radius: 12px; display: inline-block; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin: var(--space-sm) 0;">
+                <img id="merch-upi-qr-image" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=iedcrit@okaxis%26pn=IEDC%20Merchandise%26am=0%26cu=INR" alt="UPI QR Code" style="width: 150px; height: 150px; display: block; object-fit: contain;">
               </div>
-
-              <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">My
-                Tickets & Passes Wallet</h2>
-              <div class="dashboard-list" id="dashboard-list-container"
-                style="display: flex; flex-direction: column; gap: var(--space-md);">
+              
+              <div class="input-group" style="text-align: left; margin-bottom: var(--space-md);">
+                <label class="input-label" for="merch-utr-input">Transaction ID / UTR Number</label>
+                <input type="text" id="merch-utr-input" class="input-field" placeholder="Enter UPI Ref No. (12 digits)" required>
               </div>
+              
+              <button id="merch-submit-utr-btn" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 13px !important; background: var(--neon-green) !important; color: #080810 !important; box-shadow: 0 0 15px rgba(74,232,138,0.3) !important;">Submit Reference</button>
             </div>
           </div>
-        </div>
 
-        <div id="news-section" class="screen nav-section" style="display: none;">
-          <div class="screen-content" style="padding-bottom: 100px;">
-            <div class="dashboard-header"
-              style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md);">
-              <div>
-                <h1 class="dashboard-greeting" style="font-size: 26px !important;">Hey Student 👋</h1>
-                <span class="dashboard-date dashboard-current-date">Saturday, June 13, 2026</span>
-              </div>
-              <button class="btn btn-secondary btn-logout-action"
-                style="padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: auto; height: auto;">
-                Logout
-              </button>
-            </div>
-
-            <div id="db-content-notifications">
-              <h2 class="h3-title dashboard-section-title" style="margin-bottom: var(--space-sm); font-size: 14px;">
-                Recent Announcements</h2>
-              <div class="dashboard-list" id="notifications-list-container"
-                style="display: flex; flex-direction: column; gap: var(--space-md);">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <nav id="bottom-nav" class="bottom-nav nav-hidden">
-          <div class="nav-item bottom-nav-btn active-neon" id="nav-home" data-tab="home">
-            <svg viewBox="0 0 24 24">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-          <div class="nav-item bottom-nav-btn" id="nav-wallet" data-tab="wallet">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M20 12V8H4v4M4 12v6h16v-6M4 12h16" />
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-          <div class="nav-item bottom-nav-btn" id="nav-news" data-tab="news">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
-              <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
-            </svg>
-            <div class="nav-dot"></div>
-          </div>
-          <div class="nav-item bottom-nav-btn" id="nav-profile" data-tab="profile">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <div class="nav-dot"></div>
-        </nav>
-
-        <canvas id="confetti-canvas"></canvas>
-
-        <div id="app-toast" class="toast">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />
-          </svg>
-          <span id="toast-text">Registration Success!</span>
-        </div>
+        </div> <!-- #main-dashboard-layout -->
 
       </div>
     </div>
@@ -1555,8 +1984,11 @@
       </div>
 
       <div
-        style="font-size: 9px; color: var(--neon-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
-        Polling Database Stream...
+        style="width: 100%; margin: 8px 0; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div
+          style="font-size: 9px; color: var(--neon-yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+          Polling Database Stream...
+        </div>
       </div>
 
       <button type="button" id="btn-waiting-back" class="btn"
@@ -1566,6 +1998,8 @@
 
     </div>
   </div>
+
+
 </body>
 
 </html>

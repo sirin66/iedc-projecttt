@@ -65,7 +65,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html,
+body {
   background-color: var(--void-black);
   color: var(--white-pure);
   font-family: var(--font-body);
@@ -73,6 +74,7 @@ html, body {
   font-weight: 500;
   line-height: 1.6;
   overflow-x: hidden;
+  overflow-y: auto;
   height: 100%;
 }
 
@@ -81,13 +83,16 @@ html, body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-pill);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--galactic-purple);
 }
@@ -115,7 +120,7 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -236,7 +241,7 @@ html, body {
   background-color: var(--void-black);
   border-radius: var(--radius-phone);
   border: 12px solid #1a1a2e;
-  box-shadow: 
+  box-shadow:
     0 24px 64px rgba(0, 0, 0, 0.7),
     0 0 0 2px rgba(255, 255, 255, 0.05),
     inset 0 0 0 2px rgba(255, 255, 255, 0.05);
@@ -262,10 +267,12 @@ html, body {
   body {
     background-color: var(--void-black);
   }
+
   .presentation-container {
     padding: 0;
     min-height: 100vh;
   }
+
   .phone-frame {
     width: 100%;
     height: 100vh;
@@ -310,7 +317,8 @@ html, body {
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% - 80px); /* Account for the fixed bottom navigation */
+  height: calc(100% - 80px);
+  /* Account for the fixed bottom navigation */
   opacity: 0;
   visibility: hidden;
   display: flex;
@@ -332,6 +340,7 @@ html, body {
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -341,7 +350,8 @@ html, body {
 /* Custom layout for screens that are details/tickets and hide the default navigation structure */
 .screen.full-height {
   height: 100%;
-  z-index: 6; /* Sit above navbar */
+  z-index: 6;
+  /* Sit above navbar */
 }
 
 /* Screen content container with vertical scroll */
@@ -412,7 +422,8 @@ html, body {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.6;
-  text-align: left; /* No centered body text */
+  text-align: left;
+  /* No centered body text */
 }
 
 /* Caption / Metadata */
@@ -430,6 +441,7 @@ html, body {
 .card-featured h2 {
   font-weight: 800 !important;
 }
+
 .card-event span,
 .card-event div,
 .card-event p,
@@ -442,11 +454,13 @@ html, body {
 #screen-auth .h2-title {
   font-size: 24px !important;
 }
+
 #screen-auth .body-desc,
 #screen-auth .input-field,
 #screen-auth .btn {
   font-size: 14px !important;
 }
+
 #screen-auth .input-label {
   font-size: 10px !important;
 }
@@ -459,11 +473,13 @@ html, body {
 #screen-home .card-featured h2 {
   font-size: 24px !important;
 }
+
 #screen-home .search-input,
 #screen-home .chip-category,
 #screen-home .body-desc {
   font-size: 14px !important;
 }
+
 #screen-home .section-eyebrow,
 #screen-home .chip:not(.chip-category),
 #screen-home .caption-meta,
@@ -475,11 +491,13 @@ html, body {
 #screen-detail .hero-title {
   font-size: 32px !important;
 }
+
 #screen-detail .body-desc,
 #screen-detail .detail-section-title,
 #screen-detail .detail-feature-val {
   font-size: 14px !important;
 }
+
 #screen-detail .section-eyebrow,
 #screen-detail .detail-feature-lbl,
 #screen-detail .hero-meta-row span,
@@ -491,12 +509,14 @@ html, body {
 #screen-registration .h1-title {
   font-size: 24px !important;
 }
+
 #screen-registration .input-field,
 #screen-registration .terms-text,
 #screen-registration .btn,
 #screen-registration .registration-header-details span:last-child {
   font-size: 14px !important;
 }
+
 #screen-registration .input-label,
 #screen-registration .section-eyebrow,
 #screen-registration .registration-header-details span:first-child,
@@ -509,11 +529,13 @@ html, body {
 #screen-ticket .ticket-event-name {
   font-size: 24px !important;
 }
+
 #screen-ticket .ticket-detail-val,
 #screen-ticket .btn,
 #screen-ticket .ticket-brand {
   font-size: 14px !important;
 }
+
 #screen-ticket .section-eyebrow,
 #screen-ticket .ticket-scan-prompt,
 #screen-ticket .ticket-id,
@@ -526,9 +548,11 @@ html, body {
 #screen-dashboard .dashboard-greeting {
   font-size: 32px !important;
 }
+
 #screen-dashboard .stat-num {
   font-size: 24px !important;
 }
+
 #screen-dashboard .dashboard-date,
 #screen-dashboard .stat-lbl,
 #screen-dashboard .h3-title,
@@ -1020,7 +1044,7 @@ html, body {
   transition: transform 150ms ease;
 }
 
-.avatar-option input[type="radio"]:checked ~ .avatar-img {
+.avatar-option input[type="radio"]:checked~.avatar-img {
   border: 2px solid var(--nova-yellow);
   transform: scale(1.1);
   box-shadow: 0 0 12px rgba(200, 232, 74, 0.4);
@@ -1160,7 +1184,8 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  padding-bottom: 110px; /* Leave space for sticky CTA */
+  padding-bottom: 110px;
+  /* Leave space for sticky CTA */
 }
 
 .detail-section-title {
@@ -1306,12 +1331,12 @@ html, body {
   display: none;
 }
 
-.terms-wrapper input[type="checkbox"]:checked + .terms-checkbox {
+.terms-wrapper input[type="checkbox"]:checked+.terms-checkbox {
   background-color: var(--nova-yellow);
   border-color: var(--nova-yellow);
 }
 
-.terms-wrapper input[type="checkbox"]:checked + .terms-checkbox svg {
+.terms-wrapper input[type="checkbox"]:checked+.terms-checkbox svg {
   opacity: 1;
   transform: scale(1);
 }
@@ -1334,7 +1359,8 @@ html, body {
   width: 100%;
   max-width: 320px;
   border-radius: var(--radius-card-lg);
-  padding: 2px; /* Border spacing */
+  padding: 2px;
+  /* Border spacing */
   background: linear-gradient(135deg, var(--galactic-purple), var(--nova-yellow), var(--coral-fire));
   background-size: 300% 300%;
   animation: holographicGlow 8s linear infinite;
@@ -1344,13 +1370,22 @@ html, body {
 }
 
 @keyframes holographicGlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .ticket-inner {
-  border-radius: 26px; /* Slightly smaller than wrapper */
+  border-radius: 26px;
+  /* Slightly smaller than wrapper */
   overflow: hidden;
   background-color: var(--deep-space);
   display: flex;
@@ -1824,7 +1859,8 @@ html, body {
    ========================================== */
 
 .desktop-admin-layout {
-  display: none; /* Controlled by navigateTo JS */
+  display: none;
+  /* Controlled by navigateTo JS */
   height: 100vh;
   width: 100vw;
   background-color: var(--void-black);
@@ -1833,7 +1869,8 @@ html, body {
 }
 
 .desktop-admin-layout.active {
-  display: flex; /* Flexbox splitting Sidebar and Main Content */
+  display: flex;
+  /* Flexbox splitting Sidebar and Main Content */
 }
 
 /* --- SIDEBAR --- */
@@ -2188,3 +2225,8 @@ html, body {
   background-color: rgba(232, 74, 74, 0.08);
 }
 
+.main-content {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 140px);
+  padding-bottom: 80px;
+}

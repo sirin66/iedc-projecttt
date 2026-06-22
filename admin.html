@@ -571,6 +571,9 @@
         <div class="admin-nav-item" id="nav-tab-scanner" onclick="switchAdminWorkspaceTab('scanner')">
           Volunteer QR Scanner
         </div>
+        <div class="admin-nav-item" id="nav-tab-merchandise" onclick="switchAdminWorkspaceTab('merchandise')">
+          Merchandise Hub
+        </div>
       </nav>
       <button class="admin-logout-btn" onclick="handleAdminSignOut()">
         Sign Out
@@ -968,6 +971,71 @@
             <button class="admin-table-btn admin-table-btn-reject" onclick="stopScanner()" style="padding: 12px 24px; font-size: 12px;">Stop Camera</button>
           </div>
         </section>
+      </div>
+
+      <!-- Merchandise Management Hub Workspace View -->
+      <div id="workspace-merchandise" style="display: none; width: 100%;">
+        
+        <!-- Add/Edit Section -->
+        <section class="admin-data-section">
+          <div class="event-studio-container" style="max-width: 100%; margin: 0;">
+            <h2 id="merch-form-title">Add/Edit Merchandise Product</h2>
+            <form id="admin-add-merch-form" onsubmit="event.preventDefault();">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="admin-merch-title">Product Title</label>
+                  <input type="text" id="admin-merch-title" placeholder="Eg: IEDC Official Hoodie" required style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+                </div>
+                <div class="form-group">
+                  <label for="admin-merch-price">Price (INR)</label>
+                  <input type="number" id="admin-merch-price" placeholder="Eg: 499" required min="1" style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+                </div>
+              </div>
+              
+              <div class="form-group" style="margin-top: 15px;">
+                <label for="admin-merch-image">Product Image URL</label>
+                <input type="url" id="admin-merch-image" placeholder="https://images.unsplash.com/..." required style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+              </div>
+              
+              <button type="submit" id="btn-admin-add-product" class="btn-submit" style="width: auto; padding: 12px 24px; margin-top: 15px; cursor: pointer; background: var(--soft-purple) !important; color: white !important;">Add Product</button>
+            </form>
+            
+            <h3 style="margin-top: 30px; font-size: 16px;" class="section-eyebrow">Active Products Catalogue</h3>
+            <div id="admin-merch-products-list" class="active-items-grid">
+              <!-- Render products catalog here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Live Order & Payment Approval Panel -->
+        <section class="admin-data-section" style="margin-top: 30px;">
+          <div class="admin-data-header">
+            <span class="section-eyebrow">Live Order & Payment Approval Queue</span>
+          </div>
+
+          <div class="admin-table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Order Details</th>
+                  <th>Total Amount</th>
+                  <th>Transaction ID / UTR</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Action Hooks</th>
+                </tr>
+              </thead>
+              <tbody id="admin-payment-verification-table">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 32px;">
+                    Loading merchandise order queues...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
 
     </main>
@@ -1489,7 +1557,7 @@
 
     // Switch Workspace Drawer Tabs
     window.switchAdminWorkspaceTab = function(tabId) {
-      const tabs = ["registrations", "events", "tournaments", "auditing", "scanner"];
+      const tabs = ["registrations", "events", "tournaments", "auditing", "scanner", "merchandise"];
       tabs.forEach(t => {
         const tabEl = document.getElementById(`nav-tab-${t}`);
         const viewEl = document.getElementById(`workspace-${t}`);
@@ -1525,6 +1593,9 @@
       } else if (tabId === "scanner") {
         if (breadcrumb) breadcrumb.textContent = "Console / Scanner";
         if (title) title.textContent = "Volunteer Check-In Gate";
+      } else if (tabId === "merchandise") {
+        if (breadcrumb) breadcrumb.textContent = "Console / Merchandise";
+        if (title) title.textContent = "Merchandise Management Hub";
       }
     };
 
@@ -2222,8 +2293,159 @@
       });
     }
 
+    // --- IEDC MERCHANDISE PLATFORM ADMIN LOGIC ---
+    let MERCH_PRODUCTS = [
+      { id: "prod-hoodie", title: "IEDC Official Hoodie", price: 499, imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" },
+      { id: "prod-tshirt", title: "IEDC Innovator T-Shirt", price: 299, imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" },
+      { id: "prod-cap", title: "IEDC Tech Cap", price: 149, imageUrl: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" }
+    ];
+
+    function initMerch() {
+      const cachedProds = localStorage.getItem("merch_products");
+      if (cachedProds) {
+        try {
+          MERCH_PRODUCTS = JSON.parse(cachedProds);
+        } catch (e) {
+          console.error("Error parsing merchandise products:", e);
+        }
+      } else {
+        localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+      }
+    }
+    initMerch();
+
+    window.renderAdminProducts = function() {
+      const container = document.getElementById("admin-merch-products-list");
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (MERCH_PRODUCTS.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; color: var(--muted-white); font-size:12px;">No active products found in catalogue.</div>`;
+        return;
+      }
+
+      MERCH_PRODUCTS.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "admin-item-card";
+        card.innerHTML = `
+          <div style="display:flex; gap:10px; align-items:center;">
+            <img src="${p.imageUrl}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;" alt="${p.title}">
+            <div>
+              <div class="admin-item-card-title" style="margin-bottom:2px;">${p.title}</div>
+              <div class="admin-item-card-meta">
+                <div>Price: ₹${p.price}</div>
+                <div>Stock: <span style="color: ${p.stockStatus === 'in-stock' ? '#4ae88a' : '#e8614a'}">${p.stockStatus}</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="admin-item-card-actions" style="margin-top:10px;">
+            <button class="btn-action-icon btn-edit-item" onclick="toggleMerchStock('${p.id}')">🔄 Toggle Stock</button>
+            <button class="btn-action-icon btn-delete-item" onclick="deleteMerchItem('${p.id}')">🗑️ Delete</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    };
+
+    window.toggleMerchStock = function(productId) {
+      const p = MERCH_PRODUCTS.find(x => x.id === productId);
+      if (p) {
+        p.stockStatus = p.stockStatus === "in-stock" ? "out-of-stock" : "in-stock";
+        localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+        renderAdminProducts();
+      }
+    };
+
+    window.deleteMerchItem = function(productId) {
+      if (!confirm("Are you sure you want to delete this product?")) return;
+      MERCH_PRODUCTS = MERCH_PRODUCTS.filter(p => p.id !== productId);
+      localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+      renderAdminProducts();
+    };
+
+    window.renderAdminMerchOrders = function() {
+      const tableBody = document.getElementById("admin-payment-verification-table");
+      if (!tableBody) return;
+
+      const mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+      tableBody.innerHTML = "";
+
+      if (mockOrders.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 16px;">
+              No orders submitted for verification.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      mockOrders.forEach(o => {
+        const itemsStr = o.items.map(i => `${i.title} (${i.size}) x ${i.quantity}`).join("<br>");
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><div style="font-weight: 700; color: white;">${o.studentName}</div></td>
+          <td><div style="color: var(--muted-white); font-size:11px;">${itemsStr}</div></td>
+          <td><div style="color: var(--neon-yellow); font-weight:800;">₹${o.totalAmount}</div></td>
+          <td><div style="font-family:monospace; color:white;">${o.utr}</div></td>
+          <td>
+            <span style="padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; background: ${o.status === "Confirmed" ? "rgba(74, 232, 138, 0.15)" : (o.status === "Failed" ? "rgba(232, 74, 74, 0.15)" : "rgba(234, 179, 8, 0.15)")}; color: ${o.status === "Confirmed" ? "#4ae88a" : (o.status === "Failed" ? "#e8614a" : "#eab308")};">
+              ${o.status}
+            </span>
+          </td>
+          <td style="text-align: right;">
+            ${o.status === "Pending" ? `
+              <button onclick="approveMerchPayment('${o.orderId}')" class="admin-table-btn" style="background: var(--neon-green) !important; color: #06060c !important; font-size:10px; font-weight:700; padding:6px 10px; border:none; border-radius:6px; cursor:pointer; margin-right:6px; box-shadow: 0 0 8px rgba(74,232,138,0.2) !important;">Approve Payment</button>
+              <button onclick="rejectMerchPayment('${o.orderId}')" class="admin-table-btn" style="background: var(--neon-yellow) !important; color: #06060c !important; font-size:10px; font-weight:700; padding:6px 10px; border:none; border-radius:6px; cursor:pointer; box-shadow: 0 0 8px rgba(200,232,74,0.2) !important;">Reject Payment</button>
+            ` : `<span style="color:var(--muted-white); font-size:10px;">Processed</span>`}
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    };
+
+    window.approveMerchPayment = function(orderId) {
+      let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+      const idx = mockOrders.findIndex(o => o.orderId === orderId);
+      if (idx !== -1) {
+        mockOrders[idx].status = "Confirmed";
+        localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
+        renderAdminMerchOrders();
+        alert("Payment approved and order confirmed!");
+      }
+    };
+
+    window.rejectMerchPayment = function(orderId) {
+      let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+      const idx = mockOrders.findIndex(o => o.orderId === orderId);
+      if (idx !== -1) {
+        mockOrders[idx].status = "Failed";
+        localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
+        renderAdminMerchOrders();
+        alert("Payment rejected and order marked as failed.");
+      }
+    };
+
     verifyAdminAccess();
     syncAdminNewsTickerAndAnnouncements();
+
+    // Initial triggers for merchandise
+    renderAdminProducts();
+    renderAdminMerchOrders();
+
+    setInterval(() => {
+      const cachedProds = localStorage.getItem("merch_products");
+      if (cachedProds) {
+        try {
+          const parsed = JSON.parse(cachedProds);
+          if (JSON.stringify(parsed) !== JSON.stringify(MERCH_PRODUCTS)) {
+            MERCH_PRODUCTS = parsed;
+            renderAdminProducts();
+          }
+        } catch (e) {}
+      }
+      renderAdminMerchOrders();
+    }, 3000);
   </script>
 </body>
 </html>
