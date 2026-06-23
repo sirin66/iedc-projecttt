@@ -317,14 +317,19 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% - 80px);
-  /* Account for the fixed bottom navigation */
+  height: 100% !important;
   opacity: 0;
   visibility: hidden;
   display: flex;
   flex-direction: column;
   z-index: 1;
   background-color: var(--void-black);
+  overflow-y: auto !important;
+}
+
+.screen::-webkit-scrollbar {
+  display: none;
+  width: 0px;
 }
 
 /* Active screen state with Slide up + Fade */
@@ -357,7 +362,8 @@ body {
 /* Screen content container with vertical scroll */
 .screen-content {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible !important;
+  height: auto !important;
   padding: var(--space-lg);
   position: relative;
 }
