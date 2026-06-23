@@ -104,10 +104,10 @@ function onAuthStateChanged(authInstance, callback) {
 // ==========================================
 const supabaseUrl = "https://qcqneyayyaieekroyxdt.supabase.co";
 const supabaseKey = "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf";
-let supabase = null;
+let supabaseClient = null;
 try {
   if (typeof window !== "undefined" && window.supabase) {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     console.log("Supabase client initialized successfully.");
   }
 } catch (err) {
@@ -115,12 +115,12 @@ try {
 }
 
 async function uploadToSupabase(file, bucketName) {
-  if (!supabase) {
+  if (!supabaseClient) {
     throw new Error("Supabase client is not initialized.");
   }
   const fileName = Date.now() + "_" + file.name;
   console.log(`Starting Supabase upload of ${fileName} to bucket "${bucketName}"`);
-  const { data, error } = await supabase.storage
+  const { data, error } = await supabaseClient.storage
     .from(bucketName)
     .upload(fileName, file);
 
@@ -128,7 +128,7 @@ async function uploadToSupabase(file, bucketName) {
     throw error;
   }
 
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = supabaseClient.storage
     .from(bucketName)
     .getPublicUrl(fileName);
 
