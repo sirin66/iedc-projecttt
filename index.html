@@ -1147,7 +1147,7 @@
               </div>
               <div style="display: flex; align-items: center; gap: 16px; margin-left: auto;">
                 <!-- Floating Cart Icon badge -->
-                <div id="merch-cart-btn" style="position: relative; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                <div id="main-cart-btn" style="position: relative; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
                   🛒
                   <span id="merch-cart-icon" style="position: absolute; top: -5px; right: -5px; background: var(--neon-purple); color: white; border-radius: 50%; font-size: 9px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid rgba(255,255,255,0.2);">0</span>
                 </div>
@@ -1722,21 +1722,60 @@
                ========================================== -->
           <!-- Cart Modal -->
           <div id="merch-cart-modal" class="ad-overlay" style="display: none; justify-content: center; align-items: center; position: fixed; z-index: 10000; width: 100vw; height: 100vh;">
-            <div class="ad-modal" style="max-width: 360px; width: 90%; background: rgba(10, 10, 20, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 24px;">
+            <div class="ad-modal" style="max-width: 360px; width: 90%; max-height: 85vh; overflow-y: auto; background: rgba(10, 10, 20, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); padding: var(--space-lg); border-radius: 24px;">
               <button class="ad-close-btn" id="merch-cart-close-btn">&times;</button>
-              <div class="ad-tag" style="color: var(--neon-purple);">Cart Items</div>
+              <div class="ad-tag" style="color: var(--neon-purple);">Merchandise</div>
               <h3 style="font-family: var(--font-display); font-size: 20px !important; font-weight: 850; margin-bottom: var(--space-sm); line-height: 1.2;">Your Cart</h3>
               
-              <div id="cart-items-container" style="display: flex; flex-direction: column; gap: var(--space-sm); max-height: 200px; overflow-y: auto; margin-bottom: var(--space-md); padding-right: 4px;">
-                <!-- Cart items dynamically rendered here -->
+              <!-- Tab Switcher -->
+              <div class="cart-tabs" style="display: flex; gap: var(--space-xs); margin-bottom: var(--space-md); border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px;">
+                <button type="button" id="cart-tab-current-btn" onclick="window.switchCartTab('current')" style="flex: 1; background: transparent; border: none; color: var(--neon-yellow); border-bottom: 2px solid var(--neon-yellow); padding: var(--space-xs); font-family: var(--font-display); font-weight: 700; font-size: 12px; cursor: pointer; text-transform: uppercase; text-align: center; outline: none; transition: all 0.2s ease;">Current Order</button>
+                <button type="button" id="cart-tab-history-btn" onclick="window.switchCartTab('history')" style="flex: 1; background: transparent; border: none; color: var(--muted-white); border-bottom: 2px solid transparent; padding: var(--space-xs); font-family: var(--font-display); font-weight: 700; font-size: 12px; cursor: pointer; text-transform: uppercase; text-align: center; outline: none; transition: all 0.2s ease;">Recent History</button>
               </div>
-              
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: var(--space-md); color: white;">
-                <span>Total Amount:</span>
-                <span id="cart-total-label" style="color: var(--neon-yellow);">₹0</span>
+
+              <!-- Current Order Section -->
+              <div id="cart-current-tab-section" style="display: block;">
+                <div id="cart-items-container" style="display: flex; flex-direction: column; gap: var(--space-sm); max-height: 180px; overflow-y: auto; margin-bottom: var(--space-md); padding-right: 4px;">
+                  <!-- Cart items dynamically rendered here -->
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: var(--space-md); color: white;">
+                  <span>Total Amount:</span>
+                  <span id="cart-total-label" style="color: var(--neon-yellow);">₹0</span>
+                </div>
+
+                <!-- Checkout Form -->
+                <div id="cart-checkout-form" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: var(--space-md); margin-bottom: var(--space-md);">
+                  <h4 style="font-family: var(--font-display); font-size: 13px; font-weight: 800; color: white; margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.5px;">Checkout Details</h4>
+                  
+                  <div class="input-group" style="text-align: left; margin-bottom: var(--space-sm);">
+                    <label class="input-label" for="checkout-name" style="font-size: 10px; text-transform: uppercase; color: var(--muted-white); margin-bottom: 4px; display: block;">Full Name</label>
+                    <input type="text" id="checkout-name" class="input-field" placeholder="Enter full name" required style="width: 100%; padding: 10px; font-size: 12px; box-sizing: border-box;">
+                  </div>
+
+                  <div class="input-group" style="text-align: left; margin-bottom: var(--space-sm);">
+                    <label class="input-label" for="checkout-phone" style="font-size: 10px; text-transform: uppercase; color: var(--muted-white); margin-bottom: 4px; display: block;">Phone Number</label>
+                    <input type="tel" id="checkout-phone" class="input-field" placeholder="Enter 10-digit number" required style="width: 100%; padding: 10px; font-size: 12px; box-sizing: border-box;">
+                  </div>
+
+                  <div class="input-group" style="text-align: left; margin-bottom: var(--space-md);">
+                    <label class="input-label" for="pickup-event" style="font-size: 10px; text-transform: uppercase; color: var(--muted-white); margin-bottom: 4px; display: block;">Pickup Offline Event</label>
+                    <select id="pickup-event" class="input-field" style="width: 100%; padding: 10px; font-size: 12px; box-sizing: border-box; background: rgba(10, 10, 20, 0.95); color: white; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; outline: none;">
+                      <!-- Dynamically populated -->
+                    </select>
+                  </div>
+                </div>
+                
+                <button id="cart-proceed-btn" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 13px !important; background: var(--neon-purple) !important; color: white !important; box-shadow: 0 0 15px rgba(139,111,212,0.3) !important;">Proceed to Pay</button>
               </div>
-              
-              <button id="cart-proceed-btn" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 13px !important; background: var(--neon-purple) !important; color: white !important; box-shadow: 0 0 15px rgba(139,111,212,0.3) !important;">Proceed to Pay</button>
+
+              <!-- History Section -->
+              <div id="cart-history-tab-section" style="display: none;">
+                <div id="cart-history-container" style="display: flex; flex-direction: column; gap: var(--space-sm); max-height: 350px; overflow-y: auto; padding-right: 4px;">
+                  <!-- Past orders dynamically loaded here -->
+                </div>
+              </div>
+
             </div>
           </div>
 

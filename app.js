@@ -3407,22 +3407,299 @@ window.removeCartItem = function (index) {
 };
 
 // Bind elements on cart and checkout flow using dynamic delegation
+window.switchCartTab = function (tabName) {
+  const currentTabBtn = document.getElementById("cart-tab-current-btn");
+  const historyTabBtn = document.getElementById("cart-tab-history-btn");
+  const currentTabSection = document.getElementById("cart-current-tab-section");
+  const historyTabSection = document.getElementById("cart-history-tab-section");
+
+  if (!currentTabBtn || !historyTabBtn || !currentTabSection || !historyTabSection) return;
+
+  if (tabName === "current") {
+    currentTabBtn.style.color = "var(--neon-yellow)";
+    currentTabBtn.style.borderBottom = "2px solid var(--neon-yellow)";
+    historyTabBtn.style.color = "var(--muted-white)";
+    historyTabBtn.style.borderBottom = "2px solid transparent";
+    
+    currentTabSection.style.display = "block";
+    historyTabSection.style.display = "none";
+  } else {
+    currentTabBtn.style.color = "var(--muted-white)";
+    currentTabBtn.style.borderBottom = "2px solid transparent";
+    historyTabBtn.style.color = "var(--neon-yellow)";
+    historyTabBtn.style.borderBottom = "2px solid var(--neon-yellow)";
+    
+    currentTabSection.style.display = "none";
+    historyTabSection.style.display = "block";
+    
+    window.loadRecentOrdersHistory();
+  }
+};
+
+window.populatePickupDropdown = async function () {
+  const dropdown = document.getElementById("pickup-event");
+  if (!dropdown) return;
+
+  dropdown.innerHTML = "";
+  const defaultOpt = document.createElement("option");
+  defaultOpt.value = "Direct IEDC Hub Pickup";
+  defaultOpt.textContent = "Direct IEDC Hub Pickup";
+  dropdown.appendChild(defaultOpt);
+
+  let offlineEvents = [];
+  const realFirebaseActive = typeof useRealFirebase !== "undefined" && useRealFirebase;
+
+  if (realFirebaseActive && typeof firebase !== "undefined" && firebase.firestore) {
+    try {
+      const db = firebase.firestore();
+      const eventsSnap = await db.collection("events").where("venue_type", "==", "Offline").get();
+      eventsSnap.forEach(doc => {
+        const evt = doc.data();
+        if (evt && evt.title) offlineEvents.push(evt.title);
+      });
+      const tournamentsSnap = await db.collection("tournaments").where("venue_type", "==", "Offline").get();
+      tournamentsSnap.forEach(doc => {
+        const tour = doc.data();
+        if (tour && tour.title) offlineEvents.push(tour.title);
+      });
+    } catch (err) {
+      console.error("Firestore offline events fetch error:", err);
+    }
+  } else {
+    try {
+      const mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+      const mockTournaments = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+      mockEvents.forEach(evt => {
+        if (evt.venue_type === "Offline" || evt.mode === "offline") {
+          if (evt.title) offlineEvents.push(evt.title);
+        }
+      });
+      mockTournaments.forEach(tour => {
+        if (tour.venue_type === "Offline" || tour.mode === "offline") {
+          if (tour.title) offlineEvents.push(tour.title);
+        }
+      });
+    } catch (err) {
+      console.error("Local mock storage load failed:", err);
+    }
+  }
+
+  if (offlineEvents.length === 0 && typeof EVENTS_DATA !== "undefined" && EVENTS_DATA.length > 0) {
+    EVENTS_DATA.forEach(evt => {
+      if (evt.venue_type === "Offline" || evt.mode === "offline") {
+        if (evt.title) offlineEvents.push(evt.title);
+      }
+    });
+  }
+
+  const uniqueOfflineEvents = [...new Set(offlineEvents)];
+  uniqueOfflineEvents.forEach(evtName => {
+    const opt = document.createElement("option");
+    opt.value = evtName;
+    opt.textContent = evtName;
+    dropdown.appendChild(opt);
+  });
+};
+
+window.loadRecentOrdersHistory = async function () {
+  const container = document.getElementById("cart-history-container");
+  if (!container) return;
+
+  container.innerHTML = `<div style="text-align: center; color: var(--muted-white); padding: 16px; font-size: 11px;">Loading history...</div>`;
+
+  const loggedInEmail = USER_PROFILE.email || sessionStorage.getItem("loggedInUserEmail");
+  if (!loggedInEmail) {
+    container.innerHTML = `<div style="text-align: center; color: var(--muted-white); padding: 16px; font-size: 11px;">Please log in to view history.</div>`;
+    return;
+  }
+
+  let orders = [];
+  const realFirebaseActive = typeof useRealFirebase !== "undefined" && useRealFirebase;
+
+  if (realFirebaseActive && typeof firebase !== "undefined" && firebase.firestore) {
+    try {
+      const db = firebase.firestore();
+      const snap = await db.collection("merchandise_orders")
+                            .where("studentEmail", "==", loggedInEmail)
+                            .get();
+      snap.forEach(doc => {
+        orders.push(doc.data());
+      });
+      orders.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    } catch (err) {
+      console.error("Firestore fetch orders error:", err);
+      container.innerHTML = `<div style="text-align: center; color: var(--neon-coral); padding: 16px; font-size: 11px;">Failed to load history.</div>`;
+      return;
+    }
+  } else {
+    try {
+      const mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+      orders = mockOrders.filter(o => o.studentEmail === loggedInEmail || (o.studentUid && o.studentUid === sessionStorage.getItem("loggedInUserUid")));
+    } catch (err) {
+      console.error("Local mock storage load failed:", err);
+    }
+  }
+
+  if (orders.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: var(--muted-white); padding: 16px; font-size: 11px;">No previous orders found.</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  orders.forEach(o => {
+    const card = document.createElement("div");
+    card.style.background = "rgba(255, 255, 255, 0.02)";
+    card.style.border = "1px solid rgba(255, 255, 255, 0.06)";
+    card.style.borderRadius = "12px";
+    card.style.padding = "10px";
+    card.style.fontSize = "11px";
+    card.style.display = "flex";
+    card.style.flexDirection = "column";
+    card.style.gap = "4px";
+    card.style.marginBottom = "8px";
+
+    let borderCol = "var(--warning)";
+    let badgeStyle = "background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.25); color: #eab308; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700;";
+    let statusText = "⏳ Pending";
+
+    if (o.status === "Confirmed" || o.status === "Approved") {
+      borderCol = "var(--success)";
+      badgeStyle = "background: rgba(74, 232, 138, 0.12); border: 1px solid rgba(74, 232, 138, 0.25); color: #4ae88a; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700;";
+      statusText = "✅ Paid & Confirmed";
+    } else if (o.status === "Failed" || o.status === "Rejected") {
+      borderCol = "var(--error)";
+      badgeStyle = "background: rgba(232, 74, 74, 0.12); border: 1px solid rgba(232, 74, 74, 0.25); color: #e8614a; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700;";
+      statusText = "❌ Payment Rejected";
+    }
+
+    card.style.borderLeft = `3px solid ${borderCol}`;
+
+    const itemsStr = o.items.map(i => `${i.title} (${i.size}) x ${i.quantity}`).join(", ");
+    const pickupVal = o.pickupEvent || "Direct IEDC Hub Pickup";
+
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; color: white;">Order #${o.orderId}</span>
+        <span style="${badgeStyle}">${statusText}</span>
+      </div>
+      <div style="color: var(--muted-white); font-weight: 500; margin-top: 2px;">${itemsStr}</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+        <span style="color: var(--neon-yellow); font-weight: 800;">₹${o.totalAmount}</span>
+        <span style="color: var(--muted-white); font-size: 10px;">Pickup: ${pickupVal}</span>
+      </div>
+      ${o.utr ? `<div style="font-size: 9px; color: var(--muted-white); font-family: monospace; margin-top: 2px;">UTR: ${o.utr}</div>` : ""}
+    `;
+    container.appendChild(card);
+  });
+};
+
+async function saveMerchandiseOrder(order) {
+  const realFirebaseActive = typeof useRealFirebase !== "undefined" && useRealFirebase;
+  if (realFirebaseActive && typeof firebase !== "undefined" && firebase.firestore) {
+    try {
+      const db = firebase.firestore();
+      await db.collection("merchandise_orders").doc(order.orderId).set(order);
+    } catch (error) {
+      console.error("Error saving merchandise order to Firestore:", error);
+      throw error;
+    }
+  } else {
+    let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+    mockOrders.unshift(order);
+    localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
+  }
+}
+
+// Bind elements on cart and checkout flow using DOMContentLoaded and dynamic delegation
+document.addEventListener("DOMContentLoaded", () => {
+  const mainCartBtn = document.getElementById("main-cart-btn");
+  if (mainCartBtn) {
+    mainCartBtn.addEventListener("click", () => {
+      const cartModal = document.getElementById("merch-cart-modal") || document.getElementById("cart-drawer") || document.getElementById("cart-modal");
+      if (cartModal) {
+        if (cartModal.classList.contains("ad-overlay")) {
+          cartModal.style.setProperty("display", "flex", "important");
+        } else {
+          cartModal.style.setProperty("display", "block", "important");
+        }
+        
+        // Reset to Current Order tab by default
+        window.switchCartTab("current");
+
+        // Prepopulate checkout form fields
+        const checkoutNameInput = document.getElementById("checkout-name");
+        const checkoutPhoneInput = document.getElementById("checkout-phone");
+        if (checkoutNameInput && !checkoutNameInput.value) {
+          checkoutNameInput.value = USER_PROFILE.name || "";
+        }
+        if (checkoutPhoneInput && !checkoutPhoneInput.value) {
+          checkoutPhoneInput.value = USER_PROFILE.phone || "";
+        }
+
+        // Dynamically populate event selector
+        window.populatePickupDropdown();
+
+        // Load student recent order history
+        window.loadRecentOrdersHistory();
+
+        if (typeof updateCartUI === "function") {
+          updateCartUI();
+        }
+      }
+    });
+  }
+
+  const closeBtn = document.getElementById("merch-cart-close-btn") || document.getElementById("cart-close-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      const cartModal = document.getElementById("merch-cart-modal") || document.getElementById("cart-drawer") || document.getElementById("cart-modal");
+      if (cartModal) {
+        cartModal.style.setProperty("display", "none", "important");
+      }
+    });
+  }
+});
+
 (function bindCartActions() {
   document.addEventListener("click", (e) => {
     // Open Cart Modal
-    const cartBtn = e.target.closest("#merch-cart-btn");
+    const cartBtn = e.target.closest("#main-cart-btn");
     if (cartBtn) {
-      const cartModal = document.getElementById("merch-cart-modal");
+      const cartModal = document.getElementById("merch-cart-modal") || document.getElementById("cart-drawer") || document.getElementById("cart-modal");
       if (cartModal) {
-        cartModal.style.display = "flex";
+        if (cartModal.classList.contains("ad-overlay")) {
+          cartModal.style.setProperty("display", "flex", "important");
+        } else {
+          cartModal.style.setProperty("display", "block", "important");
+        }
+        
+        // Reset to Current Order tab by default
+        window.switchCartTab("current");
+
+        // Prepopulate checkout form fields
+        const checkoutNameInput = document.getElementById("checkout-name");
+        const checkoutPhoneInput = document.getElementById("checkout-phone");
+        if (checkoutNameInput && !checkoutNameInput.value) {
+          checkoutNameInput.value = USER_PROFILE.name || "";
+        }
+        if (checkoutPhoneInput && !checkoutPhoneInput.value) {
+          checkoutPhoneInput.value = USER_PROFILE.phone || "";
+        }
+
+        // Dynamically populate event selector
+        window.populatePickupDropdown();
+
+        // Load student recent order history
+        window.loadRecentOrdersHistory();
+
         updateCartUI();
       }
     }
 
     // Close Cart Modal
-    if (e.target && e.target.id === "merch-cart-close-btn") {
-      const cartModal = document.getElementById("merch-cart-modal");
-      if (cartModal) cartModal.style.display = "none";
+    if (e.target && (e.target.id === "merch-cart-close-btn" || e.target.id === "cart-close-btn")) {
+      const cartModal = document.getElementById("merch-cart-modal") || document.getElementById("cart-drawer") || document.getElementById("cart-modal");
+      if (cartModal) cartModal.style.setProperty("display", "none", "important");
     }
 
     // Close Payment Modal
@@ -3437,6 +3714,32 @@ window.removeCartItem = function (index) {
         alert("Your cart is empty!");
         return;
       }
+
+      const nameInput = document.getElementById("checkout-name");
+      const phoneInput = document.getElementById("checkout-phone");
+      const pickupSelect = document.getElementById("pickup-event");
+
+      const nameVal = nameInput ? nameInput.value.trim() : "";
+      const phoneVal = phoneInput ? phoneInput.value.trim() : "";
+      const pickupVal = pickupSelect ? pickupSelect.value : "";
+
+      if (!nameVal) {
+        alert("Please enter your name for checkout.");
+        return;
+      }
+      if (!phoneVal) {
+        alert("Please enter your phone number.");
+        return;
+      }
+      if (!pickupVal) {
+        alert("Please select a pickup point.");
+        return;
+      }
+
+      // Temporarily store checkout values in sessionStorage
+      sessionStorage.setItem("merch_checkout_name", nameVal);
+      sessionStorage.setItem("merch_checkout_phone", phoneVal);
+      sessionStorage.setItem("merch_checkout_pickup", pickupVal);
 
       const totalAmount = merchCart.reduce((sum, item) => sum + item.subtotal, 0);
       const amountLabel = document.getElementById("merch-pay-amount-label");
@@ -3465,12 +3768,19 @@ window.removeCartItem = function (index) {
 
       const totalAmount = merchCart.reduce((sum, item) => sum + item.subtotal, 0);
       const studentUid = sessionStorage.getItem("loggedInUserUid") || "anonymous_student";
-      const studentName = USER_PROFILE.name || "Student";
+      const studentEmail = USER_PROFILE.email || sessionStorage.getItem("loggedInUserEmail") || "anonymous@rit.ac.in";
+      
+      const studentName = sessionStorage.getItem("merch_checkout_name") || USER_PROFILE.name || "Student";
+      const phone = sessionStorage.getItem("merch_checkout_phone") || USER_PROFILE.phone || "";
+      const pickupEvent = sessionStorage.getItem("merch_checkout_pickup") || "Direct IEDC Hub Pickup";
 
       const newOrder = {
         orderId: "ord-" + Math.floor(Math.random() * 900000 + 100000),
         studentUid,
         studentName,
+        studentEmail,
+        phone,
+        pickupEvent,
         items: merchCart.map(x => ({ title: x.product.title, size: x.size, quantity: x.quantity })),
         totalAmount,
         utr,
@@ -3478,24 +3788,66 @@ window.removeCartItem = function (index) {
         timestamp: new Date().toISOString()
       };
 
-      let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
-      mockOrders.unshift(newOrder);
-      localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
+      saveMerchandiseOrder(newOrder).then(() => {
+        merchCart = [];
+        updateCartBadge();
+        updateCartUI();
+        if (utrInput) utrInput.value = "";
 
-      merchCart = [];
-      updateCartBadge();
-      updateCartUI();
-      if (utrInput) utrInput.value = "";
+        const paymentModal = document.getElementById("merch-payment-modal");
+        if (paymentModal) paymentModal.style.display = "none";
 
-      const paymentModal = document.getElementById("merch-payment-modal");
-      if (paymentModal) paymentModal.style.display = "none";
+        if (typeof showToast !== "undefined") {
+          showToast("Order Submitted! Pending Approval.", "var(--success)", "var(--success)");
+        } else {
+          alert("Order Submitted! Pending Approval.");
+        }
+        loadStudentOrders();
+        window.loadRecentOrdersHistory();
+      }).catch(err => {
+        alert("Failed to submit order: " + err.message);
+      });
+    }
 
-      if (typeof showToast !== "undefined") {
-        showToast("Order Submitted! Pending Approval.", "var(--success)", "var(--success)");
-      } else {
-        alert("Order Submitted! Pending Approval.");
-      }
-      loadStudentOrders();
+    // Print Confirmed Orders List
+    if (e.target && e.target.id === "print-orders-btn") {
+      const style = document.createElement("style");
+      style.id = "print-merchandise-styles";
+      style.innerHTML = `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #merchandise-orders-table, #merchandise-orders-table * {
+            visibility: visible !important;
+          }
+          #merchandise-orders-table {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+            color: black !important;
+            background: white !important;
+          }
+          #merchandise-orders-table th, #merchandise-orders-table td {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            text-align: left !important;
+            color: black !important;
+          }
+          #merchandise-orders-table th {
+            background-color: #f2f2f2 !important;
+            font-weight: bold !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      window.print();
+      setTimeout(() => {
+        const el = document.getElementById("print-merchandise-styles");
+        if (el) el.remove();
+      }, 1000);
     }
 
     // Add Product from Admin Panel Form

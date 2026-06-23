@@ -1084,6 +1084,34 @@
           </div>
         </section>
 
+        <!-- Confirmed Merchandise Orders Table & Print Section -->
+        <section class="admin-data-section" style="margin-top: 30px;">
+          <div class="admin-data-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span class="section-eyebrow">Confirmed Merchandise Orders (Print Queue)</span>
+            <button id="print-orders-btn" class="admin-btn" style="background: var(--neon-purple); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 10px rgba(139,111,212,0.3);">🖨️ Print Order List</button>
+          </div>
+
+          <div class="admin-table-container">
+            <table class="admin-table" id="merchandise-orders-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Items Ordered (Name/Size/Qty)</th>
+                  <th>Phone Number</th>
+                  <th>Fulfillment / Pickup Location</th>
+                </tr>
+              </thead>
+              <tbody id="admin-confirmed-orders-tbody">
+                <tr>
+                  <td colspan="4" style="text-align: center; color: var(--muted-white); padding: 32px;">
+                    Loading confirmed orders...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
 
     </main>
@@ -2676,66 +2704,146 @@
       }
     };
 
-    window.renderAdminMerchOrders = function() {
+    window.renderAdminMerchOrders = async function() {
       const tableBody = document.getElementById("admin-payment-verification-table");
       if (!tableBody) return;
 
-      const mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+      let orders = [];
+      const useRealFirebase = sessionStorage.getItem("useRealFirebase") === "true";
+
+      if (useRealFirebase && typeof firebase !== "undefined" && firebase.firestore) {
+        try {
+          const db = firebase.firestore();
+          const snap = await db.collection("merchandise_orders").get();
+          snap.forEach(doc => {
+            orders.push(doc.data());
+          });
+          orders.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        } catch (err) {
+          console.error("Error fetching merch orders for admin:", err);
+        }
+      } else {
+        orders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+      }
+
       tableBody.innerHTML = "";
 
-      if (mockOrders.length === 0) {
+      if (orders.length === 0) {
         tableBody.innerHTML = `
           <tr>
             <td colspan="6" style="text-align: center; color: var(--muted-white); padding: 16px;">
               No orders submitted for verification.
             </td>
           </tr>`;
-        return;
+      } else {
+        orders.forEach(o => {
+          const itemsStr = o.items.map(i => `${i.title} (${i.size}) x ${i.quantity}`).join("<br>");
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>
+              <div style="font-weight: 700; color: white;">${o.studentName || 'N/A'}</div>
+              <div style="color: var(--muted-white); font-size: 10px;">${o.studentEmail || ''}</div>
+              <div style="color: var(--muted-white); font-size: 10px;">${o.phone || ''}</div>
+            </td>
+            <td>
+              <div style="color: var(--muted-white); font-size: 11px;">${itemsStr}</div>
+              <div style="color: var(--neon-purple); font-size: 10px; font-weight: 700; margin-top: 4px;">Pickup Event: ${o.pickupEvent || 'Direct IEDC Hub Pickup'}</div>
+            </td>
+            <td><div style="color: var(--neon-yellow); font-weight: 800;">₹${o.totalAmount}</div></td>
+            <td><div style="font-family: monospace; color: white;">${o.utr}</div></td>
+            <td>
+              <span style="padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; background: ${o.status === "Confirmed" ? "rgba(74, 232, 138, 0.15)" : (o.status === "Failed" ? "rgba(232, 74, 74, 0.15)" : "rgba(234, 179, 8, 0.15)")}; color: ${o.status === "Confirmed" ? "#4ae88a" : (o.status === "Failed" ? "#e8614a" : "#eab308")};">
+                ${o.status}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              ${o.status === "Pending" ? `
+                <button onclick="approveMerchPayment('${o.orderId}')" class="admin-table-btn" style="background: var(--neon-green) !important; color: #06060c !important; font-size: 10px; font-weight: 700; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; margin-right: 6px; box-shadow: 0 0 8px rgba(74,232,138,0.2) !important;">Approve Payment</button>
+                <button onclick="rejectMerchPayment('${o.orderId}')" class="admin-table-btn" style="background: var(--neon-yellow) !important; color: #06060c !important; font-size: 10px; font-weight: 700; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 0 8px rgba(200,232,74,0.2) !important;">Reject Payment</button>
+              ` : `<span style="color: var(--muted-white); font-size: 10px;">Processed</span>`}
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
       }
 
-      mockOrders.forEach(o => {
-        const itemsStr = o.items.map(i => `${i.title} (${i.size}) x ${i.quantity}`).join("<br>");
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td><div style="font-weight: 700; color: white;">${o.studentName}</div></td>
-          <td><div style="color: var(--muted-white); font-size:11px;">${itemsStr}</div></td>
-          <td><div style="color: var(--neon-yellow); font-weight:800;">₹${o.totalAmount}</div></td>
-          <td><div style="font-family:monospace; color:white;">${o.utr}</div></td>
-          <td>
-            <span style="padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; background: ${o.status === "Confirmed" ? "rgba(74, 232, 138, 0.15)" : (o.status === "Failed" ? "rgba(232, 74, 74, 0.15)" : "rgba(234, 179, 8, 0.15)")}; color: ${o.status === "Confirmed" ? "#4ae88a" : (o.status === "Failed" ? "#e8614a" : "#eab308")};">
-              ${o.status}
-            </span>
-          </td>
-          <td style="text-align: right;">
-            ${o.status === "Pending" ? `
-              <button onclick="approveMerchPayment('${o.orderId}')" class="admin-table-btn" style="background: var(--neon-green) !important; color: #06060c !important; font-size:10px; font-weight:700; padding:6px 10px; border:none; border-radius:6px; cursor:pointer; margin-right:6px; box-shadow: 0 0 8px rgba(74,232,138,0.2) !important;">Approve Payment</button>
-              <button onclick="rejectMerchPayment('${o.orderId}')" class="admin-table-btn" style="background: var(--neon-yellow) !important; color: #06060c !important; font-size:10px; font-weight:700; padding:6px 10px; border:none; border-radius:6px; cursor:pointer; box-shadow: 0 0 8px rgba(200,232,74,0.2) !important;">Reject Payment</button>
-            ` : `<span style="color:var(--muted-white); font-size:10px;">Processed</span>`}
-          </td>
-        `;
-        tableBody.appendChild(row);
-      });
-    };
+      // Populate Confirmed Merchandise Orders table
+      const confirmedTableBody = document.getElementById("admin-confirmed-orders-tbody");
+      if (confirmedTableBody) {
+        confirmedTableBody.innerHTML = "";
+        const confirmedOrders = orders.filter(o => o.status === "Confirmed" || o.status === "Approved");
 
-    window.approveMerchPayment = function(orderId) {
-      let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
-      const idx = mockOrders.findIndex(o => o.orderId === orderId);
-      if (idx !== -1) {
-        mockOrders[idx].status = "Confirmed";
-        localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
-        renderAdminMerchOrders();
-        alert("Payment approved and order confirmed!");
+        if (confirmedOrders.length === 0) {
+          confirmedTableBody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--muted-white); padding: 32px;">
+                No confirmed orders found.
+              </td>
+            </tr>`;
+        } else {
+          confirmedOrders.forEach(o => {
+            const itemsStr = o.items.map(i => `${i.title} (${i.size}) x ${i.quantity}`).join("<br>");
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>
+                <div style="font-weight: 700; color: white;">${o.studentName || 'N/A'}</div>
+                <div style="color: var(--muted-white); font-size: 10px;">${o.studentEmail || ''}</div>
+              </td>
+              <td><div style="color: var(--muted-white); font-size: 11px;">${itemsStr}</div></td>
+              <td><div style="color: white; font-family: monospace;">${o.phone || 'N/A'}</div></td>
+              <td><div style="color: var(--neon-yellow); font-weight: 700;">${o.pickupEvent || 'Direct IEDC Hub Pickup'}</div></td>
+            `;
+            confirmedTableBody.appendChild(row);
+          });
+        }
       }
     };
 
-    window.rejectMerchPayment = function(orderId) {
-      let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
-      const idx = mockOrders.findIndex(o => o.orderId === orderId);
-      if (idx !== -1) {
-        mockOrders[idx].status = "Failed";
-        localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
-        renderAdminMerchOrders();
-        alert("Payment rejected and order marked as failed.");
+    window.approveMerchPayment = async function(orderId) {
+      const useRealFirebase = sessionStorage.getItem("useRealFirebase") === "true";
+      if (useRealFirebase && typeof firebase !== "undefined" && firebase.firestore) {
+        try {
+          const db = firebase.firestore();
+          await db.collection("merchandise_orders").doc(orderId).update({ status: "Confirmed" });
+          alert("Payment approved and order confirmed!");
+          renderAdminMerchOrders();
+        } catch (err) {
+          console.error("Error approving order payment in Firestore:", err);
+          alert("Error approving payment: " + err.message);
+        }
+      } else {
+        let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+        const idx = mockOrders.findIndex(o => o.orderId === orderId);
+        if (idx !== -1) {
+          mockOrders[idx].status = "Confirmed";
+          localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
+          renderAdminMerchOrders();
+          alert("Payment approved and order confirmed!");
+        }
+      }
+    };
+
+    window.rejectMerchPayment = async function(orderId) {
+      const useRealFirebase = sessionStorage.getItem("useRealFirebase") === "true";
+      if (useRealFirebase && typeof firebase !== "undefined" && firebase.firestore) {
+        try {
+          const db = firebase.firestore();
+          await db.collection("merchandise_orders").doc(orderId).update({ status: "Failed" });
+          alert("Payment rejected and order marked as failed.");
+          renderAdminMerchOrders();
+        } catch (err) {
+          console.error("Error rejecting order payment in Firestore:", err);
+          alert("Error rejecting payment: " + err.message);
+        }
+      } else {
+        let mockOrders = JSON.parse(localStorage.getItem("merch_orders") || "[]");
+        const idx = mockOrders.findIndex(o => o.orderId === orderId);
+        if (idx !== -1) {
+          mockOrders[idx].status = "Failed";
+          localStorage.setItem("merch_orders", JSON.stringify(mockOrders));
+          renderAdminMerchOrders();
+          alert("Payment rejected and order marked as failed.");
+        }
       }
     };
 
@@ -2934,6 +3042,50 @@
           console.error("Firestore products sync error:", err);
         });
       }
+    }
+
+    // Merchandise Print functionality
+    const printOrdersBtn = document.getElementById("print-orders-btn");
+    if (printOrdersBtn) {
+      printOrdersBtn.addEventListener("click", function() {
+        const style = document.createElement("style");
+        style.id = "print-merchandise-styles";
+        style.innerHTML = `
+          @media print {
+            body * {
+              visibility: hidden !important;
+            }
+            #merchandise-orders-table, #merchandise-orders-table * {
+              visibility: visible !important;
+            }
+            #merchandise-orders-table {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              border-collapse: collapse !important;
+              color: black !important;
+              background: white !important;
+            }
+            #merchandise-orders-table th, #merchandise-orders-table td {
+              border: 1px solid #ddd !important;
+              padding: 8px !important;
+              text-align: left !important;
+              color: black !important;
+            }
+            #merchandise-orders-table th {
+              background-color: #f2f2f2 !important;
+              font-weight: bold !important;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+        window.print();
+        setTimeout(() => {
+          const el = document.getElementById("print-merchandise-styles");
+          if (el) el.remove();
+        }, 1000);
+      });
     }
 
     verifyAdminAccess();
