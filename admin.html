@@ -865,6 +865,17 @@
                 <input type="number" id="eventMaxTeam" placeholder="Eg: 4" min="2" max="10">
               </div>
 
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="eventWhatsappUrl">WhatsApp Group Link</label>
+                  <input type="url" id="eventWhatsappUrl" placeholder="Eg: https://chat.whatsapp.com/...">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
+                  <input type="checkbox" id="eventIsClosed" style="width: 20px; height: 20px; cursor: pointer; border-radius: 4px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);">
+                  <label for="eventIsClosed" style="cursor: pointer; font-size: 13px; font-weight: 700; text-transform: none; margin-bottom: 0; color: white;">Close Registration / Mark Completed</label>
+                </div>
+              </div>
+
               <div class="form-group">
                 <label for="eventDescription">Detailed Description</label>
                 <textarea id="eventDescription" placeholder="Provide a detailed description of the event topics..." rows="4" required></textarea>
@@ -939,6 +950,28 @@
               <div class="form-group">
                 <label for="tournamentLocation">Venue / Maps Link / Meeting Link</label>
                 <input type="text" id="tournamentLocation" placeholder="Eg: RIT Sports Ground / Discord Link" required>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentDate">Tournament Date</label>
+                  <input type="date" id="tournamentDate">
+                </div>
+                <div class="form-group">
+                  <label for="tournamentTime">Tournament Time</label>
+                  <input type="time" id="tournamentTime">
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="tournamentWhatsappUrl">WhatsApp Group Link</label>
+                  <input type="url" id="tournamentWhatsappUrl" placeholder="Eg: https://chat.whatsapp.com/...">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
+                  <input type="checkbox" id="tournamentIsClosed" style="width: 20px; height: 20px; cursor: pointer; border-radius: 4px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);">
+                  <label for="tournamentIsClosed" style="cursor: pointer; font-size: 13px; font-weight: 700; text-transform: none; margin-bottom: 0; color: white;">Close Registration / Mark Completed</label>
+                </div>
               </div>
 
               <div style="display: flex; gap: 10px;">
@@ -1722,6 +1755,10 @@
         const hasTeam = document.getElementById("eventHasTeam").value === "true";
         const maxTeamSize = hasTeam ? parseInt(document.getElementById("eventMaxTeam").value) : 1;
         const description = document.getElementById("eventDescription").value.trim();
+        const eventWhatsappEl = document.getElementById("eventWhatsappUrl");
+        const whatsappUrl = eventWhatsappEl ? eventWhatsappEl.value.trim() : "";
+        const eventIsClosedEl = document.getElementById("eventIsClosed");
+        const eventIsClosed = eventIsClosedEl ? eventIsClosedEl.checked : false;
 
         // Format dates into human readable values
         const dateObj = new Date(dateInput);
@@ -1773,6 +1810,8 @@
           poster,
           poster_url: poster,
           upi: upiId,
+          whatsapp_url: whatsappUrl || "",
+          is_closed: eventIsClosed,
           timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
         };
 
@@ -1848,6 +1887,8 @@
       }
 
       document.getElementById("eventDescription").value = match.description || "";
+      document.getElementById("eventWhatsappUrl").value = match.whatsapp_url || "";
+      document.getElementById("eventIsClosed").checked = match.is_closed === true;
 
       // Shifting workspace UI into Update Document Mode
       document.getElementById("event-form-title").innerHTML = `Update Event: <span style="color:var(--soft-purple);">${match.title}</span>`;
@@ -1870,6 +1911,8 @@
         previewImg.src = "";
         previewImg.style.display = "none";
       }
+      const eventIsClosedEl = document.getElementById("eventIsClosed");
+      if (eventIsClosedEl) eventIsClosedEl.checked = false;
       if (!useRealFirebase) syncRegistrationWorkspace(); // Trigger re-render in mock
     };
 
@@ -1968,6 +2011,14 @@
         const maxTeamSize = parseInt(document.getElementById("tournamentMaxTeam").value);
         const mode = document.getElementById("tournamentMode").value;
         const location = document.getElementById("tournamentLocation").value.trim();
+        const tournamentDateEl = document.getElementById("tournamentDate");
+        const tournamentDate = tournamentDateEl ? tournamentDateEl.value : "";
+        const tournamentTimeEl = document.getElementById("tournamentTime");
+        const tournamentTime = tournamentTimeEl ? tournamentTimeEl.value : "";
+        const tournamentWhatsappEl = document.getElementById("tournamentWhatsappUrl");
+        const whatsappUrl = tournamentWhatsappEl ? tournamentWhatsappEl.value.trim() : "";
+        const tournamentIsClosedEl = document.getElementById("tournamentIsClosed");
+        const tournamentIsClosed = tournamentIsClosedEl ? tournamentIsClosedEl.checked : false;
 
         const tournamentSlug = editId ? editId : (title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000));
 
@@ -1988,6 +2039,10 @@
           type: "tournament",
           typeLabel: "Tournament",
           color: maxTeamSize > 1 ? "#8B6FD4" : "#C8E84A",
+          tournament_date: tournamentDate || "",
+          tournament_time: tournamentTime || "",
+          whatsapp_url: whatsappUrl || "",
+          is_closed: tournamentIsClosed,
           timestamp: useRealFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
         };
 
@@ -2039,6 +2094,10 @@
       document.getElementById("tournamentMaxTeam").value = String(match.maxTeamSize || 1);
       document.getElementById("tournamentMode").value = match.mode || "offline";
       document.getElementById("tournamentLocation").value = match.location || "";
+      document.getElementById("tournamentTime").value = match.tournament_time || "";
+      document.getElementById("tournamentWhatsappUrl").value = match.whatsapp_url || "";
+      document.getElementById("tournamentDate").value = match.tournament_date || "";
+      document.getElementById("tournamentIsClosed").checked = match.is_closed === true;
 
       document.getElementById("tournament-form-title").innerHTML = `Update Tournament: <span style="color:var(--soft-purple);">${match.title}</span>`;
       document.getElementById("btn-tournament-submit").textContent = "Update Tournament";
@@ -2058,6 +2117,8 @@
         previewImg.src = "";
         previewImg.style.display = "none";
       }
+      const tournamentIsClosedEl = document.getElementById("tournamentIsClosed");
+      if (tournamentIsClosedEl) tournamentIsClosedEl.checked = false;
       if (!useRealFirebase) syncRegistrationWorkspace();
     };
 

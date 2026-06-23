@@ -515,18 +515,32 @@ function renderHomeEvents() {
     featCard.innerHTML = `
       <div class="card-featured-circle"></div>
       <div class="card-featured-content" style="width: 100%;">
-        <span class="chip chip-${featuredEvent.type}" style="margin-bottom: var(--space-sm);">${featuredEvent.typeLabel}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm); width: 100%;">
+          <span class="chip chip-${featuredEvent.type}">${featuredEvent.typeLabel}</span>
+          ${featuredEvent.whatsapp_url ? `
+            <a href="${featuredEvent.whatsapp_url}" target="_blank" class="whatsapp-card-link" style="display: inline-flex; align-items: center; justify-content: center; z-index: 10;" onclick="event.stopPropagation();">
+              <svg viewBox="0 0 24 24" width="22" height="22" style="fill: #25D366; cursor: pointer; transition: transform 0.2s ease;">
+                <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.761.459 3.479 1.332 5.003L2 22l5.176-1.359c1.472.802 3.125 1.224 4.825 1.224 5.506 0 9.988-4.482 9.988-9.988C22 6.482 17.518 2 12.012 2zm6.657 14.12c-.274.771-1.393 1.397-1.921 1.488-.479.083-.997.124-1.688-.113-1.036-.356-2.247-1.127-3.155-1.944-1.428-1.286-2.484-2.859-3.08-3.791-.252-.397-.525-.828-.711-1.261-.22-.511-.144-.949.124-1.258.199-.23.476-.566.678-.83.18-.236.27-.472.371-.703.113-.23.056-.445-.028-.621-.084-.176-.757-1.821-1.036-2.493-.274-.658-.55-5.69-1.259-5.69-.144 0-.323.083-.497.165-.838.397-1.265.981-1.579 1.637-.621 1.295-.313 2.993.435 4.397.947 1.776 2.162 3.328 3.526 4.707 1.616 1.637 3.35 3.011 5.378 3.864 1.139.479 2.278.621 3.23.483.947-.137 1.839-.777 2.195-1.536.357-.759.357-1.411.252-1.554-.105-.143-.392-.23-.83-.448z"/>
+              </svg>
+            </a>
+          ` : ''}
+        </div>
+        ${featuredEvent.is_closed ? `
+          <div style="background: rgba(232, 74, 74, 0.15); border: 1px solid var(--error); color: var(--error); padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; width: fit-content; display: inline-flex; align-items: center; gap: 6px; margin-bottom: var(--space-xs); line-height: 1;">
+            🔒 Registration Closed
+          </div>
+        ` : ''}
         <h2 class="h3-title" style="margin-bottom: var(--space-xs); line-height: 1.2;">${featuredEvent.title}</h2>
         <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-bottom: 12px;">
-          <span>${featuredEvent.date}</span>
+          <span>${featuredEvent.type === "tournament" ? (featuredEvent.tournament_date || featuredEvent.date || "TBD") : (featuredEvent.date || "TBD")}</span>
           <span>•</span>
-          <span>${featuredEvent.time}</span>
+          <span>${featuredEvent.type === "tournament" ? (featuredEvent.tournament_time || featuredEvent.time || "TBD") : (featuredEvent.time || "TBD")}</span>
         </div>
-        <button class="card-btn-register" id="btn-register-${featuredEvent.id}">Register Now</button>
+        <button class="card-btn-register" id="btn-register-${featuredEvent.id}" ${featuredEvent.is_closed ? 'disabled style="background: rgba(255,255,255,0.1); color: var(--muted-white); border: 1px solid rgba(255,255,255,0.15);"' : ''}>${featuredEvent.is_closed ? 'Registration Closed' : 'Register Now'}</button>
       </div>
     `;
     featCard.addEventListener("click", (e) => {
-      if (e.target.classList.contains("card-btn-register")) return;
+      if (e.target.classList.contains("card-btn-register") || e.target.closest(".whatsapp-card-link")) return;
       openEventDetail(featuredEvent);
     });
     featuredContainer.appendChild(featCard);
@@ -552,20 +566,39 @@ function renderHomeEvents() {
       card.style.backgroundRepeat = "no-repeat";
     }
     card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <span class="chip chip-${evt.type}">${evt.typeLabel}</span>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="chip chip-${evt.type}">${evt.typeLabel}</span>
+          ${evt.whatsapp_url ? `
+            <a href="${evt.whatsapp_url}" target="_blank" class="whatsapp-card-link" style="display: inline-flex; align-items: center; justify-content: center; z-index: 10;" onclick="event.stopPropagation();">
+              <svg viewBox="0 0 24 24" width="20" height="20" style="fill: #25D366; cursor: pointer; transition: transform 0.2s ease;">
+                <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.761.459 3.479 1.332 5.003L2 22l5.176-1.359c1.472.802 3.125 1.224 4.825 1.224 5.506 0 9.988-4.482 9.988-9.988C22 6.482 17.518 2 12.012 2zm6.657 14.12c-.274.771-1.393 1.397-1.921 1.488-.479.083-.997.124-1.688-.113-1.036-.356-2.247-1.127-3.155-1.944-1.428-1.286-2.484-2.859-3.08-3.791-.252-.397-.525-.828-.711-1.261-.22-.511-.144-.949.124-1.258.199-.23.476-.566.678-.83.18-.236.27-.472.371-.703.113-.23.056-.445-.028-.621-.084-.176-.757-1.821-1.036-2.493-.274-.658-.55-5.69-1.259-5.69-.144 0-.323.083-.497.165-.838.397-1.265.981-1.579 1.637-.621 1.295-.313 2.993.435 4.397.947 1.776 2.162 3.328 3.526 4.707 1.616 1.637 3.35 3.011 5.378 3.864 1.139.479 2.278.621 3.23.483.947-.137 1.839-.777 2.195-1.536.357-.759.357-1.411.252-1.554-.105-.143-.392-.23-.83-.448z"/>
+              </svg>
+            </a>
+          ` : ''}
+        </div>
         <span class="caption-meta" style="color: var(--neon-yellow);">${evt.price}</span>
       </div>
+      ${evt.is_closed ? `
+        <div style="background: rgba(232, 74, 74, 0.15); border: 1px solid var(--error); color: var(--error); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; width: fit-content; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; line-height: 1;">
+          🔒 Registration Closed
+        </div>
+      ` : ''}
       <h3 class="h3-title" style="margin-top: var(--space-xs); line-height:1.2;">${evt.title}</h3>
       <div style="display: flex; gap: var(--space-sm); font-size: 11px; color: var(--muted-white); margin-top: auto; margin-bottom: 8px;">
         <span style="display:flex; align-items:center; gap:4px;">
-          📅 ${evt.date}
+          📅 ${evt.type === "tournament" ? (evt.tournament_date || evt.date || "TBD") : (evt.date || "TBD")}
         </span>
+        ${(evt.type === "tournament" && (evt.tournament_time || evt.time)) || evt.time ? `
+          <span style="display:flex; align-items:center; gap:4px; margin-left: 8px;">
+            🕒 ${evt.type === "tournament" ? (evt.tournament_time || evt.time) : evt.time}
+          </span>
+        ` : ''}
       </div>
-      <button class="card-btn-register" id="btn-register-${evt.id}">Register Now</button>
+      <button class="card-btn-register" id="btn-register-${evt.id}" ${evt.is_closed ? 'disabled style="background: rgba(255,255,255,0.1); color: var(--muted-white); border: 1px solid rgba(255,255,255,0.15);"' : ''}>${evt.is_closed ? 'Registration Closed' : 'Register Now'}</button>
     `;
     card.addEventListener("click", (e) => {
-      if (e.target.classList.contains("card-btn-register")) return;
+      if (e.target.classList.contains("card-btn-register") || e.target.closest(".whatsapp-card-link")) return;
       openEventDetail(evt);
     });
     listContainer.appendChild(card);
@@ -673,35 +706,53 @@ function openEventDetail(event) {
     }
     if (stickyCta) stickyCta.style.display = "block";
   } else {
-    if (regForm) regForm.style.display = "flex";
-    if (stickyCta) stickyCta.style.display = "block";
-    if (regBtn) regBtn.style.display = "flex";
-
-    if (event.seats <= 0) {
+    if (event.is_closed) {
+      if (regForm) regForm.style.display = "none";
+      if (stickyCta) stickyCta.style.display = "block";
       if (regBtn) {
-        regBtn.textContent = "Sold Out";
+        regBtn.style.display = "flex";
+        regBtn.textContent = "Registration Closed";
         regBtn.disabled = true;
         regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+        regBtn.style.color = "var(--muted-white)";
       }
       if (proceedBtn) {
-        proceedBtn.textContent = "Sold Out";
+        proceedBtn.textContent = "Registration Closed";
         proceedBtn.disabled = true;
         proceedBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+        proceedBtn.style.color = "var(--muted-white)";
+        proceedBtn.style.display = "block";
       }
     } else {
-      const btnText = "PROCEED TO PAY";
+      if (regForm) regForm.style.display = "flex";
+      if (stickyCta) stickyCta.style.display = "block";
       if (regBtn) {
-        regBtn.textContent = btnText;
-        regBtn.disabled = false;
-        regBtn.style.backgroundColor = "var(--neon-yellow)";
-        regBtn.style.color = "rgba(6, 6, 12, 1)";
+        regBtn.style.display = "flex";
+        if (event.seats <= 0) {
+          regBtn.textContent = "Sold Out";
+          regBtn.disabled = true;
+          regBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+        } else {
+          const btnText = "PROCEED TO PAY";
+          regBtn.textContent = btnText;
+          regBtn.disabled = false;
+          regBtn.style.backgroundColor = "var(--neon-yellow)";
+          regBtn.style.color = "rgba(6, 6, 12, 1)";
+        }
       }
       if (proceedBtn) {
-        proceedBtn.textContent = btnText;
-        proceedBtn.disabled = false;
-        proceedBtn.style.backgroundColor = "var(--neon-yellow)";
-        proceedBtn.style.color = "rgba(6, 6, 12, 1)";
-        proceedBtn.style.display = "block";
+        if (event.seats <= 0) {
+          proceedBtn.textContent = "Sold Out";
+          proceedBtn.disabled = true;
+          proceedBtn.style.backgroundColor = "rgba(255,255,255,0.1)";
+        } else {
+          const btnText = "PROCEED TO PAY";
+          proceedBtn.textContent = btnText;
+          proceedBtn.disabled = false;
+          proceedBtn.style.backgroundColor = "var(--neon-yellow)";
+          proceedBtn.style.color = "rgba(6, 6, 12, 1)";
+          proceedBtn.style.display = "block";
+        }
       }
     }
   }
@@ -726,8 +777,8 @@ function openEventDetail(event) {
   document.getElementById("detail-description").textContent = event.description || "No description available.";
 
   // Feature grid values
-  document.getElementById("detail-feat-date").textContent = event.date || "TBD";
-  document.getElementById("detail-feat-time").textContent = event.time || "TBD";
+  document.getElementById("detail-feat-date").textContent = (event.type === "tournament" ? (event.tournament_date || event.date) : event.date) || "TBD";
+  document.getElementById("detail-feat-time").textContent = (event.type === "tournament" ? (event.tournament_time || event.time) : event.time) || "TBD";
   document.getElementById("detail-feat-seats").textContent = event.seats !== undefined ? `${event.seats} Seats` : "Unlimited";
   document.getElementById("detail-feat-price").textContent = event.price || "Free";
 
@@ -3904,6 +3955,10 @@ window.handleEventPublish = async function (event) {
     
     const descriptionEl = document.getElementById("eventDescription");
     const description = descriptionEl ? descriptionEl.value.trim() : "";
+    const eventWhatsappEl = document.getElementById("eventWhatsappUrl");
+    const whatsappUrl = eventWhatsappEl ? eventWhatsappEl.value.trim() : "";
+    const eventIsClosedEl = document.getElementById("eventIsClosed");
+    const eventIsClosed = eventIsClosedEl ? eventIsClosedEl.checked : false;
 
     // Format dates into human readable values
     let formattedDate = "TBD";
@@ -3962,6 +4017,8 @@ window.handleEventPublish = async function (event) {
       poster,
       poster_url: poster,
       upi: upiId,
+      whatsapp_url: whatsappUrl || "",
+      is_closed: eventIsClosed,
       timestamp: (typeof useRealFirebase !== "undefined" && useRealFirebase && typeof firebase !== "undefined" && firebase.firestore) ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
     };
 

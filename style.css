@@ -1178,13 +1178,18 @@ body {
   z-index: 2;
 }
 
+#screen-detail {
+  overflow-y: auto !important;
+}
+
 .detail-content {
   background-color: var(--void-black);
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  padding-bottom: 110px;
+  padding-bottom: 140px !important;
+  overflow-y: auto !important;
   /* Leave space for sticky CTA */
 }
 
@@ -1221,13 +1226,15 @@ body {
 }
 
 .sticky-cta-container {
-  position: absolute;
-  bottom: 0;
+  position: relative !important;
+  bottom: auto !important;
   left: 0;
   right: 0;
   padding: var(--space-md) var(--space-lg);
   background: linear-gradient(to top, var(--void-black) 70%, transparent);
   z-index: 8;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .sticky-cta-btn {
