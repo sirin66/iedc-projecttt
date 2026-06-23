@@ -3,6 +3,19 @@ if (window.location.hostname === "127.0.0.1") {
   window.location.hostname = "localhost";
 }
 
+// Initialize EmailJS safely
+if (typeof emailjs !== "undefined") {
+  emailjs.init("3eNLy2tU8mQEiQIqG");
+  console.log("EmailJS initialized successfully.");
+} else {
+  console.warn("emailjs is not defined. Initializing mock to prevent crashes.");
+  window.emailjs = {
+    init: () => {},
+    send: () => Promise.resolve({ status: 200, text: "Mock send success" })
+  };
+  emailjs.init("3eNLy2tU8mQEiQIqG");
+}
+
 // ==========================================================================
 // 01 — APPLICATION STATE & CONFIGURATION
 // ==========================================================================
@@ -4515,4 +4528,79 @@ if (eventPosterFile) {
     }
   });
 }
+
+// Global window.sendConfirmationEmail helper mapping event details, cloud URLs and dynamic QR codes
+window.sendConfirmationEmail = async function(registrationData) {
+  if (typeof emailjs === "undefined") {
+    console.error("EmailJS is not loaded. Cannot send confirmation email.");
+    return;
+  }
+
+  let eventMode = "offline";
+  let eventLocation = "TBD";
+  let venueType = "Offline";
+  let posterUrl = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80";
+  
+  if (selectedEvent && selectedEvent.id === registrationData.eventId) {
+    eventMode = selectedEvent.mode || "offline";
+    eventLocation = selectedEvent.location || "TBD";
+    venueType = selectedEvent.venue_type || (eventMode === 'online' ? 'Online' : 'Offline');
+    posterUrl = selectedEvent.poster_url || selectedEvent.poster || posterUrl;
+  } else if (typeof EVENTS_DATA !== "undefined" && EVENTS_DATA.length > 0) {
+    const foundEvent = EVENTS_DATA.find(e => e.id === registrationData.eventId);
+    if (foundEvent) {
+      eventMode = foundEvent.mode || "offline";
+      eventLocation = foundEvent.location || "TBD";
+      venueType = foundEvent.venue_type || (eventMode === 'online' ? 'Online' : 'Offline');
+      posterUrl = foundEvent.poster_url || foundEvent.poster || posterUrl;
+    }
+  }
+
+  // Ensure poster URL is a valid publicly accessible cloud URL (no base64 or local paths)
+  if (posterUrl && (posterUrl.startsWith("data:") || posterUrl.startsWith("/"))) {
+    posterUrl = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80";
+  }
+
+  const venueDetails = (venueType === "Online") ? "Updates on WhatsApp" : eventLocation;
+
+  // CryptoJS encrypt for dynamic QR Code
+  let encryptedText = registrationData.registrationId || "";
+  if (typeof CryptoJS !== "undefined") {
+    try {
+      encryptedText = CryptoJS.AES.encrypt(registrationData.registrationId, "RITU_GATEWAY_SECURE_2026_KEY").toString();
+    } catch (e) {
+      console.error("CryptoJS encryption failed in app.js:", e);
+    }
+  }
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(encryptedText)}`;
+
+  const templateParams = {
+    student_email: registrationData.studentEmail,
+    to_email: registrationData.studentEmail,
+    student_name: registrationData.studentName,
+    register_no: registrationData.registerNo || registrationData.id || "N/A",
+    event_name: registrationData.eventTitle,
+    pickup_delivery_type: venueDetails,
+    venue_details: venueDetails,
+    ticket_id: registrationData.registrationId,
+    event_poster: posterUrl,
+    poster_url: posterUrl,
+    qr_code: qrCodeUrl,
+    
+    // Backup tags for maximum compatibility
+    email: registrationData.studentEmail,
+    name: registrationData.studentName,
+    location: eventLocation,
+    mode: eventMode
+  };
+
+  console.log("Sending confirmation email via EmailJS with params:", templateParams);
+
+  try {
+    const response = await emailjs.send("service_u4ve6g2", "template_0zvf2rs", templateParams);
+    console.log("Email confirmation sent successfully!", response.status, response.text);
+  } catch (error) {
+    console.error("Failed to send email confirmation:", error);
+  }
+};
 

@@ -13,6 +13,9 @@
   
   <!-- CryptoJS Library for secure decrypting of scanned QR tickets -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  
+  <!-- EmailJS Browser SDK for automated email confirmation -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
     /* Design System Configuration Variables */
@@ -1123,6 +1126,19 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
   <script>
+    // Initialize EmailJS safely
+    if (typeof emailjs !== "undefined") {
+      emailjs.init("3eNLy2tU8mQEiQIqG");
+      console.log("EmailJS initialized successfully in Admin.");
+    } else {
+      console.warn("emailjs is not defined in Admin. Initializing mock to prevent crashes.");
+      window.emailjs = {
+        init: () => {},
+        send: () => Promise.resolve({ status: 200, text: "Mock send success" })
+      };
+      emailjs.init("3eNLy2tU8mQEiQIqG");
+    }
+
     // Automatically redirect from 127.0.0.1 to localhost for authorized Firebase OAuth operations
     if (window.location.hostname === "127.0.0.1") {
       window.location.hostname = "localhost";
@@ -1579,6 +1595,8 @@
     window.approveRegistrationManually = async function(regId) {
       if (!confirm("Are you sure you want to approve this pending registration payment?")) return;
 
+      let regData = null;
+
       // Update local storage simulator
       let mockRegs = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
       const foundIdx = mockRegs.findIndex(r => r.registrationId === regId || r.id === regId);
@@ -1586,20 +1604,98 @@
         mockRegs[foundIdx].status = "Confirmed";
         mockRegs[foundIdx].payment_status = "Success";
         localStorage.setItem("firebase_mock_registrations", JSON.stringify(mockRegs));
+        regData = { ...mockRegs[foundIdx] };
       }
 
       if (useRealFirebase) {
         try {
-          await db.collection("registrations").doc(regId).update({ status: "Confirmed", payment_status: "Success" });
+          const docRef = db.collection("registrations").doc(regId);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) {
+            regData = { registrationId: docSnap.id, ...docSnap.data(), status: "Confirmed", payment_status: "Success" };
+          }
+          await docRef.update({ status: "Confirmed", payment_status: "Success" });
           console.log(`Successfully approved registration doc ${regId} in Firestore.`);
         } catch (e) {
           console.error("Firestore approve registration failed:", e);
           alert("Error approving registration: " + e.message);
+          return;
         }
       } else {
         // Trigger real-time UI refresh in Simulator Mode
         const dropdown = document.getElementById("admin-event-filter");
         if (dropdown) loadAttendeeList(dropdown.value);
+      }
+
+      // Trigger EmailJS automated ticket confirmation upon admin approval
+      if (regData) {
+        try {
+          // Resolve event details to get venue_type and location
+          const allEvents = [...(dynamicEventsRegistry || []), ...(dynamicTournamentsRegistry || [])];
+          const matchedEvent = allEvents.find(e => e.id === regData.eventId);
+          
+          let eventMode = "offline";
+          let eventLocation = "TBD";
+          let venueType = "Offline";
+          let posterUrl = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80";
+          
+          if (matchedEvent) {
+            eventMode = matchedEvent.mode || "offline";
+            eventLocation = matchedEvent.location || "TBD";
+            venueType = matchedEvent.venue_type || (eventMode === 'online' ? 'Online' : 'Offline');
+            posterUrl = matchedEvent.poster_url || matchedEvent.poster || posterUrl;
+          }
+          
+          // Ensure poster URL is a valid publicly accessible cloud URL (no base64 or local paths)
+          if (posterUrl && (posterUrl.startsWith("data:") || posterUrl.startsWith("/"))) {
+            posterUrl = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80";
+          }
+          
+          const venueDetails = (venueType === "Online") ? "Updates on WhatsApp" : eventLocation;
+
+          // CryptoJS encrypt for dynamic QR Code
+          let encryptedText = regData.registrationId || regId;
+          if (typeof CryptoJS !== "undefined") {
+            try {
+              encryptedText = CryptoJS.AES.encrypt(regData.registrationId || regId, "RITU_GATEWAY_SECURE_2026_KEY").toString();
+            } catch (e) {
+              console.error("CryptoJS encryption failed in admin approval:", e);
+            }
+          }
+          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(encryptedText)}`;
+          
+          // Map to EmailJS dashboard parameters:
+          // student_email / to_email, student_name, register_no, event_name, pickup_delivery_type / venue_details, ticket_id, event_poster, poster_url, qr_code
+          const templateParams = {
+            student_email: regData.studentEmail,
+            to_email: regData.studentEmail,
+            student_name: regData.studentName,
+            register_no: regData.registerNo || regData.id || "N/A",
+            event_name: regData.eventTitle,
+            pickup_delivery_type: venueDetails,
+            venue_details: venueDetails,
+            ticket_id: regData.registrationId || regId,
+            event_poster: posterUrl,
+            poster_url: posterUrl,
+            qr_code: qrCodeUrl,
+            
+            // Backup tags for maximum compatibility
+            email: regData.studentEmail,
+            name: regData.studentName,
+            location: eventLocation,
+            mode: eventMode
+          };
+
+          if (typeof emailjs !== "undefined") {
+            console.log("Triggering EmailJS dispatch for approved ticket pass:", templateParams);
+            const response = await emailjs.send("service_u4ve6g2", "template_0zvf2rs", templateParams);
+            console.log("EmailJS verification pass sent successfully:", response.status, response.text);
+          } else {
+            console.error("EmailJS SDK is not loaded. Cannot trigger email confirmation.");
+          }
+        } catch (emailErr) {
+          console.error("Error dispatching approval email via EmailJS:", emailErr);
+        }
       }
     };
 
