@@ -1557,12 +1557,12 @@
           <h1>${eventTitle}</h1>
           <p>IEDC RIT Event Platform — Participant Roster Print Ledger (Generated: ${new Date().toLocaleString()})</p>
           ${tableHtml}
-          <script>
+          <${"script"}>
             window.onload = function() {
               window.print();
               setTimeout(() => window.close(), 500);
             };
-          <\/script>
+          <${"/script"}>
         </body>
         </html>
       `);
