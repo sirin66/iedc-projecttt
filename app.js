@@ -3129,7 +3129,15 @@ let merchCart = [];
   const cachedProds = localStorage.getItem("merch_products");
   if (cachedProds) {
     try {
-      MERCH_PRODUCTS = JSON.parse(cachedProds);
+      let parsed = JSON.parse(cachedProds);
+      parsed = parsed.map(p => {
+        if (p.imageUrl && (p.imageUrl.includes("${p.imageUrl}") || p.imageUrl.includes("imageUr1") || p.imageUrl.includes("${p.imageUr1}") || p.imageUrl.includes("%7B"))) {
+          p.imageUrl = "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=300&q=80";
+        }
+        return p;
+      });
+      MERCH_PRODUCTS = parsed;
+      localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
     } catch (e) {
       console.error("Error parsing merchandise products from localStorage:", e);
     }
