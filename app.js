@@ -46,9 +46,15 @@ const firebaseConfig = {
 let useRealFirebase = false;
 if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
   try {
-    firebase.initializeApp(firebaseConfig);
-    useRealFirebase = true;
-    console.log("Firebase initialized successfully inside client engine.");
+    if (typeof firebase !== "undefined") {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      useRealFirebase = true;
+      console.log("Firebase initialized successfully inside client engine.");
+    } else {
+      console.warn("Firebase SDK not loaded, falling back to simulator mode.");
+    }
   } catch (error) {
     console.error("Firebase initialization fallback error:", error);
   }
@@ -65,13 +71,26 @@ sessionStorage.setItem("useRealFirebase", useRealFirebase);
 
 // Initialize auth and mock/real onAuthStateChanged listener wrapper
 let authStateCallback = null;
-const auth = useRealFirebase ? firebase.auth() : {
-  onAuthStateChanged: (callback) => {
-    // ലോഗിൻ പേജ് കാണിക്കാതെ നേരിട്ട് ഹോം സ്ക്രീൻ ലോഡ് ചെയ്യാൻ ഒരു മോക്ക് യൂസർ ഐഡി പാസ്സ് ചെയ്യുന്നു
-    authStateCallback = callback;
-    callback({ uid: "uid_sirin123" });
-  }
-};
+let auth;
+try {
+  auth = (useRealFirebase && typeof firebase !== "undefined" && typeof firebase.auth === "function") ? firebase.auth() : {
+    onAuthStateChanged: (callback) => {
+      // ലോഗിൻ പേജ് കാണിക്കാതെ നേരിട്ട് ഹോം സ്ക്രീൻ ലോഡ് ചെയ്യാൻ ഒരു മോക്ക് യൂസർ ഐഡി പാസ്സ് ചെയ്യുന്നു
+      authStateCallback = callback;
+      callback({ uid: "uid_sirin123" });
+    }
+  };
+} catch (e) {
+  console.error("Firebase auth initialization failed, falling back to mock auth:", e);
+  auth = {
+    onAuthStateChanged: (callback) => {
+      authStateCallback = callback;
+      callback({ uid: "uid_sirin123" });
+    }
+  };
+  useRealFirebase = false;
+}
+
 function onAuthStateChanged(authInstance, callback) {
   if (useRealFirebase && authInstance && typeof authInstance.onAuthStateChanged === "function") {
     return authInstance.onAuthStateChanged(callback);
@@ -229,12 +248,21 @@ document.querySelectorAll(".bottom-nav-btn").forEach(btn => {
   });
 });
 
-document.getElementById("detail-back-btn").addEventListener("click", () => {
-  if (detailCountdownInterval) clearInterval(detailCountdownInterval);
-  switchTab("home");
-});
-document.getElementById("ticket-back-btn").addEventListener("click", () => switchTab("wallet"));
-document.getElementById("setup-back-btn").addEventListener("click", () => switchTab("home"));
+const detailBackBtn = document.getElementById("detail-back-btn");
+if (detailBackBtn) {
+  detailBackBtn.addEventListener("click", () => {
+    if (detailCountdownInterval) clearInterval(detailCountdownInterval);
+    switchTab("home");
+  });
+}
+const ticketBackBtn = document.getElementById("ticket-back-btn");
+if (ticketBackBtn) {
+  ticketBackBtn.addEventListener("click", () => switchTab("wallet"));
+}
+const setupBackBtn = document.getElementById("setup-back-btn");
+if (setupBackBtn) {
+  setupBackBtn.addEventListener("click", () => switchTab("home"));
+}
 
 // ==========================================
 // 04 — DATABASE SYNCHRONIZATION (Firestore / Simulator)
@@ -369,6 +397,30 @@ async function syncRegistrations() {
   }
 }
 
+function resolvePosterUrl(pUrl) {
+  if (!pUrl) return "";
+  const urlStr = String(pUrl).trim();
+
+  // Google Drive link conversion
+  if (urlStr.includes("drive.google.com")) {
+    const driveIdMatch = urlStr.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || urlStr.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (driveIdMatch && driveIdMatch[1]) {
+      return `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}`;
+    }
+  }
+
+  // Google Photos link detection and handling
+  if (urlStr.includes("photos.app.goo.gl") || urlStr.includes("photos.google.com")) {
+    if (typeof showToast === "function") {
+      showToast("Google Photos link detected. CORS restricts loading shared pages directly. Use direct image hosting (e.g. Firebase or Imgur) for best results.", "var(--error)", "var(--error)");
+    }
+    // Fallback to default high-quality tech poster
+    return "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80";
+  }
+
+  return urlStr;
+}
+
 // ==========================================
 // 05 — HOME SCREEN RENDERING & FILTERING
 // ==========================================
@@ -411,11 +463,13 @@ function renderHomeEvents() {
     const featCard = document.createElement("div");
     featCard.className = "card-featured";
     featCard.style.setProperty("--event-color", featuredEvent.color);
-    if (featuredEvent.poster || featuredEvent.poster_url) {
-      const pUrl = featuredEvent.poster || featuredEvent.poster_url;
-      featCard.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.25), rgba(8, 8, 16, 0.9)), url(${pUrl})`;
+    const rawUrl = featuredEvent.poster_url || featuredEvent.poster || featuredEvent.eventPosterImageUrl || featuredEvent.event_poster_image_url || featuredEvent.imageUrl || featuredEvent.image || featuredEvent.img;
+    featuredEvent.poster_url = resolvePosterUrl(rawUrl);
+    if (featuredEvent.poster_url) {
+      featCard.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.25), rgba(8, 8, 16, 0.9)), url('${featuredEvent.poster_url}')`;
       featCard.style.backgroundSize = "cover";
       featCard.style.backgroundPosition = "center";
+      featCard.style.backgroundRepeat = "no-repeat";
     }
     featCard.innerHTML = `
       <div class="card-featured-circle"></div>
@@ -448,11 +502,13 @@ function renderHomeEvents() {
     const card = document.createElement("div");
     card.className = "card-event";
     card.style.setProperty("--event-color", evt.color);
-    if (evt.poster || evt.poster_url) {
-      const pUrl = evt.poster || evt.poster_url;
-      card.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.65), rgba(8, 8, 16, 0.96)), url(${pUrl})`;
+    const rawUrl = evt.poster_url || evt.poster || evt.eventPosterImageUrl || evt.event_poster_image_url || evt.imageUrl || evt.image || evt.img;
+    evt.poster_url = resolvePosterUrl(rawUrl);
+    if (evt.poster_url) {
+      card.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.65), rgba(8, 8, 16, 0.96)), url('${evt.poster_url}')`;
       card.style.backgroundSize = "cover";
       card.style.backgroundPosition = "center";
+      card.style.backgroundRepeat = "no-repeat";
     }
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -482,10 +538,13 @@ function renderHomeEvents() {
 }
 
 // Search queries binding
-document.getElementById("search-input").addEventListener("input", (e) => {
-  searchQuery = e.target.value;
-  renderHomeEvents();
-});
+const searchInput = document.getElementById("search-input");
+if (searchInput) {
+  searchInput.addEventListener("input", (e) => {
+    searchQuery = e.target.value;
+    renderHomeEvents();
+  });
+}
 
 // Category pills clicks
 document.querySelectorAll(".chip-category").forEach(pill => {
@@ -610,11 +669,13 @@ function openEventDetail(event) {
   const hero = document.getElementById("detail-hero");
   if (hero) {
     hero.style.setProperty("--event-color", event.color);
-    if (event.poster || event.poster_url) {
-      const pUrl = event.poster || event.poster_url;
-      hero.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.3), var(--void-black)), url(${pUrl})`;
+    const rawUrl = event.poster_url || event.poster || event.eventPosterImageUrl || event.event_poster_image_url || event.imageUrl || event.image || event.img;
+    event.poster_url = resolvePosterUrl(rawUrl);
+    if (event.poster_url) {
+      hero.style.backgroundImage = `linear-gradient(to bottom, rgba(8, 8, 16, 0.3), var(--void-black)), url('${event.poster_url}')`;
       hero.style.backgroundSize = "cover";
       hero.style.backgroundPosition = "center";
+      hero.style.backgroundRepeat = "no-repeat";
     } else {
       hero.style.backgroundImage = "";
     }
@@ -956,7 +1017,7 @@ async function handleRegistrationCheckout() {
   }
 
   // Compile registration data using user.uid for direct real-time snapshot sync
-  const studentUid = sessionStorage.getItem("loggedInUserUid") || (USER_PROFILE && USER_PROFILE.uid) || (firebase.auth().currentUser && firebase.auth().currentUser.uid);
+  const studentUid = sessionStorage.getItem("loggedInUserUid") || (USER_PROFILE && USER_PROFILE.uid) || (typeof firebase !== "undefined" && firebase.auth && firebase.auth().currentUser && firebase.auth().currentUser.uid);
   const registrationId = "reg-" + studentUid;
   const merchantTransactionId = "TXN_" + registrationId;
   const registrationData = {
@@ -2014,14 +2075,21 @@ const authLoginForm = document.getElementById("auth-login-form");
 if (authLoginForm) {
   authLoginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = document.getElementById("login-email").value.trim().toLowerCase();
-    const password = document.getElementById("login-password").value;
-
-    const submitBtn = e.target.querySelector("button[type='submit']");
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Verifying...";
-
     try {
+      const emailInput = document.getElementById("login-email");
+      const passwordInput = document.getElementById("login-password");
+      if (!emailInput || !passwordInput) {
+        throw new Error("Login email or password input field not found.");
+      }
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Verifying...";
+      }
+
       let credentials;
       let isMockAdmin = false;
 
@@ -2083,10 +2151,14 @@ if (authLoginForm) {
         }
       }
     } catch (error) {
+      console.error("Login verification error:", error);
       showToast("Invalid credentials. Try again.", "var(--error)", "var(--error)");
     } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Login & Enter";
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Login & Enter";
+      }
     }
   });
 }
@@ -2767,68 +2839,72 @@ onAuthStateChanged(auth, (user) => {
     if (regUnsubscribe2) { regUnsubscribe2(); regUnsubscribe2 = null; }
 
     if (useRealFirebase) {
-      const firestoreDb = firebase.firestore();
+      try {
+        const firestoreDb = firebase.firestore();
 
-      let doc1Data = null;
-      let doc2Data = null;
+        let doc1Data = null;
+        let doc2Data = null;
 
-      const updateCombinedState = () => {
-        if (doc1Data) {
-          activeRegistrationData = doc1Data;
-        } else if (doc2Data) {
-          activeRegistrationData = doc2Data;
-        } else {
-          activeRegistrationData = null;
-        }
-
-        let finalReg = activeRegistrationData;
-        if (!finalReg && selectedEvent) {
-          // Fallback check in USER_REGISTRATIONS
-          const fallbackReg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
-          if (fallbackReg) {
-            finalReg = {
-              eventId: fallbackReg.id,
-              registrationId: fallbackReg.registrationId,
-              payment_status: fallbackReg.status === "Confirmed" ? "Success" : "Pending",
-              status: fallbackReg.status,
-              eventTitle: fallbackReg.title,
-              checkedIn: fallbackReg.checkedIn,
-              razorpayPaymentId: fallbackReg.razorpayPaymentId,
-              phone: fallbackReg.phone,
-              bankAccountName: fallbackReg.bankAccountName
-            };
-          }
-        }
-        handleRealtimeRegistrationUpdate(finalReg);
-      };
-
-      // Listener 1: doc(db, "registrations", user.uid)
-      regUnsubscribe1 = firestoreDb.collection("registrations").doc(user.uid)
-        .onSnapshot((doc) => {
-          const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
-          if (docExists) {
-            doc1Data = doc.data();
+        const updateCombinedState = () => {
+          if (doc1Data) {
+            activeRegistrationData = doc1Data;
+          } else if (doc2Data) {
+            activeRegistrationData = doc2Data;
           } else {
-            doc1Data = null;
+            activeRegistrationData = null;
           }
-          updateCombinedState();
-        }, (err) => {
-          console.error("Error in real-time registration snapshot 1:", err);
-        });
 
-      // Listener 2: doc(db, "registrations", "reg-" + user.uid)
-      regUnsubscribe2 = firestoreDb.collection("registrations").doc("reg-" + user.uid)
-        .onSnapshot((doc) => {
-          const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
-          if (docExists) {
-            doc2Data = doc.data();
-          } else {
-            doc2Data = null;
+          let finalReg = activeRegistrationData;
+          if (!finalReg && selectedEvent) {
+            // Fallback check in USER_REGISTRATIONS
+            const fallbackReg = USER_REGISTRATIONS.find(r => r.id === selectedEvent.id);
+            if (fallbackReg) {
+              finalReg = {
+                eventId: fallbackReg.id,
+                registrationId: fallbackReg.registrationId,
+                payment_status: fallbackReg.status === "Confirmed" ? "Success" : "Pending",
+                status: fallbackReg.status,
+                eventTitle: fallbackReg.title,
+                checkedIn: fallbackReg.checkedIn,
+                razorpayPaymentId: fallbackReg.razorpayPaymentId,
+                phone: fallbackReg.phone,
+                bankAccountName: fallbackReg.bankAccountName
+              };
+            }
           }
-          updateCombinedState();
-        }, (err) => {
-          console.error("Error in real-time registration snapshot 2:", err);
-        });
+          handleRealtimeRegistrationUpdate(finalReg);
+        };
+
+        // Listener 1: doc(db, "registrations", user.uid)
+        regUnsubscribe1 = firestoreDb.collection("registrations").doc(user.uid)
+          .onSnapshot((doc) => {
+            const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
+            if (docExists) {
+              doc1Data = doc.data();
+            } else {
+              doc1Data = null;
+            }
+            updateCombinedState();
+          }, (err) => {
+            console.error("Error in real-time registration snapshot 1:", err);
+          });
+
+        // Listener 2: doc(db, "registrations", "reg-" + user.uid)
+        regUnsubscribe2 = firestoreDb.collection("registrations").doc("reg-" + user.uid)
+          .onSnapshot((doc) => {
+            const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
+            if (docExists) {
+              doc2Data = doc.data();
+            } else {
+              doc2Data = null;
+            }
+            updateCombinedState();
+          }, (err) => {
+            console.error("Error in real-time registration snapshot 2:", err);
+          });
+      } catch (firestoreInitErr) {
+        console.error("Firestore stream initialization failed:", firestoreInitErr);
+      }
     } else {
       // Simulated LocalStorage real-time sync for mock mode
       if (window.mockRegInterval) clearInterval(window.mockRegInterval);
@@ -2968,10 +3044,10 @@ onAuthStateChanged(auth, (user) => {
   function checkLoginState() {
     const authScreen = document.getElementById("screen-auth");
     const pendingScreen = document.getElementById("screen-pending");
-    
+
     const isAuthActive = authScreen && authScreen.classList.contains("active");
     const isPendingActive = pendingScreen && pendingScreen.classList.contains("active");
-    
+
     if (isAuthActive || isPendingActive) {
       if (launcher) launcher.style.display = "none";
       if (windowContainer) windowContainer.style.display = "none";
@@ -2985,12 +3061,12 @@ onAuthStateChanged(auth, (user) => {
   const observer = new MutationObserver(() => {
     checkLoginState();
   });
-  
+
   const authScreen = document.getElementById("screen-auth");
   const pendingScreen = document.getElementById("screen-pending");
   if (authScreen) observer.observe(authScreen, { attributes: true, attributeFilter: ["class"] });
   if (pendingScreen) observer.observe(pendingScreen, { attributes: true, attributeFilter: ["class"] });
-  
+
   // Run initial check
   checkLoginState();
 })();
@@ -3489,4 +3565,317 @@ window.addEventListener("DOMContentLoaded", () => {
     if (typeof renderAdminMerchOrders === "function") renderAdminMerchOrders();
   }, 3000);
 });
+
+// ==========================================================================
+// 14 — SAFE ADMIN PANEL INTEGRATION INTERFACES
+// ==========================================================================
+
+window.handleAdminPasswordSubmit = function (event) {
+  try {
+    if (event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+    const passwordInput = document.getElementById("admin-gate-password") || document.getElementById("admin-password-input");
+    const errorDiv = document.getElementById("admin-auth-error");
+    const authOverlay = document.getElementById("admin-auth-overlay") || document.getElementById("login-overlay");
+
+    if (!passwordInput) {
+      console.warn("Admin password input element not found in DOM.");
+      return;
+    }
+
+    if (passwordInput.value === "12345678" || passwordInput.value === "നിന്റെ_പാസ്വേർഡ്") {
+      sessionStorage.setItem("adminPasswordVerified", "true");
+      if (errorDiv) errorDiv.style.display = "none";
+      if (authOverlay) authOverlay.style.display = "none";
+      
+      if (typeof syncRegistrationWorkspace === "function") {
+        syncRegistrationWorkspace();
+      }
+    } else {
+      if (errorDiv) errorDiv.style.display = "block";
+      passwordInput.value = "";
+      passwordInput.focus();
+
+      const card = document.querySelector("#admin-auth-overlay > div") || (authOverlay && authOverlay.querySelector("div"));
+      if (card) {
+        card.style.animation = "shake 0.4s ease";
+        setTimeout(() => {
+          card.style.animation = "";
+        }, 400);
+      }
+    }
+  } catch (err) {
+    console.error("Error inside handleAdminPasswordSubmit gate controller:", err);
+  }
+};
+
+window.handleAdminLogin = function (event) {
+  try {
+    if (event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+
+    const passwordInput = document.getElementById("admin-password-input") || document.getElementById("admin-gate-password");
+    const errorDiv = document.getElementById("admin-auth-error");
+    const loginOverlay = document.getElementById("login-overlay") || document.getElementById("admin-auth-overlay");
+
+    if (!passwordInput) {
+      console.warn("Admin password input element not found in DOM.");
+      return;
+    }
+
+    if (passwordInput.value === "12345678" || passwordInput.value === "നിന്റെ_പാസ്വേർഡ്") {
+      sessionStorage.setItem("adminPasswordVerified", "true");
+      if (errorDiv) errorDiv.style.display = "none";
+      if (loginOverlay) loginOverlay.style.display = "none";
+      
+      if (typeof syncRegistrationWorkspace === "function") {
+        syncRegistrationWorkspace();
+      }
+      console.log("Success");
+    } else {
+      if (errorDiv) errorDiv.style.display = "block";
+      passwordInput.value = "";
+      passwordInput.focus();
+
+      const card = document.querySelector("#admin-auth-overlay > div") || (loginOverlay && loginOverlay.querySelector("div"));
+      if (card) {
+        card.style.animation = "shake 0.4s ease";
+        setTimeout(() => {
+          card.style.animation = "";
+        }, 400);
+      }
+    }
+  } catch (err) {
+    console.error("Error inside handleAdminLogin gate controller:", err);
+  }
+};
+
+window.handleEventPublish = async function (event) {
+  if (event && typeof event.preventDefault === "function") {
+    event.preventDefault();
+  }
+  
+  const submitBtn = document.getElementById("btn-event-submit");
+  const originalText = submitBtn ? submitBtn.textContent : "Publish Event";
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Processing...";
+  }
+
+  try {
+    const editIdEl = document.getElementById("editEventId");
+    const editId = editIdEl ? editIdEl.value : "";
+    
+    const titleEl = document.getElementById("eventTitle");
+    const title = titleEl ? titleEl.value.trim() : "";
+    
+    const typeEl = document.getElementById("eventType");
+    const type = typeEl ? typeEl.value : "workshop";
+    
+    const speakerNameEl = document.getElementById("speakerName");
+    const speakerName = speakerNameEl ? speakerNameEl.value.trim() : "";
+    
+    const speakerQualEl = document.getElementById("speakerQual");
+    const speakerQual = speakerQualEl ? speakerQualEl.value.trim() : "";
+    
+    const speakerLinkedinEl = document.getElementById("speakerLinkedin");
+    const speakerLinkedin = speakerLinkedinEl ? speakerLinkedinEl.value.trim() : "";
+    
+    const upiIdEl = document.getElementById("eventUpiId");
+    const upiId = upiIdEl ? upiIdEl.value.trim() : "";
+    
+    const dateInputEl = document.getElementById("eventDate");
+    const dateInput = dateInputEl ? dateInputEl.value : "";
+    
+    const timeInputEl = document.getElementById("eventTime");
+    const timeInput = timeInputEl ? timeInputEl.value : "";
+    
+    const seatsEl = document.getElementById("eventSeats");
+    const seats = seatsEl ? parseInt(seatsEl.value) : 0;
+    
+    const feeEl = document.getElementById("eventFee");
+    const fee = feeEl ? parseInt(feeEl.value) : 0;
+    
+    const locationEl = document.getElementById("eventLocation");
+    const location = locationEl ? locationEl.value.trim() : "";
+    
+    const modeEl = document.getElementById("eventMode");
+    const mode = modeEl ? modeEl.value : "offline";
+    
+    const fileInput = document.getElementById("event-poster-file");
+    const file = (fileInput && fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+    
+    const posterEl = document.getElementById("eventPoster");
+    let poster = posterEl ? posterEl.value.trim() : "";
+
+    if (file) {
+      const realFirebaseActive = typeof useRealFirebase !== "undefined" && useRealFirebase;
+      let uploadSuccess = false;
+      if (realFirebaseActive && typeof firebase !== "undefined" && typeof firebase.storage === "function") {
+        try {
+          if (submitBtn) submitBtn.textContent = "Uploading image...";
+          const storageInstance = firebase.storage();
+          const storageRef = storageInstance.ref(`event_posters/${Date.now()}_${file.name}`);
+          const snapshot = await storageRef.put(file);
+          poster = await snapshot.ref.getDownloadURL();
+          uploadSuccess = true;
+        } catch (storageErr) {
+          console.warn("Firebase Storage upload failed, falling back to FileReader:", storageErr);
+        }
+      }
+      
+      if (!uploadSuccess) {
+        if (submitBtn) submitBtn.textContent = "Uploading image (mock)...";
+        poster = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (e) => reject(e);
+          reader.readAsDataURL(file);
+        });
+      }
+    } else if (!editId && !poster) {
+      alert("Please select an event poster image file to upload.");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+      return;
+    }
+
+    const hasTeamEl = document.getElementById("eventHasTeam");
+    const hasTeam = hasTeamEl ? hasTeamEl.value === "true" : false;
+    
+    const maxTeamEl = document.getElementById("eventMaxTeam");
+    const maxTeamSize = hasTeam ? (maxTeamEl ? parseInt(maxTeamEl.value) : 1) : 1;
+    
+    const descriptionEl = document.getElementById("eventDescription");
+    const description = descriptionEl ? descriptionEl.value.trim() : "";
+
+    // Format dates into human readable values
+    let formattedDate = "TBD";
+    let isoDate = new Date().toISOString();
+    if (dateInput) {
+      const dateObj = new Date(dateInput);
+      const options = { day: 'numeric', month: 'long', year: 'numeric' };
+      formattedDate = dateObj.toLocaleDateString('en-US', options); 
+      isoDate = `${dateInput}T${timeInput || '00:00'}:00`;
+    }
+
+    // Format 24h input time to 12h AM/PM string
+    let formattedTime = "TBD";
+    if (timeInput) {
+      const [hours24, minutes] = timeInput.split(":");
+      let hours12 = parseInt(hours24);
+      const ampm = hours12 >= 12 ? 'PM' : 'AM';
+      hours12 = hours12 % 12;
+      hours12 = hours12 ? hours12 : 12; 
+      formattedTime = `${hours12 < 10 ? '0' + hours12 : hours12}:${minutes} ${ampm}`;
+    }
+
+    let typeLabel = "Workshop";
+    let color = "#C8E84A";
+    if (type === "hackathon") {
+      typeLabel = "Hackathon";
+      color = "#8B6FD4";
+    } else if (type === "talk") {
+      typeLabel = "Talk";
+      color = "#E8614A";
+    }
+
+    const eventSlug = editId ? editId : (title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000));
+
+    const eventData = {
+      id: eventSlug,
+      eventId: eventSlug,
+      title,
+      type,
+      typeLabel,
+      date: formattedDate,
+      isoDate,
+      time: formattedTime,
+      seats,
+      fee,
+      upiId,
+      price: fee === 0 ? "Free" : `₹${fee}`,
+      host: `${speakerName}, ${speakerQual}`,
+      speakerLinkedin,
+      location,
+      mode,
+      description,
+      color,
+      hasTeam,
+      maxTeamSize,
+      poster,
+      poster_url: poster,
+      upi: upiId,
+      timestamp: (typeof useRealFirebase !== "undefined" && useRealFirebase && typeof firebase !== "undefined" && firebase.firestore) ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+    };
+
+    // Save mock events
+    let mockEvents = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+    if (editId) {
+      const idx = mockEvents.findIndex(ev => ev.id === editId);
+      if (idx !== -1) mockEvents[idx] = eventData;
+    } else {
+      mockEvents.push(eventData);
+    }
+    localStorage.setItem("firebase_mock_events", JSON.stringify(mockEvents));
+
+    const realFirebaseActive = typeof useRealFirebase !== "undefined" && useRealFirebase;
+    if (realFirebaseActive && typeof firebase !== "undefined" && typeof firebase.firestore === "function") {
+      const db = firebase.firestore();
+      await db.collection("events").doc(eventSlug).set(eventData);
+    }
+
+    alert(editId ? "Event updated successfully!" : "Event published successfully!");
+    if (typeof resetEventFormState === "function") {
+      resetEventFormState();
+    }
+  } catch (error) {
+    console.error("Event save failed:", error);
+    alert("Error saving event: " + error.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  }
+};
+
+// Event Poster File Input change listener for preview
+const eventPosterFile = document.getElementById("event-poster-file");
+if (eventPosterFile) {
+  eventPosterFile.addEventListener("change", function (e) {
+    try {
+      const file = (e.target && e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
+      const previewImg = document.getElementById("event-poster-preview");
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          if (previewImg) {
+            previewImg.src = evt.target.result;
+            previewImg.style.display = "block";
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const posterEl = document.getElementById("eventPoster");
+        const savedUrl = posterEl ? posterEl.value : "";
+        if (previewImg) {
+          if (savedUrl) {
+            previewImg.src = savedUrl;
+            previewImg.style.display = "block";
+          } else {
+            previewImg.src = "";
+            previewImg.style.display = "none";
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error in event-poster-file change listener:", err);
+    }
+  });
+}
 

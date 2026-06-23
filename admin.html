@@ -510,7 +510,7 @@
 <body>
 
   <!-- Premium Glassmorphic Password Gating Overlay -->
-  <div id="admin-auth-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #101026, #05050d); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+  <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #101026, #05050d); z-index: 9999; display: flex; align-items: center; justify-content: center;">
     <style>
       @keyframes shake {
         0%, 100% { transform: translateX(0); }
@@ -533,16 +533,16 @@
         <p style="font-size: 13px; color: rgba(255, 255, 255, 0.6); line-height: 1.4;">Enter the administrator security password to unlock the platform workspaces.</p>
       </div>
 
-      <form id="admin-auth-form" onsubmit="handleAdminPasswordSubmit(event)">
+      <form id="admin-auth-form" onsubmit="handleAdminLogin(event)">
         <div style="margin-bottom: 20px; text-align: left;">
-          <input type="password" id="admin-gate-password" placeholder="••••••••" required style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.03); color: #FFFFFF; font-size: 14px; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#C8E84A'; this.style.background='rgba(255, 255, 255, 0.06)'" onblur="this.style.borderColor='rgba(255, 255, 255, 0.08)'; this.style.background='rgba(255, 255, 255, 0.03)'">
+          <input type="password" id="admin-password-input" placeholder="••••••••" required style="width: 100%; padding: 14px 18px; border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.03); color: #FFFFFF; font-size: 14px; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#C8E84A'; this.style.background='rgba(255, 255, 255, 0.06)'" onblur="this.style.borderColor='rgba(255, 255, 255, 0.08)'; this.style.background='rgba(255, 255, 255, 0.03)'">
           <div id="admin-auth-error" style="color: #ff4d4d; font-size: 11px; margin-top: 6px; display: none; font-weight: 600;">Incorrect password. Access denied.</div>
         </div>
         <div style="display: flex; gap: 12px;">
           <button type="button" onclick="window.location.href='index.html'" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); background: transparent; color: rgba(255, 255, 255, 0.8); font-size: 13px; font-weight: 600; cursor: pointer;">
             Back
           </button>
-          <button type="submit" style="flex: 2; padding: 14px; border-radius: 12px; border: none; background: #C8E84A; color: #080810; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(200, 232, 74, 0.25);">
+          <button type="button" id="unlock-btn" onclick="handleAdminLogin()" style="flex: 2; padding: 14px; border-radius: 12px; border: none; background: #C8E84A; color: #080810; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(200, 232, 74, 0.25);">
             Unlock Console
           </button>
         </div>
@@ -841,8 +841,12 @@
 
               <div class="form-grid">
                 <div class="form-group">
-                  <label for="eventPoster">Event Poster Image URL</label>
-                  <input type="url" id="eventPoster" placeholder="https://images.unsplash.com/... or Base64 string" required>
+                  <label for="event-poster-file">Event Poster Image</label>
+                  <input type="file" id="event-poster-file" accept="image/*" class="form-control">
+                  <input type="hidden" id="eventPoster" value="">
+                  <div style="margin-top: 8px;">
+                    <img id="event-poster-preview" src="" alt="Poster Preview" style="max-width: 100%; max-height: 150px; border-radius: 8px; display: none; object-fit: cover;">
+                  </div>
                 </div>
                 <div class="form-group">
                   <label for="eventHasTeam">Registration Type</label>
@@ -1044,6 +1048,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
   <script>
     // Live app runtime credentials extracted from native firebase.js config
@@ -1075,6 +1080,7 @@
     }
 
     const db = useRealFirebase ? firebase.firestore() : null;
+    const storage = useRealFirebase ? firebase.storage() : null;
     
     // Cached Document Object Registry Elements mapping handles
     const tbody = document.getElementById('student-table-body');
@@ -1637,7 +1643,31 @@
         const fee = parseInt(document.getElementById("eventFee").value);
         const location = document.getElementById("eventLocation").value.trim();
         const mode = document.getElementById("eventMode").value;
-        const poster = document.getElementById("eventPoster").value.trim();
+        const fileInput = document.getElementById("event-poster-file");
+        const file = fileInput ? fileInput.files[0] : null;
+        let poster = document.getElementById("eventPoster").value.trim();
+
+        if (file) {
+          if (useRealFirebase) {
+            submitBtn.textContent = "Uploading image...";
+            const storageRef = firebase.storage().ref(`event_posters/${Date.now()}_${file.name}`);
+            const snapshot = await storageRef.put(file);
+            poster = await snapshot.ref.getDownloadURL();
+          } else {
+            submitBtn.textContent = "Uploading image (mock)...";
+            poster = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = (e) => reject(e);
+              reader.readAsDataURL(file);
+            });
+          }
+        } else if (!editId && !poster) {
+          alert("Please select an event poster image file to upload.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
         const hasTeam = document.getElementById("eventHasTeam").value === "true";
         const maxTeamSize = hasTeam ? parseInt(document.getElementById("eventMaxTeam").value) : 1;
         const description = document.getElementById("eventDescription").value.trim();
@@ -1747,7 +1777,16 @@
       document.getElementById("eventFee").value = match.fee !== undefined ? match.fee : (match.reg_fee !== undefined ? match.reg_fee : (match.price && String(match.price).match(/\d+/) ? parseInt(String(match.price).match(/\d+/)[0]) : 0));
       document.getElementById("eventLocation").value = match.location || "";
       document.getElementById("eventMode").value = match.mode || "offline";
-      document.getElementById("eventPoster").value = match.poster || "";
+      const savedPoster = match.poster || match.poster_url || "";
+      document.getElementById("eventPoster").value = savedPoster;
+      const previewImg = document.getElementById("event-poster-preview");
+      if (previewImg && savedPoster) {
+        previewImg.src = savedPoster;
+        previewImg.style.display = "block";
+      } else if (previewImg) {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+      }
       document.getElementById("eventHasTeam").value = match.hasTeam ? "true" : "false";
       
       if (match.hasTeam) {
@@ -1775,6 +1814,11 @@
       document.getElementById("event-form-title").textContent = "IEDC Event Studio";
       document.getElementById("btn-event-submit").textContent = "Publish Event";
       document.getElementById("btn-cancel-event-edit").style.display = "none";
+      const previewImg = document.getElementById("event-poster-preview");
+      if (previewImg) {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+      }
       if (!useRealFirebase) syncRegistrationWorkspace(); // Trigger re-render in mock
     };
 
@@ -2093,35 +2137,81 @@
     // Verification check to secure admin panel
     function verifyAdminAccess() {
       if (sessionStorage.getItem("adminPasswordVerified") === "true") {
-        document.getElementById("admin-auth-overlay").style.display = "none";
+        const authOverlay = document.getElementById("login-overlay") || document.getElementById("admin-auth-overlay");
+        if (authOverlay) authOverlay.style.display = "none";
         syncRegistrationWorkspace();
         return;
       }
 
-      document.getElementById("admin-auth-overlay").style.display = "flex";
-      document.getElementById("admin-gate-password").focus();
+      const authOverlay = document.getElementById("login-overlay") || document.getElementById("admin-auth-overlay");
+      if (authOverlay) authOverlay.style.display = "flex";
+      
+      const passwordInput = document.getElementById("admin-password-input") || document.getElementById("admin-gate-password");
+      if (passwordInput) passwordInput.focus();
     }
 
     window.handleAdminPasswordSubmit = function(event) {
-      event.preventDefault();
-      const passwordInput = document.getElementById("admin-gate-password");
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      const passwordInput = document.getElementById("admin-password-input") || document.getElementById("admin-gate-password");
       const errorDiv = document.getElementById("admin-auth-error");
+      const authOverlay = document.getElementById("login-overlay") || document.getElementById("admin-auth-overlay");
 
-      if (passwordInput.value === "12345678") {
+      if (!passwordInput) return;
+
+      if (passwordInput.value === "12345678" || passwordInput.value === "നിന്റെ_പാസ്വേർഡ്") {
         sessionStorage.setItem("adminPasswordVerified", "true");
-        errorDiv.style.display = "none";
-        document.getElementById("admin-auth-overlay").style.display = "none";
+        if (errorDiv) errorDiv.style.display = "none";
+        if (authOverlay) authOverlay.style.display = "none";
         syncRegistrationWorkspace();
       } else {
-        errorDiv.style.display = "block";
+        if (errorDiv) errorDiv.style.display = "block";
         passwordInput.value = "";
         passwordInput.focus();
 
-        const card = document.querySelector("#admin-auth-overlay > div");
-        card.style.animation = "shake 0.4s ease";
-        setTimeout(() => {
-          card.style.animation = "";
-        }, 400);
+        const card = document.querySelector("#admin-auth-overlay > div") || (authOverlay && authOverlay.querySelector("div"));
+        if (card) {
+          card.style.animation = "shake 0.4s ease";
+          setTimeout(() => {
+            card.style.animation = "";
+          }, 400);
+        }
+      }
+    };
+
+    window.handleAdminLogin = function(event) {
+      const evt = event || window.event;
+      if (evt && typeof evt.preventDefault === "function") {
+        evt.preventDefault();
+      }
+
+      const passwordInput = document.getElementById("admin-password-input") || document.getElementById("admin-gate-password");
+      const errorDiv = document.getElementById("admin-auth-error");
+      const loginOverlay = document.getElementById("login-overlay") || document.getElementById("admin-auth-overlay");
+
+      if (!passwordInput) return;
+
+      if (passwordInput.value === "12345678" || passwordInput.value === "നിന്റെ_പാസ്വേർഡ്") {
+        sessionStorage.setItem("adminPasswordVerified", "true");
+        if (errorDiv) errorDiv.style.display = "none";
+        if (loginOverlay) loginOverlay.style.display = "none";
+        if (typeof syncRegistrationWorkspace === "function") {
+          syncRegistrationWorkspace();
+        }
+        console.log("Success");
+      } else {
+        if (errorDiv) errorDiv.style.display = "block";
+        passwordInput.value = "";
+        passwordInput.focus();
+
+        const card = document.querySelector("#admin-auth-overlay > div") || (loginOverlay && loginOverlay.querySelector("div"));
+        if (card) {
+          card.style.animation = "shake 0.4s ease";
+          setTimeout(() => {
+            card.style.animation = "";
+          }, 400);
+        }
       }
     };
 
@@ -2425,6 +2515,29 @@
         alert("Payment rejected and order marked as failed.");
       }
     };
+
+    // Event Poster File Input change listener for preview
+    document.getElementById("event-poster-file").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      const previewImg = document.getElementById("event-poster-preview");
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          previewImg.src = evt.target.result;
+          previewImg.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const savedUrl = document.getElementById("eventPoster").value;
+        if (savedUrl) {
+          previewImg.src = savedUrl;
+          previewImg.style.display = "block";
+        } else {
+          previewImg.src = "";
+          previewImg.style.display = "none";
+        }
+      }
+    });
 
     verifyAdminAccess();
     syncAdminNewsTickerAndAnnouncements();
