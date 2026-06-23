@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IEDC RIT Console - Administration</title>
   
+  <!-- Supabase CDN Script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <!-- HTML5 QR Code Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   
@@ -905,8 +908,12 @@
                   <input type="text" id="tournamentUpiId" placeholder="Eg: iedcrit@okaxis" required>
                 </div>
                 <div class="form-group">
-                  <label for="tournamentPoster">Image URL</label>
-                  <input type="url" id="tournamentPoster" placeholder="https://images.unsplash.com/... or Base64 string" required>
+                  <label for="tournament-poster-file">Tournament Image</label>
+                  <input type="file" id="tournament-poster-file" accept="image/*" class="form-control">
+                  <input type="hidden" id="tournamentPoster" value="">
+                  <div style="margin-top: 8px;">
+                    <img id="tournament-poster-preview" src="" alt="Tournament Preview" style="max-width: 100%; max-height: 150px; border-radius: 8px; display: none; object-fit: cover;">
+                  </div>
                 </div>
               </div>
 
@@ -997,8 +1004,12 @@
               </div>
               
               <div class="form-group" style="margin-top: 15px;">
-                <label for="admin-merch-image">Product Image URL</label>
-                <input type="url" id="admin-merch-image" placeholder="https://images.unsplash.com/..." required style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+                <label for="admin-merch-file">Product Image</label>
+                <input type="file" id="admin-merch-file" accept="image/*" class="form-control" style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px; color: white; outline: none;">
+                <input type="hidden" id="admin-merch-image" value="">
+                <div style="margin-top: 8px;">
+                  <img id="admin-merch-preview" src="" alt="Product Preview" style="max-width: 100%; max-height: 150px; border-radius: 8px; display: none; object-fit: cover;">
+                </div>
               </div>
               
               <button type="submit" id="btn-admin-add-product" class="btn-submit" style="width: auto; padding: 12px 24px; margin-top: 15px; cursor: pointer; background: var(--soft-purple) !important; color: white !important;">Add Product</button>
@@ -1081,6 +1092,45 @@
 
     const db = useRealFirebase ? firebase.firestore() : null;
     const storage = useRealFirebase ? firebase.storage() : null;
+
+    // SUPABASE STORAGE INITIALIZATION
+    const supabaseUrl = "https://qcqneyayyaieekroyxdt.supabase.co";
+    const supabaseKey = "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf";
+    let supabase = null;
+    try {
+      if (typeof window !== "undefined" && window.supabase) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        console.log("Supabase client initialized successfully in admin console.");
+      }
+    } catch (err) {
+      console.error("Failed to initialize Supabase client in admin:", err);
+    }
+
+    async function uploadToSupabase(file, bucketName) {
+      if (!supabase) {
+        throw new Error("Supabase client is not initialized.");
+      }
+      const fileName = Date.now() + "_" + file.name;
+      console.log(`Starting Supabase upload of ${fileName} to bucket "${bucketName}"`);
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file);
+
+      if (error) {
+        throw error;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName);
+
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error("Failed to retrieve public URL from Supabase storage.");
+      }
+
+      console.log(`Supabase upload complete. Public URL: ${urlData.publicUrl}`);
+      return urlData.publicUrl;
+    }
     
     // Cached Document Object Registry Elements mapping handles
     const tbody = document.getElementById('student-table-body');
@@ -1648,12 +1698,13 @@
         let poster = document.getElementById("eventPoster").value.trim();
 
         if (file) {
-          if (useRealFirebase) {
-            submitBtn.textContent = "Uploading image...";
-            const storageRef = firebase.storage().ref(`event_posters/${Date.now()}_${file.name}`);
-            const snapshot = await storageRef.put(file);
-            poster = await snapshot.ref.getDownloadURL();
-          } else {
+          console.log("Uploading event poster to Supabase...");
+          submitBtn.textContent = "Uploading to Supabase...";
+          try {
+            poster = await uploadToSupabase(file, "event posters");
+            console.log("Supabase upload success. URL:", poster);
+          } catch (supabaseErr) {
+            console.error("Supabase Storage upload failed, falling back to mock Reader:", supabaseErr);
             submitBtn.textContent = "Uploading image (mock)...";
             poster = await new Promise((resolve, reject) => {
               const reader = new FileReader();
@@ -1887,7 +1938,33 @@
         const title = document.getElementById("tournamentTitle").value.trim();
         const fee = parseInt(document.getElementById("tournamentFee").value);
         const upiId = document.getElementById("tournamentUpiId").value.trim();
-        const poster = document.getElementById("tournamentPoster").value.trim();
+        const fileInput = document.getElementById("tournament-poster-file");
+        const file = fileInput ? fileInput.files[0] : null;
+        let poster = document.getElementById("tournamentPoster").value.trim();
+
+        if (file) {
+          console.log("Uploading tournament image to Supabase...");
+          submitBtn.textContent = "Uploading to Supabase...";
+          try {
+            poster = await uploadToSupabase(file, "tournament images");
+            console.log("Supabase upload success. URL:", poster);
+          } catch (supabaseErr) {
+            console.error("Supabase Storage upload failed, falling back to mock Reader:", supabaseErr);
+            submitBtn.textContent = "Uploading image (mock)...";
+            poster = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = (e) => reject(e);
+              reader.readAsDataURL(file);
+            });
+          }
+        } else if (!editId && !poster) {
+          alert("Please select a tournament image file to upload.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
+
         const maxTeamSize = parseInt(document.getElementById("tournamentMaxTeam").value);
         const mode = document.getElementById("tournamentMode").value;
         const location = document.getElementById("tournamentLocation").value.trim();
@@ -1949,7 +2026,16 @@
       document.getElementById("tournamentFee").value = match.fee !== undefined ? match.fee : (match.reg_fee !== undefined ? match.reg_fee : 0);
       
       document.getElementById("tournamentUpiId").value = match.upiId || match.upi || "";
-      document.getElementById("tournamentPoster").value = match.poster || "";
+      const savedPoster = match.poster || match.poster_url || "";
+      document.getElementById("tournamentPoster").value = savedPoster;
+      const previewImg = document.getElementById("tournament-poster-preview");
+      if (previewImg && savedPoster) {
+        previewImg.src = savedPoster;
+        previewImg.style.display = "block";
+      } else if (previewImg) {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+      }
       document.getElementById("tournamentMaxTeam").value = String(match.maxTeamSize || 1);
       document.getElementById("tournamentMode").value = match.mode || "offline";
       document.getElementById("tournamentLocation").value = match.location || "";
@@ -1967,6 +2053,11 @@
       document.getElementById("tournament-form-title").textContent = "Tournament Studio";
       document.getElementById("btn-tournament-submit").textContent = "Publish Tournament";
       document.getElementById("btn-cancel-tournament-edit").style.display = "none";
+      const previewImg = document.getElementById("tournament-poster-preview");
+      if (previewImg) {
+        previewImg.src = "";
+        previewImg.style.display = "none";
+      }
       if (!useRealFirebase) syncRegistrationWorkspace();
     };
 
@@ -2538,6 +2629,140 @@
         }
       }
     });
+
+    // Tournament Poster File Input change listener for preview
+    const tournamentPosterFile = document.getElementById("tournament-poster-file");
+    if (tournamentPosterFile) {
+      tournamentPosterFile.addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        const previewImg = document.getElementById("tournament-poster-preview");
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            if (previewImg) {
+              previewImg.src = evt.target.result;
+              previewImg.style.display = "block";
+            }
+          };
+          reader.readAsDataURL(file);
+        } else {
+          const savedUrl = document.getElementById("tournamentPoster").value;
+          if (previewImg) {
+            if (savedUrl) {
+              previewImg.src = savedUrl;
+              previewImg.style.display = "block";
+            } else {
+              previewImg.src = "";
+              previewImg.style.display = "none";
+            }
+          }
+        }
+      });
+    }
+
+    // Merchandise Product File Input change listener for preview
+    const adminMerchFile = document.getElementById("admin-merch-file");
+    if (adminMerchFile) {
+      adminMerchFile.addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        const previewImg = document.getElementById("admin-merch-preview");
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            if (previewImg) {
+              previewImg.src = evt.target.result;
+              previewImg.style.display = "block";
+            }
+          };
+          reader.readAsDataURL(file);
+        } else {
+          const savedUrl = document.getElementById("admin-merch-image").value;
+          if (previewImg) {
+            if (savedUrl) {
+              previewImg.src = savedUrl;
+              previewImg.style.display = "block";
+            } else {
+              previewImg.src = "";
+              previewImg.style.display = "none";
+            }
+          }
+        }
+      });
+    }
+
+    const adminAddMerchForm = document.getElementById("admin-add-merch-form");
+    if (adminAddMerchForm) {
+      adminAddMerchForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById("btn-admin-add-product");
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Processing...";
+
+        const titleInput = document.getElementById("admin-merch-title");
+        const priceInput = document.getElementById("admin-merch-price");
+        const fileInput = document.getElementById("admin-merch-file");
+        const imgInput = document.getElementById("admin-merch-image");
+
+        const title = titleInput ? titleInput.value.trim() : "";
+        const price = priceInput ? parseInt(priceInput.value) : 0;
+        const file = (fileInput && fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+        let imageUrl = imgInput ? imgInput.value.trim() : "";
+
+        if (!title || price <= 0) {
+          alert("Please enter valid product details!");
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
+
+        try {
+          if (file) {
+            console.log("Uploading product image to Supabase...");
+            submitBtn.textContent = "Uploading to Supabase...";
+            imageUrl = await uploadToSupabase(file, "products");
+            console.log("Supabase upload success. URL:", imageUrl);
+          } else if (!imageUrl) {
+            alert("Please select a product image file to upload.");
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+          }
+
+          const newProduct = {
+            id: "prod-" + Date.now(),
+            title,
+            price,
+            imageUrl,
+            stockStatus: "in-stock"
+          };
+
+          MERCH_PRODUCTS.push(newProduct);
+          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+
+          if (typeof renderAdminProducts === "function") renderAdminProducts();
+
+          if (titleInput) titleInput.value = "";
+          if (priceInput) priceInput.value = "";
+          if (fileInput) fileInput.value = "";
+          if (imgInput) imgInput.value = "";
+          const previewImg = document.getElementById("admin-merch-preview");
+          if (previewImg) {
+            previewImg.src = "";
+            previewImg.style.display = "none";
+          }
+
+          console.log("Product data synchronized successfully.");
+          alert("Product added successfully!");
+        } catch (err) {
+          console.error("Product add failed:", err);
+          alert("Error adding product: " + err.message);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      });
+    }
 
     verifyAdminAccess();
     syncAdminNewsTickerAndAnnouncements();

@@ -100,6 +100,47 @@ function onAuthStateChanged(authInstance, callback) {
 }
 
 // ==========================================
+// SUPABASE STORAGE INITIALIZATION
+// ==========================================
+const supabaseUrl = "https://qcqneyayyaieekroyxdt.supabase.co";
+const supabaseKey = "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf";
+let supabase = null;
+try {
+  if (typeof window !== "undefined" && window.supabase) {
+    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    console.log("Supabase client initialized successfully.");
+  }
+} catch (err) {
+  console.error("Failed to initialize Supabase client:", err);
+}
+
+async function uploadToSupabase(file, bucketName) {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized.");
+  }
+  const fileName = Date.now() + "_" + file.name;
+  console.log(`Starting Supabase upload of ${fileName} to bucket "${bucketName}"`);
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(fileName, file);
+
+  if (error) {
+    throw error;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(fileName);
+
+  if (!urlData || !urlData.publicUrl) {
+    throw new Error("Failed to retrieve public URL from Supabase storage.");
+  }
+
+  console.log(`Supabase upload complete. Public URL: ${urlData.publicUrl}`);
+  return urlData.publicUrl;
+}
+
+// ==========================================
 // 02 — DOM ELEMENTS REGISTRY
 // ==========================================
 
@@ -3306,38 +3347,76 @@ window.removeCartItem = function (index) {
     // Add Product from Admin Panel Form
     if (e.target && e.target.id === "btn-admin-add-product") {
       e.preventDefault();
+      const submitBtn = e.target;
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Processing...";
+
       const titleInput = document.getElementById("admin-merch-title");
       const priceInput = document.getElementById("admin-merch-price");
+      const fileInput = document.getElementById("admin-merch-file");
       const imgInput = document.getElementById("admin-merch-image");
 
       const title = titleInput ? titleInput.value.trim() : "";
       const price = priceInput ? parseInt(priceInput.value) : 0;
-      const imageUrl = imgInput ? imgInput.value.trim() : "";
+      const file = (fileInput && fileInput.files && fileInput.files.length > 0) ? fileInput.files[0] : null;
+      let imageUrl = imgInput ? imgInput.value.trim() : "";
 
-      if (!title || price <= 0 || !imageUrl) {
+      if (!title || price <= 0) {
         alert("Please enter valid product details!");
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
         return;
       }
 
-      const newProduct = {
-        id: "prod-" + Date.now(),
-        title,
-        price,
-        imageUrl,
-        stockStatus: "in-stock"
-      };
+      (async () => {
+        try {
+          if (file) {
+            console.log("Uploading product image to Supabase...");
+            submitBtn.textContent = "Uploading to Supabase...";
+            imageUrl = await uploadToSupabase(file, "products");
+            console.log("Supabase upload success. URL:", imageUrl);
+          } else if (!imageUrl) {
+            alert("Please select a product image file to upload.");
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+          }
 
-      MERCH_PRODUCTS.push(newProduct);
-      localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+          const newProduct = {
+            id: "prod-" + Date.now(),
+            title,
+            price,
+            imageUrl,
+            stockStatus: "in-stock"
+          };
 
-      renderMerchSlider();
-      if (typeof renderAdminProducts === "function") renderAdminProducts();
+          MERCH_PRODUCTS.push(newProduct);
+          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
 
-      if (titleInput) titleInput.value = "";
-      if (priceInput) priceInput.value = "";
-      if (imgInput) imgInput.value = "";
+          renderMerchSlider();
+          if (typeof renderAdminProducts === "function") renderAdminProducts();
 
-      alert("Product added successfully!");
+          if (titleInput) titleInput.value = "";
+          if (priceInput) priceInput.value = "";
+          if (fileInput) fileInput.value = "";
+          if (imgInput) imgInput.value = "";
+          const previewImg = document.getElementById("admin-merch-preview");
+          if (previewImg) {
+            previewImg.src = "";
+            previewImg.style.display = "none";
+          }
+
+          console.log("Product data synchronized successfully.");
+          alert("Product added successfully!");
+        } catch (err) {
+          console.error("Product add failed:", err);
+          alert("Error adding product: " + err.message);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      })();
     }
   });
 })();
@@ -3711,19 +3790,15 @@ window.handleEventPublish = async function (event) {
     let poster = posterEl ? posterEl.value.trim() : "";
 
     if (file) {
-      const realFirebaseActive = typeof useRealFirebase !== "undefined" && useRealFirebase;
       let uploadSuccess = false;
-      if (realFirebaseActive && typeof firebase !== "undefined" && typeof firebase.storage === "function") {
-        try {
-          if (submitBtn) submitBtn.textContent = "Uploading image...";
-          const storageInstance = firebase.storage();
-          const storageRef = storageInstance.ref(`event_posters/${Date.now()}_${file.name}`);
-          const snapshot = await storageRef.put(file);
-          poster = await snapshot.ref.getDownloadURL();
-          uploadSuccess = true;
-        } catch (storageErr) {
-          console.warn("Firebase Storage upload failed, falling back to FileReader:", storageErr);
-        }
+      try {
+        if (submitBtn) submitBtn.textContent = "Uploading to Supabase...";
+        console.log("Uploading event poster to Supabase...");
+        poster = await uploadToSupabase(file, "event posters");
+        console.log("Supabase upload success. URL:", poster);
+        uploadSuccess = true;
+      } catch (storageErr) {
+        console.warn("Supabase Storage upload failed, falling back to mock Reader:", storageErr);
       }
       
       if (!uploadSuccess) {
