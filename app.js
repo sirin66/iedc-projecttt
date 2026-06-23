@@ -1,3 +1,8 @@
+// Automatically redirect from 127.0.0.1 to localhost for authorized Firebase OAuth operations
+if (window.location.hostname === "127.0.0.1") {
+  window.location.hostname = "localhost";
+}
+
 // ==========================================================================
 // 01 — APPLICATION STATE & CONFIGURATION
 // ==========================================================================
@@ -2210,6 +2215,17 @@ if (authLoginForm) {
       const docSnap = await FirebaseService.db.getStudentDoc(credentials.user.uid);
       if (docSnap.exists) {
         USER_PROFILE = docSnap.data();
+        if (USER_PROFILE.isApproved === false) {
+          await FirebaseService.auth.signOut();
+          sessionStorage.removeItem("loggedInUserUid");
+          localStorage.removeItem("loggedInUserUid");
+          sessionStorage.removeItem("useRealFirebase");
+          if (authStateCallback) authStateCallback(null);
+          USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
+          alert("Your account has been restricted by the admin.");
+          navigateTo("auth");
+          return;
+        }
         sessionStorage.setItem("loggedInUserUid", credentials.user.uid);
         localStorage.setItem("loggedInUserUid", credentials.user.uid);
         if (authStateCallback) authStateCallback({ uid: credentials.user.uid });
@@ -2267,6 +2283,17 @@ if (btnGoogleAuth) {
 
       if (docSnap.exists) {
         USER_PROFILE = docSnap.data();
+        if (USER_PROFILE.isApproved === false) {
+          await FirebaseService.auth.signOut();
+          sessionStorage.removeItem("loggedInUserUid");
+          localStorage.removeItem("loggedInUserUid");
+          sessionStorage.removeItem("useRealFirebase");
+          if (authStateCallback) authStateCallback(null);
+          USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
+          alert("Your account has been restricted by the admin.");
+          navigateTo("auth");
+          return;
+        }
         sessionStorage.setItem("loggedInUserUid", uid);
         localStorage.setItem("loggedInUserUid", uid);
         if (authStateCallback) authStateCallback({ uid: uid });
@@ -2286,6 +2313,7 @@ if (btnGoogleAuth) {
         showToast("Authenticated! Setup profile details.", "var(--galactic-purple)", "var(--galactic-purple)");
       }
     } catch (e) {
+      alert("Google Authentication failed: " + e.message);
       showToast("Google Authentication failed.", "var(--error)", "var(--error)");
     }
   });
@@ -2335,7 +2363,8 @@ if (profileSetupForm) {
         phone,
         collegeName: college,
         avatar,
-        approved: isUpdating ? (USER_PROFILE.approved === true) : false,
+        approved: isUpdating ? (USER_PROFILE.approved === true) : true,
+        isApproved: isUpdating ? (USER_PROFILE.isApproved !== false) : true,
         createdAt: new Date().toISOString()
       };
 
@@ -2359,10 +2388,11 @@ if (profileSetupForm) {
         localStorage.setItem("loggedInUserUid", credentials.user.uid);
         if (authStateCallback) authStateCallback({ uid: credentials.user.uid });
         updateUserProfileUI();
-        showToast("Profile submitted for approval.", "var(--warning)", "var(--warning)");
+        showToast("Registration successful! Welcome.", "var(--success)", "var(--success)");
         checkApprovalAndRoute(USER_PROFILE);
       }
     } catch (err) {
+      alert("Registration failed: " + err.message);
       showToast("Error processing registration.", "var(--error)", "var(--error)");
     } finally {
       submitBtn.disabled = false;
@@ -2868,6 +2898,18 @@ onAuthStateChanged(auth, (user) => {
       FirebaseService.db.getStudentDoc(cachedUid).then(docSnap => {
         if (docSnap.exists) {
           const profileData = docSnap.data();
+          if (profileData.isApproved === false) {
+            FirebaseService.auth.signOut().then(() => {
+              sessionStorage.removeItem("loggedInUserUid");
+              localStorage.removeItem("loggedInUserUid");
+              sessionStorage.removeItem("useRealFirebase");
+              if (authStateCallback) authStateCallback(null);
+              USER_PROFILE = { name: "", email: "", id: "", password: "", department: "", yearOfStudy: "", phone: "", collegeName: "", avatar: "", approved: false };
+              alert("Your account has been restricted by the admin.");
+              navigateTo("auth");
+            });
+            return;
+          }
           if (profileData.approved === true) {
             // Approved: Show dashboard layout, hide auth and pending screens
             if (dashboardLayout) dashboardLayout.style.display = "contents";
