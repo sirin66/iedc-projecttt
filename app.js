@@ -3382,8 +3382,19 @@ window.removeCartItem = function (index) {
           if (file) {
             console.log("Uploading product image to Supabase...");
             submitBtn.textContent = "Uploading to Supabase...";
-            imageUrl = await uploadToSupabase(file, "products");
-            console.log("Supabase upload success. URL:", imageUrl);
+            try {
+              imageUrl = await uploadToSupabase(file, "products");
+              console.log("Supabase upload success. URL:", imageUrl);
+            } catch (supabaseErr) {
+              console.error("Supabase Storage upload failed, falling back to mock Reader:", supabaseErr);
+              submitBtn.textContent = "Uploading image (mock)...";
+              imageUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(file);
+              });
+            }
           } else if (!imageUrl) {
             alert("Please select a product image file to upload.");
             submitBtn.disabled = false;
