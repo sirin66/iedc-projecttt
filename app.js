@@ -2558,6 +2558,25 @@ function initDynamicContentListeners() {
         }, (err) => {
           console.error("Announcements snapshot error:", err);
         });
+
+      // Merchandise real-time listener
+      db.collection("products")
+        .onSnapshot((snapshot) => {
+          const liveProducts = [];
+          snapshot.forEach((doc) => {
+            liveProducts.push({ id: doc.id, stockStatus: "in-stock", ...doc.data() });
+          });
+          MERCH_PRODUCTS = liveProducts.length > 0 ? liveProducts : [
+            { id: "prod-hoodie", title: "IEDC Official Hoodie", price: 499, imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" },
+            { id: "prod-tshirt", title: "IEDC Innovator T-Shirt", price: 299, imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" },
+            { id: "prod-cap", title: "IEDC Tech Cap", price: 149, imageUrl: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" }
+          ];
+          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+          renderMerchSlider();
+          if (typeof renderAdminProducts === "function") renderAdminProducts();
+        }, (err) => {
+          console.error("Merchandise snapshot error:", err);
+        });
     } catch (e) {
       console.error("Error setting up dynamic content listeners:", e);
       initMockDynamicContentListeners();
@@ -3402,19 +3421,34 @@ window.removeCartItem = function (index) {
             return;
           }
 
-          const newProduct = {
-            id: "prod-" + Date.now(),
-            title,
-            price,
-            imageUrl,
-            stockStatus: "in-stock"
-          };
+          if (useRealFirebase) {
+            try {
+              const db = firebase.firestore();
+              await db.collection('products').add({
+                  title: title,
+                  price: Number(price),
+                  imageUrl: imageUrl,
+                  createdAt: new Date()
+              }).then(() => alert("Product permanently saved to Firebase!"));
+            } catch (e) {
+              console.error("Firestore product save failed in app.js handler:", e);
+              alert("Error saving product: " + e.message);
+            }
+          } else {
+            const newProduct = {
+              id: "prod-" + Date.now(),
+              title,
+              price: Number(price),
+              imageUrl,
+              stockStatus: "in-stock"
+            };
 
-          MERCH_PRODUCTS.push(newProduct);
-          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+            MERCH_PRODUCTS.push(newProduct);
+            localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
 
-          renderMerchSlider();
-          if (typeof renderAdminProducts === "function") renderAdminProducts();
+            renderMerchSlider();
+            if (typeof renderAdminProducts === "function") renderAdminProducts();
+          }
 
           if (titleInput) titleInput.value = "";
           if (priceInput) priceInput.value = "";
@@ -3619,23 +3653,45 @@ window.renderAdminProducts = function () {
   });
 };
 
-window.toggleMerchStock = function (productId) {
+window.toggleMerchStock = async function (productId) {
   const p = MERCH_PRODUCTS.find(x => x.id === productId);
   if (p) {
-    p.stockStatus = p.stockStatus === "in-stock" ? "out-of-stock" : "in-stock";
-    localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
-    renderMerchSlider();
-    renderAdminProducts();
+    const nextStatus = p.stockStatus === "in-stock" ? "out-of-stock" : "in-stock";
+    if (useRealFirebase) {
+      try {
+        const db = firebase.firestore();
+        await db.collection("products").doc(productId).update({ stockStatus: nextStatus });
+      } catch (e) {
+        console.error("Firestore product stock update failed:", e);
+      }
+    } else {
+      p.stockStatus = nextStatus;
+      localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+      renderMerchSlider();
+      renderAdminProducts();
+    }
   }
 };
 
-window.deleteMerchItem = function (productId) {
+window.deleteMerchItem = async function (productId) {
   if (!confirm("Are you sure you want to delete this product?")) return;
-  MERCH_PRODUCTS = MERCH_PRODUCTS.filter(p => p.id !== productId);
-  localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
-  renderMerchSlider();
-  renderAdminProducts();
-  alert("Product deleted!");
+
+  if (useRealFirebase) {
+    try {
+      const db = firebase.firestore();
+      await db.collection('products').doc(productId).delete()
+        .then(() => alert("Product permanently deleted from Firebase!"));
+    } catch (e) {
+      console.error("Firestore product delete failed:", e);
+      alert("Error deleting product: " + e.message);
+    }
+  } else {
+    MERCH_PRODUCTS = MERCH_PRODUCTS.filter(p => p.id !== productId);
+    localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+    renderMerchSlider();
+    renderAdminProducts();
+    alert("Product deleted!");
+  }
 };
 
 // Initial triggers
@@ -3646,17 +3702,19 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof renderAdminProducts === "function") renderAdminProducts();
 
   setInterval(() => {
-    const cachedProds = localStorage.getItem("merch_products");
-    if (cachedProds) {
-      try {
-        const parsed = JSON.parse(cachedProds);
-        if (JSON.stringify(parsed) !== JSON.stringify(MERCH_PRODUCTS)) {
-          MERCH_PRODUCTS = parsed;
-          renderMerchSlider();
-          if (typeof renderAdminProducts === "function") renderAdminProducts();
+    if (!useRealFirebase) {
+      const cachedProds = localStorage.getItem("merch_products");
+      if (cachedProds) {
+        try {
+          const parsed = JSON.parse(cachedProds);
+          if (JSON.stringify(parsed) !== JSON.stringify(MERCH_PRODUCTS)) {
+            MERCH_PRODUCTS = parsed;
+            renderMerchSlider();
+            if (typeof renderAdminProducts === "function") renderAdminProducts();
+          }
+        } catch (e) {
+          console.error("Error parsing mock products in interval:", e);
         }
-      } catch (e) {
-        console.error("Error parsing mock products in interval:", e);
       }
     }
     loadStudentOrders();

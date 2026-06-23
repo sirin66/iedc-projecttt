@@ -2536,20 +2536,41 @@
       });
     };
 
-    window.toggleMerchStock = function(productId) {
+    window.toggleMerchStock = async function(productId) {
       const p = MERCH_PRODUCTS.find(x => x.id === productId);
       if (p) {
-        p.stockStatus = p.stockStatus === "in-stock" ? "out-of-stock" : "in-stock";
-        localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
-        renderAdminProducts();
+        const nextStatus = p.stockStatus === "in-stock" ? "out-of-stock" : "in-stock";
+        if (useRealFirebase) {
+          try {
+            await db.collection("products").doc(productId).update({ stockStatus: nextStatus });
+          } catch (e) {
+            console.error("Firestore product stock update failed:", e);
+          }
+        } else {
+          p.stockStatus = nextStatus;
+          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+          renderAdminProducts();
+        }
       }
     };
 
-    window.deleteMerchItem = function(productId) {
+    window.deleteMerchItem = async function(productId) {
       if (!confirm("Are you sure you want to delete this product?")) return;
-      MERCH_PRODUCTS = MERCH_PRODUCTS.filter(p => p.id !== productId);
-      localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
-      renderAdminProducts();
+
+      if (useRealFirebase) {
+        try {
+          await db.collection('products').doc(productId).delete()
+            .then(() => alert("Product permanently deleted from Firebase!"));
+        } catch (e) {
+          console.error("Firestore product delete failed:", e);
+          alert("Error deleting product: " + e.message);
+        }
+      } else {
+        MERCH_PRODUCTS = MERCH_PRODUCTS.filter(p => p.id !== productId);
+        localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+        renderAdminProducts();
+        alert("Product deleted!");
+      }
     };
 
     window.renderAdminMerchOrders = function() {
@@ -2748,18 +2769,27 @@
             return;
           }
 
-          const newProduct = {
-            id: "prod-" + Date.now(),
-            title,
-            price,
-            imageUrl,
-            stockStatus: "in-stock"
-          };
+          if (useRealFirebase) {
+            await db.collection('products').add({
+                title: title,
+                price: Number(price),
+                imageUrl: imageUrl,
+                createdAt: new Date()
+            }).then(() => alert("Product permanently saved to Firebase!"));
+          } else {
+            const newProduct = {
+              id: "prod-" + Date.now(),
+              title,
+              price: Number(price),
+              imageUrl,
+              stockStatus: "in-stock"
+            };
 
-          MERCH_PRODUCTS.push(newProduct);
-          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+            MERCH_PRODUCTS.push(newProduct);
+            localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
 
-          if (typeof renderAdminProducts === "function") renderAdminProducts();
+            if (typeof renderAdminProducts === "function") renderAdminProducts();
+          }
 
           if (titleInput) titleInput.value = "";
           if (priceInput) priceInput.value = "";
@@ -2783,23 +2813,46 @@
       });
     }
 
+    function syncAdminMerchProducts() {
+      if (useRealFirebase) {
+        db.collection("products").onSnapshot((snapshot) => {
+          const liveProducts = [];
+          snapshot.forEach((doc) => {
+            liveProducts.push({ id: doc.id, stockStatus: "in-stock", ...doc.data() });
+          });
+          MERCH_PRODUCTS = liveProducts.length > 0 ? liveProducts : [
+            { id: "prod-hoodie", title: "IEDC Official Hoodie", price: 499, imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" },
+            { id: "prod-tshirt", title: "IEDC Innovator T-Shirt", price: 299, imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" },
+            { id: "prod-cap", title: "IEDC Tech Cap", price: 149, imageUrl: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=300&q=80", stockStatus: "in-stock" }
+          ];
+          localStorage.setItem("merch_products", JSON.stringify(MERCH_PRODUCTS));
+          renderAdminProducts();
+        }, (err) => {
+          console.error("Firestore products sync error:", err);
+        });
+      }
+    }
+
     verifyAdminAccess();
     syncAdminNewsTickerAndAnnouncements();
+    syncAdminMerchProducts();
 
     // Initial triggers for merchandise
     renderAdminProducts();
     renderAdminMerchOrders();
 
     setInterval(() => {
-      const cachedProds = localStorage.getItem("merch_products");
-      if (cachedProds) {
-        try {
-          const parsed = JSON.parse(cachedProds);
-          if (JSON.stringify(parsed) !== JSON.stringify(MERCH_PRODUCTS)) {
-            MERCH_PRODUCTS = parsed;
-            renderAdminProducts();
-          }
-        } catch (e) {}
+      if (!useRealFirebase) {
+        const cachedProds = localStorage.getItem("merch_products");
+        if (cachedProds) {
+          try {
+            const parsed = JSON.parse(cachedProds);
+            if (JSON.stringify(parsed) !== JSON.stringify(MERCH_PRODUCTS)) {
+              MERCH_PRODUCTS = parsed;
+              renderAdminProducts();
+            }
+          } catch (e) {}
+        }
       }
       renderAdminMerchOrders();
     }, 3000);
