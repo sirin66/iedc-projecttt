@@ -30,8 +30,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
+      overflow-y: auto;
       position: relative;
+      padding: 20px;
     }
 
     /* Floating stars/dots background effect */
@@ -104,7 +105,8 @@
     }
 
     .glass-card {
-      width: 440px;
+      width: 100%;
+      max-width: 440px;
       background: var(--card-bg);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 32px;
