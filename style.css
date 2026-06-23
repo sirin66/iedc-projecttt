@@ -2251,3 +2251,38 @@ body {
   max-height: 100% !important;
   padding-bottom: 40px !important;
 }
+
+/* Shared links (LinkedIn & WhatsApp) layout styles */
+.detail-shared-links {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.detail-shared-links a {
+  flex: 1;
+  min-width: 120px;
+  max-width: 100%;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.detail-shared-links a:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.shared-icon-container {
+  transition: box-shadow 0.2s;
+}
+
+.detail-shared-links a:hover .shared-icon-container {
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+}
+
+.shared-link-label {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.3;
+}

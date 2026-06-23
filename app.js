@@ -800,35 +800,56 @@ function openEventDetail(event) {
   document.getElementById("detail-host").textContent = hostParts[0] || "IEDC Speaker";
   document.getElementById("detail-host-qual").textContent = hostParts.slice(1).join(", ") || "IEDC Guest Host";
 
+  // Shared elements (always visible if they exist)
   const linkedin = document.getElementById("detail-host-linkedin");
   if (linkedin) {
-    if (event.speakerLinkedin) {
-      linkedin.href = event.speakerLinkedin;
-      linkedin.style.display = "flex";
+    linkedin.href = event.speakerLinkedin || "https://linkedin.com";
+    linkedin.style.display = "flex";
+  }
+
+  const whatsapp = document.getElementById("detail-whatsapp-link");
+  if (whatsapp) {
+    if (event.whatsapp_url) {
+      whatsapp.href = event.whatsapp_url;
+      whatsapp.style.setProperty("display", "flex", "important");
     } else {
-      linkedin.style.display = "none";
+      whatsapp.style.setProperty("display", "none", "important");
     }
   }
 
-  // Online vs Offline Dynamic Adapters
-  const isOnline = event.mode === "online" || (event.location && event.location.toLowerCase().includes("http"));
-  const mapLink = document.getElementById("detail-location-map-link");
-  const meetDiv = document.getElementById("detail-location-meeting");
-  const meetLink = document.getElementById("detail-meeting-link");
-  const locationText = document.getElementById("detail-location-text");
-
-  if (locationText) locationText.textContent = isOnline ? "Virtual / Digital Room" : (event.location || "TBD");
-
-  if (isOnline) {
-    if (mapLink) mapLink.style.display = "none";
-    if (meetDiv) meetDiv.style.display = "flex";
-    if (meetLink) meetLink.href = (event.location && event.location.startsWith("http")) ? event.location : "https://meet.google.com";
-  } else {
-    if (mapLink) {
-      mapLink.style.display = "inline-block";
-      mapLink.href = event.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}` : "#";
+  // Conditional Rendering Logic (Online vs Offline Venue Layout)
+  const detailVenueInfo = document.getElementById("detail-venue-info");
+  if (detailVenueInfo) {
+    const venue_type = event.venue_type || (event.mode === 'online' ? 'Online' : 'Offline');
+    if (venue_type === 'Online') {
+      detailVenueInfo.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 4px; padding-left: 8px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--neon-blue);">Online</div>
+          <div style="font-size: 12px; color: var(--muted-white); margin-top: 2px;">
+            You will get updates on WhatsApp group for the meeting link
+          </div>
+        </div>
+      `;
+    } else {
+      const mapUrl = (event.location && (event.location.startsWith('http://') || event.location.startsWith('https://'))) 
+        ? event.location 
+        : (event.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}` : '#');
+      const locationName = event.location || 'TBD';
+      detailVenueInfo.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 6px; padding-left: 8px;">
+          <a href="${mapUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; color: var(--white-pure); text-decoration: none;">
+            <span style="font-size: 16px;">📍</span>
+            <span id="detail-location-text" style="font-size: 13px; font-weight: 700; text-decoration: underline;">${locationName}</span>
+          </a>
+          <div style="margin-top: 2px; padding-left: 24px;">
+            <a id="detail-location-map-link" href="${mapUrl}" target="_blank"
+              style="font-size: 12px; color: var(--neon-yellow); text-decoration: underline; font-weight: 700;">
+              Click here to view the destination
+            </a>
+          </div>
+        </div>
+      `;
     }
-    if (meetDiv) meetDiv.style.display = "none";
   }
 
   // Pre-fill user registration details
