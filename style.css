@@ -2232,7 +2232,8 @@ body {
 }
 
 .main-content {
-  overflow-y: auto !important;
-  max-height: calc(100vh - 140px);
-  padding-bottom: 80px;
+  flex: 1;
+  overflow-y: visible !important;
+  height: auto !important;
+  padding-bottom: 250px !important;
 }
