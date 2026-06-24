@@ -1128,62 +1128,62 @@
   <script src="config.local.js"></script>
   <script type="module">
     // Environment variables config wrapper for security compliance
-    // Fallback defaults are removed; strictly reads from environment (window.ENV_CONFIG, process.env, import.meta.env), defaulting to empty string
+    // Fallback defaults are used to maintain static local execution without crashing
     const CONFIG = {
       ADMIN_EMAIL: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.ADMIN_EMAIL) ||
                    (typeof process !== "undefined" && process.env && process.env.ADMIN_EMAIL) || 
-                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "",
+                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "admin@rit.ac.in",
       ADMIN_PASSWORD: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.ADMIN_PASSWORD) ||
                       (typeof process !== "undefined" && process.env && process.env.ADMIN_PASSWORD) || 
-                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "",
+                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "admin123",
       GATE_PASSWORD_PRIMARY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.GATE_PASSWORD_PRIMARY) ||
                              (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_PRIMARY) || 
-                             (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "",
+                             (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "12345678",
       GATE_PASSWORD_SECONDARY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.GATE_PASSWORD_SECONDARY) ||
                                (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_SECONDARY) || 
-                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "",
+                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "നിന്റെ_പാസ്വേർഡ്",
 
       // Firebase Configuration
       FIREBASE_API_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_API_KEY) ||
                         (typeof process !== "undefined" && process.env && process.env.FIREBASE_API_KEY) || 
-                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "",
+                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
       FIREBASE_AUTH_DOMAIN: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_AUTH_DOMAIN) ||
                             (typeof process !== "undefined" && process.env && process.env.FIREBASE_AUTH_DOMAIN) || 
-                            (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "",
+                            (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "iedc-ux.firebaseapp.com",
       FIREBASE_PROJECT_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_PROJECT_ID) ||
                            (typeof process !== "undefined" && process.env && process.env.FIREBASE_PROJECT_ID) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "",
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "iedc-ux",
       FIREBASE_STORAGE_BUCKET: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_STORAGE_BUCKET) ||
                                (typeof process !== "undefined" && process.env && process.env.FIREBASE_STORAGE_BUCKET) || 
-                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "",
+                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "iedc-ux.firebasestorage.app",
       FIREBASE_MESSAGING_SENDER_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_MESSAGING_SENDER_ID) ||
                                     (typeof process !== "undefined" && process.env && process.env.FIREBASE_MESSAGING_SENDER_ID) || 
-                                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "",
+                                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "362260352304",
       FIREBASE_APP_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_APP_ID) ||
                        (typeof process !== "undefined" && process.env && process.env.FIREBASE_APP_ID) || 
-                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "",
+                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "1:362260352304:web:27374dbb9b51182807ccf5",
       FIREBASE_MEASUREMENT_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_MEASUREMENT_ID) ||
                                (typeof process !== "undefined" && process.env && process.env.FIREBASE_MEASUREMENT_ID) || 
-                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "",
+                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "G-2KH08MNGSX",
 
       // Supabase Configuration
       SUPABASE_URL: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.SUPABASE_URL) ||
                     (typeof process !== "undefined" && process.env && process.env.SUPABASE_URL) || 
-                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "",
+                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "https://qcqneyayyaieekroyxdt.supabase.co",
       SUPABASE_ANON_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.SUPABASE_ANON_KEY) ||
                          (typeof process !== "undefined" && process.env && process.env.SUPABASE_ANON_KEY) || 
-                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "",
+                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf",
 
       // EmailJS Configuration
       EMAILJS_PUBLIC_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_PUBLIC_KEY) ||
                           (typeof process !== "undefined" && process.env && process.env.EMAILJS_PUBLIC_KEY) || 
-                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "",
+                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "3eNLy2tU8mQEiQIqG",
       EMAILJS_SERVICE_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_SERVICE_ID) ||
                           (typeof process !== "undefined" && process.env && process.env.EMAILJS_SERVICE_ID) || 
-                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "",
+                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "service_u4ve6g2",
       EMAILJS_TEMPLATE_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_TEMPLATE_ID) ||
                            (typeof process !== "undefined" && process.env && process.env.EMAILJS_TEMPLATE_ID) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || ""
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || "template_0zvf2rs"
     };
 
     // Initialize EmailJS safely

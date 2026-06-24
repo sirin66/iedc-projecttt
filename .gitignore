@@ -13,5 +13,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-
-
+# Local browser config secrets
+config.local.js
