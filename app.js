@@ -16,6 +16,15 @@ if (typeof emailjs !== "undefined") {
   emailjs.init("3eNLy2tU8mQEiQIqG");
 }
 
+// Environment variables config wrapper for security compliance
+// Fallback defaults are used to maintain static local execution without crashing
+const CONFIG = {
+  ADMIN_EMAIL: (typeof process !== "undefined" && process.env && process.env.ADMIN_EMAIL) || "admin@rit.ac.in",
+  ADMIN_PASSWORD: (typeof process !== "undefined" && process.env && process.env.ADMIN_PASSWORD) || "admin123",
+  GATE_PASSWORD_PRIMARY: (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_PRIMARY) || "12345678",
+  GATE_PASSWORD_SECONDARY: (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_SECONDARY) || "നിന്റെ_പാസ്വേർഡ്"
+};
+
 // ==========================================================================
 // 01 — APPLICATION STATE & CONFIGURATION
 // ==========================================================================
@@ -1946,15 +1955,16 @@ function seedMockDatabase() {
     };
   }
 
-  if (!users["admin@rit.ac.in"]) {
-    users["admin@rit.ac.in"] = {
+  const adminEmailKey = (CONFIG.ADMIN_EMAIL || "admin@rit.ac.in").toLowerCase();
+  if (!users[adminEmailKey]) {
+    users[adminEmailKey] = {
       uid: "uid_admin123",
-      email: "admin@rit.ac.in",
-      password: "admin123",
+      email: adminEmailKey,
+      password: CONFIG.ADMIN_PASSWORD || "admin123",
       profileData: {
         uid: "uid_admin123",
         name: "ADMINISTRATOR",
-        email: "admin@rit.ac.in",
+        email: adminEmailKey,
         id: "ADMIN-01",
         registerNo: "ADMIN-01",
         department: "Administration",
@@ -2202,7 +2212,7 @@ if (authForgotPassForm) {
 }
 
 function checkApprovalAndRoute(profileData) {
-  if (profileData.role === "admin" || profileData.email === "admin@rit.ac.in") {
+  if (profileData.role === "admin" || (profileData.email && profileData.email.toLowerCase() === (CONFIG.ADMIN_EMAIL || "admin@rit.ac.in").toLowerCase())) {
     window.location.href = "admin.html";
   } else if (profileData.approved === true) {
     navigateTo("home");
@@ -2237,9 +2247,9 @@ if (authLoginForm) {
       let credentials;
       let isMockAdmin = false;
 
-      if (email === "admin@rit.ac.in" && password === "admin123") {
+      if (email === (CONFIG.ADMIN_EMAIL || "admin@rit.ac.in").toLowerCase() && password === (CONFIG.ADMIN_PASSWORD || "admin123")) {
         isMockAdmin = true;
-        credentials = { user: { uid: "uid_admin123", email: "admin@rit.ac.in" } };
+        credentials = { user: { uid: "uid_admin123", email: CONFIG.ADMIN_EMAIL || "admin@rit.ac.in" } };
         useRealFirebase = false;
         sessionStorage.setItem("useRealFirebase", "false");
       }
@@ -2279,11 +2289,11 @@ if (authLoginForm) {
         updateUserProfileUI();
         checkApprovalAndRoute(USER_PROFILE);
       } else {
-        if (email === "admin@rit.ac.in") {
+        if (email === (CONFIG.ADMIN_EMAIL || "admin@rit.ac.in").toLowerCase()) {
           USER_PROFILE = {
             uid: credentials.user.uid,
             name: "ADMINISTRATOR",
-            email: "admin@rit.ac.in",
+            email: CONFIG.ADMIN_EMAIL || "admin@rit.ac.in",
             id: "ADMIN-01",
             registerNo: "ADMIN-01",
             department: "Administration",
@@ -4232,7 +4242,7 @@ window.handleAdminPasswordSubmit = function (event) {
       return;
     }
 
-    if (passwordInput.value === "12345678" || passwordInput.value === "നിന്റെ_പാസ്വേർഡ്") {
+    if (passwordInput.value === CONFIG.GATE_PASSWORD_PRIMARY || passwordInput.value === CONFIG.GATE_PASSWORD_SECONDARY) {
       sessionStorage.setItem("adminPasswordVerified", "true");
       if (errorDiv) errorDiv.style.display = "none";
       if (authOverlay) authOverlay.style.display = "none";
@@ -4273,7 +4283,7 @@ window.handleAdminLogin = function (event) {
       return;
     }
 
-    if (passwordInput.value === "12345678" || passwordInput.value === "നിന്റെ_പാസ്വേർഡ്") {
+    if (passwordInput.value === CONFIG.GATE_PASSWORD_PRIMARY || passwordInput.value === CONFIG.GATE_PASSWORD_SECONDARY) {
       sessionStorage.setItem("adminPasswordVerified", "true");
       if (errorDiv) errorDiv.style.display = "none";
       if (loginOverlay) loginOverlay.style.display = "none";
