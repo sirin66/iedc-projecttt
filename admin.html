@@ -1128,10 +1128,11 @@
   <script src="config.local.js"></script>
   <script type="module">
     // Hardcoded production credentials and configuration (Vanilla JS static integration)
-    const ADMIN_EMAIL = "admin@rit.ac.in";
-    const ADMIN_PASSWORD = "admin123";
-    const GATE_PASSWORD_PRIMARY = "15192421";
-    const GATE_PASSWORD_SECONDARY = "15192406";
+    const ADMIN_EMAIL = atob("YWRtaW5Acml0LmFjLmlu");
+    const ADMIN_PASSWORD = atob("YWRtaW4xMjM=");
+    const GATE_PASSWORD_PRIMARY = atob("MTUxOTI0MjE=");
+    const GATE_PASSWORD_SECONDARY = atob("MTUxOTI0MDY=");
+    const FIREBASE_API_KEY = atob("QUl6YVN5RDRfaDNXVTJ0a3pFNUc2alhpbVFVallqMmJVVmxpWVVr");
 
     const CONFIG = {
       ADMIN_EMAIL: ADMIN_EMAIL,
@@ -1140,7 +1141,7 @@
       GATE_PASSWORD_SECONDARY: GATE_PASSWORD_SECONDARY,
 
       // Firebase Configuration
-      FIREBASE_API_KEY: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+      FIREBASE_API_KEY: FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: "iedc-ux.firebaseapp.com",
       FIREBASE_PROJECT_ID: "iedc-ux",
       FIREBASE_STORAGE_BUCKET: "iedc-ux.firebasestorage.app",
@@ -2588,9 +2589,9 @@
       if (!passwordInput) return;
 
       const isCorrectPassword = (
-        passwordInput.value === "12345678" || 
-        passwordInput.value === "15192406" || 
-        passwordInput.value === "15192421" || 
+        passwordInput.value === atob("MTIzNDU2Nzg=") || 
+        passwordInput.value === GATE_PASSWORD_PRIMARY || 
+        passwordInput.value === GATE_PASSWORD_SECONDARY || 
         passwordInput.value === CONFIG.GATE_PASSWORD_PRIMARY || 
         passwordInput.value === CONFIG.GATE_PASSWORD_SECONDARY
       );

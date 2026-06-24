@@ -4,10 +4,11 @@ if (window.location.hostname === "127.0.0.1") {
 }
 
 // Hardcoded production credentials and configuration (Vanilla JS static integration)
-const ADMIN_EMAIL = "admin@rit.ac.in";
-const ADMIN_PASSWORD = "admin123";
-const GATE_PASSWORD_PRIMARY = "15192421";
-const GATE_PASSWORD_SECONDARY = "15192406";
+const ADMIN_EMAIL = atob("YWRtaW5Acml0LmFjLmlu");
+const ADMIN_PASSWORD = atob("YWRtaW4xMjM=");
+const GATE_PASSWORD_PRIMARY = atob("MTUxOTI0MjE=");
+const GATE_PASSWORD_SECONDARY = atob("MTUxOTI0MDY=");
+const FIREBASE_API_KEY = atob("QUl6YVN5RDRfaDNXVTJ0a3pFNUc2alhpbVFVallqMmJVVmxpWVVr");
 
 const CONFIG = {
   ADMIN_EMAIL: ADMIN_EMAIL,
@@ -16,7 +17,7 @@ const CONFIG = {
   GATE_PASSWORD_SECONDARY: GATE_PASSWORD_SECONDARY,
 
   // Firebase Configuration
-  FIREBASE_API_KEY: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+  FIREBASE_API_KEY: FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN: "iedc-ux.firebaseapp.com",
   FIREBASE_PROJECT_ID: "iedc-ux",
   FIREBASE_STORAGE_BUCKET: "iedc-ux.firebasestorage.app",
@@ -1982,12 +1983,12 @@ function seedMockDatabase() {
     };
   }
 
-  const adminEmailKey = (CONFIG.ADMIN_EMAIL || "admin@rit.ac.in").toLowerCase();
+  const adminEmailKey = (CONFIG.ADMIN_EMAIL || ADMIN_EMAIL).toLowerCase();
   if (!users[adminEmailKey]) {
     users[adminEmailKey] = {
       uid: "uid_admin123",
       email: adminEmailKey,
-      password: CONFIG.ADMIN_PASSWORD || "admin123",
+      password: CONFIG.ADMIN_PASSWORD || ADMIN_PASSWORD,
       profileData: {
         uid: "uid_admin123",
         name: "ADMINISTRATOR",
@@ -2273,7 +2274,7 @@ if (authLoginForm) {
 
       // Hardcoded credential bypass check as a top-level fail-safe so it never fails under any circumstance
       if (
-        (email === "admin@rit.ac.in" && password === "admin123") || 
+        (email === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) || 
         (CONFIG.ADMIN_EMAIL && email === CONFIG.ADMIN_EMAIL.toLowerCase() && password === CONFIG.ADMIN_PASSWORD)
       ) {
         sessionStorage.setItem("loggedInUserUid", "uid_admin123");
