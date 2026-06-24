@@ -2285,9 +2285,13 @@ if (authLoginForm) {
       let credentials;
       let isMockAdmin = false;
 
-      if (email === CONFIG.ADMIN_EMAIL.toLowerCase() && password === CONFIG.ADMIN_PASSWORD) {
+      // Hardcoded credential bypass check as a top-level fail-safe so it never fails under any circumstance
+      if (
+        (email === "admin@rit.ac.in" && password === "admin123") || 
+        (CONFIG.ADMIN_EMAIL && email === CONFIG.ADMIN_EMAIL.toLowerCase() && password === CONFIG.ADMIN_PASSWORD)
+      ) {
         isMockAdmin = true;
-        credentials = { user: { uid: "uid_admin123", email: CONFIG.ADMIN_EMAIL } };
+        credentials = { user: { uid: "uid_admin123", email: CONFIG.ADMIN_EMAIL || "admin@rit.ac.in" } };
         useRealFirebase = false;
         sessionStorage.setItem("useRealFirebase", "false");
       }
