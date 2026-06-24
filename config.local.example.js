@@ -11,8 +11,8 @@ window.ENV_CONFIG = {
   // Admin Panel Login & Verification Credentials
   ADMIN_EMAIL: "admin@rit.ac.in",
   ADMIN_PASSWORD: "admin123",
-  GATE_PASSWORD_PRIMARY: "12345678",
-  GATE_PASSWORD_SECONDARY: "12345678",
+  GATE_PASSWORD_PRIMARY: "15192406",
+  GATE_PASSWORD_SECONDARY: "15192421",
 
   // Firebase Configuration
   FIREBASE_API_KEY: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
