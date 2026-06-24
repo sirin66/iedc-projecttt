@@ -1132,58 +1132,58 @@
     const CONFIG = {
       ADMIN_EMAIL: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.ADMIN_EMAIL) ||
                    (typeof process !== "undefined" && process.env && process.env.ADMIN_EMAIL) || 
-                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "admin@rit.ac.in",
+                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "",
       ADMIN_PASSWORD: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.ADMIN_PASSWORD) ||
                       (typeof process !== "undefined" && process.env && process.env.ADMIN_PASSWORD) || 
-                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "admin123",
+                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "",
       GATE_PASSWORD_PRIMARY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.GATE_PASSWORD_PRIMARY) ||
                              (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_PRIMARY) || 
-                             (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "12345678",
+                             (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "",
       GATE_PASSWORD_SECONDARY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.GATE_PASSWORD_SECONDARY) ||
                                (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_SECONDARY) || 
-                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "നിന്റെ_പാസ്വേർഡ്",
+                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "",
 
       // Firebase Configuration
       FIREBASE_API_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_API_KEY) ||
                         (typeof process !== "undefined" && process.env && process.env.FIREBASE_API_KEY) || 
-                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "",
       FIREBASE_AUTH_DOMAIN: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_AUTH_DOMAIN) ||
                             (typeof process !== "undefined" && process.env && process.env.FIREBASE_AUTH_DOMAIN) || 
-                            (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "iedc-ux.firebaseapp.com",
+                            (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "",
       FIREBASE_PROJECT_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_PROJECT_ID) ||
                            (typeof process !== "undefined" && process.env && process.env.FIREBASE_PROJECT_ID) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "iedc-ux",
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "",
       FIREBASE_STORAGE_BUCKET: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_STORAGE_BUCKET) ||
                                (typeof process !== "undefined" && process.env && process.env.FIREBASE_STORAGE_BUCKET) || 
-                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "iedc-ux.firebasestorage.app",
+                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "",
       FIREBASE_MESSAGING_SENDER_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_MESSAGING_SENDER_ID) ||
                                     (typeof process !== "undefined" && process.env && process.env.FIREBASE_MESSAGING_SENDER_ID) || 
-                                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "362260352304",
+                                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "",
       FIREBASE_APP_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_APP_ID) ||
                        (typeof process !== "undefined" && process.env && process.env.FIREBASE_APP_ID) || 
-                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "1:362260352304:web:27374dbb9b51182807ccf5",
+                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "",
       FIREBASE_MEASUREMENT_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_MEASUREMENT_ID) ||
                                (typeof process !== "undefined" && process.env && process.env.FIREBASE_MEASUREMENT_ID) || 
-                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "G-2KH08MNGSX",
+                               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "",
 
       // Supabase Configuration
       SUPABASE_URL: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.SUPABASE_URL) ||
                     (typeof process !== "undefined" && process.env && process.env.SUPABASE_URL) || 
-                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "https://qcqneyayyaieekroyxdt.supabase.co",
+                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "",
       SUPABASE_ANON_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.SUPABASE_ANON_KEY) ||
                          (typeof process !== "undefined" && process.env && process.env.SUPABASE_ANON_KEY) || 
-                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf",
+                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "",
 
       // EmailJS Configuration
       EMAILJS_PUBLIC_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_PUBLIC_KEY) ||
                           (typeof process !== "undefined" && process.env && process.env.EMAILJS_PUBLIC_KEY) || 
-                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "3eNLy2tU8mQEiQIqG",
+                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "",
       EMAILJS_SERVICE_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_SERVICE_ID) ||
                           (typeof process !== "undefined" && process.env && process.env.EMAILJS_SERVICE_ID) || 
-                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "service_u4ve6g2",
+                          (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "",
       EMAILJS_TEMPLATE_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_TEMPLATE_ID) ||
                            (typeof process !== "undefined" && process.env && process.env.EMAILJS_TEMPLATE_ID) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || "template_0zvf2rs"
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || ""
     };
 
     // Initialize EmailJS safely
@@ -1342,6 +1342,11 @@
           snap.forEach(doc => dynamicRegistrationsRegistry.push({ id: doc.id, ...doc.data() }));
           const activeFilter = document.getElementById("admin-event-filter").value;
           loadAttendeeList(activeFilter);
+
+          // Force re-render of student table to show up-to-date ticket statuses!
+          const criteria = searchInput.value.toLowerCase().trim();
+          if (criteria) filterAndRenderTable(criteria);
+          else renderActiveTable(dynamicStudentsRegistry);
         });
 
       } else {
@@ -1351,6 +1356,11 @@
 
     function syncSimulatorWorkspace() {
       function updateSimulatorData() {
+        // Load simulator registries first so that rendering uses the fresh data!
+        dynamicEventsRegistry = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
+        dynamicTournamentsRegistry = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
+        dynamicRegistrationsRegistry = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
+
         const mockUsers = JSON.parse(localStorage.getItem("firebase_mock_users") || "{}");
         dynamicStudentsRegistry = [];
         let totalCount = 0;
@@ -1381,11 +1391,6 @@
         if (criteria) filterAndRenderTable(criteria);
         else renderActiveTable(dynamicStudentsRegistry);
 
-        // Simulator events & tournaments sync
-        dynamicEventsRegistry = JSON.parse(localStorage.getItem("firebase_mock_events") || "[]");
-        dynamicTournamentsRegistry = JSON.parse(localStorage.getItem("firebase_mock_tournaments") || "[]");
-        dynamicRegistrationsRegistry = JSON.parse(localStorage.getItem("firebase_mock_registrations") || "[]");
-
         populateDropdowns();
         renderActiveEventsList();
         renderActiveTournamentsList();
@@ -1415,7 +1420,6 @@
       dropdown.value = currentSelected;
     }
 
-    // Dynamic Element Generator Loop for Rows Context
     function renderActiveTable(recordsList) {
       tbody.innerHTML = '';
 
@@ -1450,6 +1454,43 @@
         const academicYear = student.yearOfStudy || student.year || 'N/A';
         const collegeBranch = student.collegeName || student.college || 'Rajiv Gandhi Institute of Technology';
 
+        // Fetch all tickets/registrations associated with this student
+        const studentTickets = (dynamicRegistrationsRegistry || []).filter(reg => 
+          reg.studentUid === student.uid || 
+          (student.email && reg.studentEmail && reg.studentEmail.toLowerCase() === student.email.toLowerCase()) ||
+          (student.phone && reg.phone && reg.phone === student.phone)
+        );
+
+        let ticketsHtml = "";
+        if (studentTickets.length > 0) {
+          ticketsHtml = `
+            <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+              <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--muted-white); letter-spacing: 0.5px;">Booked Passes:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                ${studentTickets.map(t => {
+                  const isCheckedIn = t.checkedIn === true;
+                  const isPending = t.status === "Pending" || t.payment_status === "Pending";
+                  const badgeColor = isCheckedIn ? '#3b82f6' : (isPending ? '#eab308' : '#22c55e');
+                  const badgeText = isCheckedIn ? 'Checked In' : (isPending ? 'Pending Pay' : 'Confirmed');
+                  const title = t.eventTitle || 'Event';
+                  return `
+                    <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 4px 8px; border-radius: 6px; font-size: 11px; display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="color: white; font-weight: 600;">${title}</span>
+                      <span style="background: ${badgeColor}20; border: 1px solid ${badgeColor}40; color: ${badgeColor}; padding: 1px 4px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase;">${badgeText}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          ticketsHtml = `
+            <div style="margin-top: 6px; font-size: 10px; color: var(--muted-white); font-style: italic;">
+              No tickets booked
+            </div>
+          `;
+        }
+
         row.innerHTML = `
           <td>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -1461,6 +1502,7 @@
               </button>
             </div>
             <div style="font-size: 11px; color: var(--muted-white);">${studentEmail}</div>
+            ${ticketsHtml}
           </td>
           <td style="font-family: monospace; font-weight: 600; color: #E8614A;">${ktuID}</td>
           <td>
@@ -1540,7 +1582,8 @@
           (record.id && record.id.toLowerCase().includes(criteria)) ||
           (record.ktuId && record.ktuId.toLowerCase().includes(criteria)) ||
           (record.department && record.department.toLowerCase().includes(criteria)) ||
-          (record.email && record.email.toLowerCase().includes(criteria))
+          (record.email && record.email.toLowerCase().includes(criteria)) ||
+          (record.phone && record.phone.toLowerCase().includes(criteria))
         );
       });
       renderActiveTable(matchedCollection);

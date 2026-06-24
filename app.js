@@ -8,58 +8,58 @@ if (window.location.hostname === "127.0.0.1") {
 const CONFIG = {
   ADMIN_EMAIL: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.ADMIN_EMAIL) ||
                (typeof process !== "undefined" && process.env && process.env.ADMIN_EMAIL) || 
-               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "admin@rit.ac.in",
+               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "",
   ADMIN_PASSWORD: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.ADMIN_PASSWORD) ||
                   (typeof process !== "undefined" && process.env && process.env.ADMIN_PASSWORD) || 
-                  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "admin123",
+                  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "",
   GATE_PASSWORD_PRIMARY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.GATE_PASSWORD_PRIMARY) ||
                          (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_PRIMARY) || 
-                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "12345678",
+                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "",
   GATE_PASSWORD_SECONDARY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.GATE_PASSWORD_SECONDARY) ||
                            (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_SECONDARY) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "നിന്റെ_പാസ്വേർഡ്",
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "",
 
   // Firebase Configuration
   FIREBASE_API_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_API_KEY) ||
                     (typeof process !== "undefined" && process.env && process.env.FIREBASE_API_KEY) || 
-                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "",
   FIREBASE_AUTH_DOMAIN: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_AUTH_DOMAIN) ||
                         (typeof process !== "undefined" && process.env && process.env.FIREBASE_AUTH_DOMAIN) || 
-                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "iedc-ux.firebaseapp.com",
+                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "",
   FIREBASE_PROJECT_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_PROJECT_ID) ||
                        (typeof process !== "undefined" && process.env && process.env.FIREBASE_PROJECT_ID) || 
-                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "iedc-ux",
+                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "",
   FIREBASE_STORAGE_BUCKET: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_STORAGE_BUCKET) ||
                            (typeof process !== "undefined" && process.env && process.env.FIREBASE_STORAGE_BUCKET) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "iedc-ux.firebasestorage.app",
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "",
   FIREBASE_MESSAGING_SENDER_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_MESSAGING_SENDER_ID) ||
                                 (typeof process !== "undefined" && process.env && process.env.FIREBASE_MESSAGING_SENDER_ID) || 
-                                (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "362260352304",
+                                (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "",
   FIREBASE_APP_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_APP_ID) ||
                    (typeof process !== "undefined" && process.env && process.env.FIREBASE_APP_ID) || 
-                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "1:362260352304:web:27374dbb9b51182807ccf5",
+                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "",
   FIREBASE_MEASUREMENT_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.FIREBASE_MEASUREMENT_ID) ||
                            (typeof process !== "undefined" && process.env && process.env.FIREBASE_MEASUREMENT_ID) || 
-                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "G-2KH08MNGSX",
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "",
 
   // Supabase Configuration
   SUPABASE_URL: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.SUPABASE_URL) ||
                 (typeof process !== "undefined" && process.env && process.env.SUPABASE_URL) || 
-                (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "https://qcqneyayyaieekroyxdt.supabase.co",
+                (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "",
   SUPABASE_ANON_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.SUPABASE_ANON_KEY) ||
                      (typeof process !== "undefined" && process.env && process.env.SUPABASE_ANON_KEY) || 
-                     (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf",
+                     (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "",
 
   // EmailJS Configuration
   EMAILJS_PUBLIC_KEY: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_PUBLIC_KEY) ||
                       (typeof process !== "undefined" && process.env && process.env.EMAILJS_PUBLIC_KEY) || 
-                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "3eNLy2tU8mQEiQIqG",
+                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "",
   EMAILJS_SERVICE_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_SERVICE_ID) ||
                       (typeof process !== "undefined" && process.env && process.env.EMAILJS_SERVICE_ID) || 
-                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "service_u4ve6g2",
+                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "",
   EMAILJS_TEMPLATE_ID: (typeof window !== "undefined" && window.ENV_CONFIG && window.ENV_CONFIG.EMAILJS_TEMPLATE_ID) ||
                        (typeof process !== "undefined" && process.env && process.env.EMAILJS_TEMPLATE_ID) || 
-                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || "template_0zvf2rs"
+                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || ""
 };
 
 // Initialize EmailJS safely
@@ -1223,7 +1223,7 @@ async function handleRegistrationCheckout() {
 
   // Compile registration data using user.uid for direct real-time snapshot sync
   const studentUid = sessionStorage.getItem("loggedInUserUid") || (USER_PROFILE && USER_PROFILE.uid) || (typeof firebase !== "undefined" && firebase.auth && firebase.auth().currentUser && firebase.auth().currentUser.uid);
-  const registrationId = "reg-" + studentUid;
+  const registrationId = "reg-" + studentUid + "-" + eventId;
   const merchantTransactionId = "TXN_" + registrationId;
   const registrationData = {
     registrationId,
@@ -3137,8 +3137,8 @@ onAuthStateChanged(auth, (user) => {
           handleRealtimeRegistrationUpdate(finalReg);
         };
 
-        // Listener 1: doc(db, "registrations", user.uid)
-        regUnsubscribe1 = firestoreDb.collection("registrations").doc(user.uid)
+        // Listener 1: doc(db, "registrations", user.uid + "-" + selectedEvent.id)
+        regUnsubscribe1 = firestoreDb.collection("registrations").doc(user.uid + "-" + selectedEvent.id)
           .onSnapshot((doc) => {
             const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
             if (docExists) {
@@ -3151,8 +3151,8 @@ onAuthStateChanged(auth, (user) => {
             console.error("Error in real-time registration snapshot 1:", err);
           });
 
-        // Listener 2: doc(db, "registrations", "reg-" + user.uid)
-        regUnsubscribe2 = firestoreDb.collection("registrations").doc("reg-" + user.uid)
+        // Listener 2: doc(db, "registrations", "reg-" + user.uid + "-" + selectedEvent.id)
+        regUnsubscribe2 = firestoreDb.collection("registrations").doc("reg-" + user.uid + "-" + selectedEvent.id)
           .onSnapshot((doc) => {
             const docExists = doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists);
             if (docExists) {
@@ -3175,7 +3175,7 @@ onAuthStateChanged(auth, (user) => {
 
         let finalReg = null;
         if (selectedEvent) {
-          const reg = mockRegs.find(r => r.eventId === selectedEvent.id && (r.registrationId === "reg-" + user.uid || r.registrationId === user.uid || r.studentUid === user.uid));
+          const reg = mockRegs.find(r => r.eventId === selectedEvent.id && (r.registrationId === "reg-" + user.uid + "-" + selectedEvent.id || r.registrationId === user.uid + "-" + selectedEvent.id || r.registrationId === "reg-" + user.uid || r.registrationId === user.uid || r.studentUid === user.uid));
           if (reg) {
             finalReg = reg;
           } else {
