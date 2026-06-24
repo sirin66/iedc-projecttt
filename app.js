@@ -3,27 +3,63 @@ if (window.location.hostname === "127.0.0.1") {
   window.location.hostname = "localhost";
 }
 
+// Environment variables config wrapper for security compliance
+// Fallback defaults are removed; strictly reads from environment, defaulting to empty string
+const CONFIG = {
+  ADMIN_EMAIL: (typeof process !== "undefined" && process.env && process.env.ADMIN_EMAIL) || 
+               (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_EMAIL) || "",
+  ADMIN_PASSWORD: (typeof process !== "undefined" && process.env && process.env.ADMIN_PASSWORD) || 
+                  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_ADMIN_PASSWORD) || "",
+  GATE_PASSWORD_PRIMARY: (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_PRIMARY) || 
+                         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_PRIMARY) || "",
+  GATE_PASSWORD_SECONDARY: (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_SECONDARY) || 
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_GATE_PASSWORD_SECONDARY) || "",
+
+  // Firebase Configuration
+  FIREBASE_API_KEY: (typeof process !== "undefined" && process.env && process.env.FIREBASE_API_KEY) || 
+                    (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY) || "",
+  FIREBASE_AUTH_DOMAIN: (typeof process !== "undefined" && process.env && process.env.FIREBASE_AUTH_DOMAIN) || 
+                        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || "",
+  FIREBASE_PROJECT_ID: (typeof process !== "undefined" && process.env && process.env.FIREBASE_PROJECT_ID) || 
+                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_PROJECT_ID) || "",
+  FIREBASE_STORAGE_BUCKET: (typeof process !== "undefined" && process.env && process.env.FIREBASE_STORAGE_BUCKET) || 
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || "",
+  FIREBASE_MESSAGING_SENDER_ID: (typeof process !== "undefined" && process.env && process.env.FIREBASE_MESSAGING_SENDER_ID) || 
+                                (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || "",
+  FIREBASE_APP_ID: (typeof process !== "undefined" && process.env && process.env.FIREBASE_APP_ID) || 
+                   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_APP_ID) || "",
+  FIREBASE_MEASUREMENT_ID: (typeof process !== "undefined" && process.env && process.env.FIREBASE_MEASUREMENT_ID) || 
+                           (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || "",
+
+  // Supabase Configuration
+  SUPABASE_URL: (typeof process !== "undefined" && process.env && process.env.SUPABASE_URL) || 
+                (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "",
+  SUPABASE_ANON_KEY: (typeof process !== "undefined" && process.env && process.env.SUPABASE_ANON_KEY) || 
+                     (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "",
+
+  // EmailJS Configuration
+  EMAILJS_PUBLIC_KEY: (typeof process !== "undefined" && process.env && process.env.EMAILJS_PUBLIC_KEY) || 
+                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_PUBLIC_KEY) || "",
+  EMAILJS_SERVICE_ID: (typeof process !== "undefined" && process.env && process.env.EMAILJS_SERVICE_ID) || 
+                      (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_SERVICE_ID) || "",
+  EMAILJS_TEMPLATE_ID: (typeof process !== "undefined" && process.env && process.env.EMAILJS_TEMPLATE_ID) || 
+                       (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_EMAILJS_TEMPLATE_ID) || ""
+};
+
 // Initialize EmailJS safely
-if (typeof emailjs !== "undefined") {
-  emailjs.init("3eNLy2tU8mQEiQIqG");
+if (typeof emailjs !== "undefined" && CONFIG.EMAILJS_PUBLIC_KEY) {
+  emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY);
   console.log("EmailJS initialized successfully.");
 } else {
-  console.warn("emailjs is not defined. Initializing mock to prevent crashes.");
+  console.warn("emailjs or EmailJS public key is not defined. Initializing mock to prevent crashes.");
   window.emailjs = {
     init: () => {},
     send: () => Promise.resolve({ status: 200, text: "Mock send success" })
   };
-  emailjs.init("3eNLy2tU8mQEiQIqG");
+  if (CONFIG.EMAILJS_PUBLIC_KEY) {
+    emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY);
+  }
 }
-
-// Environment variables config wrapper for security compliance
-// Fallback defaults are used to maintain static local execution without crashing
-const CONFIG = {
-  ADMIN_EMAIL: (typeof process !== "undefined" && process.env && process.env.ADMIN_EMAIL) || "admin@rit.ac.in",
-  ADMIN_PASSWORD: (typeof process !== "undefined" && process.env && process.env.ADMIN_PASSWORD) || "admin123",
-  GATE_PASSWORD_PRIMARY: (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_PRIMARY) || "12345678",
-  GATE_PASSWORD_SECONDARY: (typeof process !== "undefined" && process.env && process.env.GATE_PASSWORD_SECONDARY) || "നിന്റെ_പാസ്വേർഡ്"
-};
 
 // ==========================================================================
 // 01 — APPLICATION STATE & CONFIGURATION
@@ -61,17 +97,17 @@ const PHONEPE_CONFIG = {
 
 // Firebase initialization configuration block
 const firebaseConfig = {
-  apiKey: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
-  authDomain: "iedc-ux.firebaseapp.com",
-  projectId: "iedc-ux",
-  storageBucket: "iedc-ux.firebasestorage.app",
-  messagingSenderId: "362260352304",
-  appId: "1:362260352304:web:27374dbb9b51182807ccf5",
-  measurementId: "G-2KH08MNGSX"
+  apiKey: CONFIG.FIREBASE_API_KEY,
+  authDomain: CONFIG.FIREBASE_AUTH_DOMAIN,
+  projectId: CONFIG.FIREBASE_PROJECT_ID,
+  storageBucket: CONFIG.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: CONFIG.FIREBASE_MESSAGING_SENDER_ID,
+  appId: CONFIG.FIREBASE_APP_ID,
+  measurementId: CONFIG.FIREBASE_MEASUREMENT_ID
 };
 
 let useRealFirebase = false;
-if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_")) {
+if (firebaseConfig.apiKey) {
   try {
     if (typeof firebase !== "undefined") {
       if (!firebase.apps.length) {
@@ -129,11 +165,11 @@ function onAuthStateChanged(authInstance, callback) {
 // ==========================================
 // SUPABASE STORAGE INITIALIZATION
 // ==========================================
-const supabaseUrl = "https://qcqneyayyaieekroyxdt.supabase.co";
-const supabaseKey = "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf";
+const supabaseUrl = CONFIG.SUPABASE_URL;
+const supabaseKey = CONFIG.SUPABASE_ANON_KEY;
 let supabaseClient = null;
 try {
-  if (typeof window !== "undefined" && window.supabase) {
+  if (typeof window !== "undefined" && window.supabase && supabaseUrl && supabaseKey) {
     supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     console.log("Supabase client initialized successfully.");
   }
@@ -4607,7 +4643,7 @@ window.sendConfirmationEmail = async function(registrationData) {
   console.log("Sending confirmation email via EmailJS with params:", templateParams);
 
   try {
-    const response = await emailjs.send("service_u4ve6g2", "template_0zvf2rs", templateParams);
+    const response = await emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_TEMPLATE_ID, templateParams);
     console.log("Email confirmation sent successfully!", response.status, response.text);
   } catch (error) {
     console.error("Failed to send email confirmation:", error);
