@@ -3,46 +3,35 @@ if (window.location.hostname === "127.0.0.1") {
   window.location.hostname = "localhost";
 }
 
-// Helper function to safely load environment variables with strict fallbacks
-const localConfig = (typeof window !== "undefined" && window.ENV_CONFIG) || {};
-const loadConfigValue = (viteVal, localKey) => {
-  if (viteVal !== undefined && viteVal !== null && viteVal !== "" && viteVal !== "undefined") {
-    return viteVal;
-  }
-  return localConfig[localKey] || "";
-};
-
-// Object mapper for all our secrets to prevent empty-string replacement during production build if missing
-const SECRETS_MAPPER = {
-  ADMIN_EMAIL: import.meta.env.VITE_ADMIN_EMAIL || localConfig.ADMIN_EMAIL || "",
-  ADMIN_PASSWORD: import.meta.env.VITE_ADMIN_PASSWORD || localConfig.ADMIN_PASSWORD || "",
-  GATE_PASSWORD_PRIMARY: import.meta.env.VITE_GATE_PASSWORD_PRIMARY || localConfig.GATE_PASSWORD_PRIMARY || "",
-  GATE_PASSWORD_SECONDARY: import.meta.env.VITE_GATE_PASSWORD_SECONDARY || localConfig.GATE_PASSWORD_SECONDARY || ""
-};
+// Hardcoded production credentials and configuration (Vanilla JS static integration)
+const ADMIN_EMAIL = "admin@rit.ac.in";
+const ADMIN_PASSWORD = "admin123";
+const GATE_PASSWORD_PRIMARY = "15192421";
+const GATE_PASSWORD_SECONDARY = "15192406";
 
 const CONFIG = {
-  ADMIN_EMAIL: loadConfigValue(SECRETS_MAPPER.ADMIN_EMAIL, "ADMIN_EMAIL"),
-  ADMIN_PASSWORD: loadConfigValue(SECRETS_MAPPER.ADMIN_PASSWORD, "ADMIN_PASSWORD"),
-  GATE_PASSWORD_PRIMARY: loadConfigValue(SECRETS_MAPPER.GATE_PASSWORD_PRIMARY, "GATE_PASSWORD_PRIMARY"),
-  GATE_PASSWORD_SECONDARY: loadConfigValue(SECRETS_MAPPER.GATE_PASSWORD_SECONDARY, "GATE_PASSWORD_SECONDARY"),
+  ADMIN_EMAIL: ADMIN_EMAIL,
+  ADMIN_PASSWORD: ADMIN_PASSWORD,
+  GATE_PASSWORD_PRIMARY: GATE_PASSWORD_PRIMARY,
+  GATE_PASSWORD_SECONDARY: GATE_PASSWORD_SECONDARY,
 
-  // Firebase Configuration (read directly to allow Vite static replacement)
-  FIREBASE_API_KEY: loadConfigValue(import.meta.env.VITE_FIREBASE_API_KEY, "FIREBASE_API_KEY"),
-  FIREBASE_AUTH_DOMAIN: loadConfigValue(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN, "FIREBASE_AUTH_DOMAIN"),
-  FIREBASE_PROJECT_ID: loadConfigValue(import.meta.env.VITE_FIREBASE_PROJECT_ID, "FIREBASE_PROJECT_ID"),
-  FIREBASE_STORAGE_BUCKET: loadConfigValue(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, "FIREBASE_STORAGE_BUCKET"),
-  FIREBASE_MESSAGING_SENDER_ID: loadConfigValue(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID, "FIREBASE_MESSAGING_SENDER_ID"),
-  FIREBASE_APP_ID: loadConfigValue(import.meta.env.VITE_FIREBASE_APP_ID, "FIREBASE_APP_ID"),
-  FIREBASE_MEASUREMENT_ID: loadConfigValue(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID, "FIREBASE_MEASUREMENT_ID"),
+  // Firebase Configuration
+  FIREBASE_API_KEY: "AIzaSyD4_h3WU2tkzE5G6jXimQUjYj2bUVliYUk",
+  FIREBASE_AUTH_DOMAIN: "iedc-ux.firebaseapp.com",
+  FIREBASE_PROJECT_ID: "iedc-ux",
+  FIREBASE_STORAGE_BUCKET: "iedc-ux.firebasestorage.app",
+  FIREBASE_MESSAGING_SENDER_ID: "362260352304",
+  FIREBASE_APP_ID: "1:362260352304:web:27374dbb9b51182807ccf5",
+  FIREBASE_MEASUREMENT_ID: "G-2KH08MNGSX",
 
   // Supabase Configuration
-  SUPABASE_URL: loadConfigValue(import.meta.env.VITE_SUPABASE_URL, "SUPABASE_URL"),
-  SUPABASE_ANON_KEY: loadConfigValue(import.meta.env.VITE_SUPABASE_ANON_KEY, "SUPABASE_ANON_KEY"),
+  SUPABASE_URL: "https://qcqneyayyaieekroyxdt.supabase.co",
+  SUPABASE_ANON_KEY: "Sb_publishable_0CE1Cl1OLGMRziQU2Y7jgg_vq8ePDBf",
 
   // EmailJS Configuration
-  EMAILJS_PUBLIC_KEY: loadConfigValue(import.meta.env.VITE_EMAILJS_PUBLIC_KEY, "EMAILJS_PUBLIC_KEY"),
-  EMAILJS_SERVICE_ID: loadConfigValue(import.meta.env.VITE_EMAILJS_SERVICE_ID, "EMAILJS_SERVICE_ID"),
-  EMAILJS_TEMPLATE_ID: loadConfigValue(import.meta.env.VITE_EMAILJS_TEMPLATE_ID, "EMAILJS_TEMPLATE_ID")
+  EMAILJS_PUBLIC_KEY: "3eNLy2tU8mQEiQIqG",
+  EMAILJS_SERVICE_ID: "service_u4ve6g2",
+  EMAILJS_TEMPLATE_ID: "template_0zvf2rs"
 };
 
 // Initialize EmailJS safely
@@ -2282,32 +2271,30 @@ if (authLoginForm) {
         submitBtn.textContent = "Verifying...";
       }
 
-      let credentials;
-      let isMockAdmin = false;
-
       // Hardcoded credential bypass check as a top-level fail-safe so it never fails under any circumstance
       if (
         (email === "admin@rit.ac.in" && password === "admin123") || 
         (CONFIG.ADMIN_EMAIL && email === CONFIG.ADMIN_EMAIL.toLowerCase() && password === CONFIG.ADMIN_PASSWORD)
       ) {
-        isMockAdmin = true;
-        credentials = { user: { uid: "uid_admin123", email: CONFIG.ADMIN_EMAIL || "admin@rit.ac.in" } };
-        useRealFirebase = false;
+        sessionStorage.setItem("loggedInUserUid", "uid_admin123");
+        localStorage.setItem("loggedInUserUid", "uid_admin123");
+        sessionStorage.setItem("adminPasswordVerified", "true");
         sessionStorage.setItem("useRealFirebase", "false");
+        window.location.href = "admin.html";
+        return;
       }
 
-      if (!isMockAdmin) {
-        try {
-          credentials = await FirebaseService.auth.signInWithEmailAndPassword(email, password);
-        } catch (authError) {
-          if (email === "sirin@rit.ac.in" && password === "password123") {
-            console.log("Real Firebase login failed. Using local simulator user sirin.");
-            useRealFirebase = false;
-            sessionStorage.setItem("useRealFirebase", "false");
-            credentials = { user: { uid: "uid_sirin123", email: "sirin@rit.ac.in" } };
-          } else {
-            throw authError;
-          }
+      let credentials;
+      try {
+        credentials = await FirebaseService.auth.signInWithEmailAndPassword(email, password);
+      } catch (authError) {
+        if (email === "sirin@rit.ac.in" && password === "password123") {
+          console.log("Real Firebase login failed. Using local simulator user sirin.");
+          useRealFirebase = false;
+          sessionStorage.setItem("useRealFirebase", "false");
+          credentials = { user: { uid: "uid_sirin123", email: "sirin@rit.ac.in" } };
+        } else {
+          throw authError;
         }
       }
 
