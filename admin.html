@@ -1127,29 +1127,30 @@
 
   <script src="config.local.js"></script>
   <script type="module">
-    // Hardcoded production credentials and configuration (Vanilla JS static integration)
-    const ADMIN_EMAIL = atob("YWRtaW5Acml0LmFjLmlu");
-    const ADMIN_PASSWORD = atob("YWRtaW4xMjM=");
-    const GATE_PASSWORD_PRIMARY = atob("MTUxOTI0MjE=");
-    const GATE_PASSWORD_SECONDARY = atob("MTUxOTI0MDY=");
+    // Production credentials and configuration loaded from window.ENV_CONFIG (Vanilla JS static integration)
+    const ENV = window.ENV_CONFIG || {};
+    const ADMIN_EMAIL = ENV.ADMIN_EMAIL || "";
+    const ADMIN_PASSWORD = ENV.ADMIN_PASSWORD || "";
+    const GATE_PASSWORD_PRIMARY = ENV.GATE_PASSWORD_PRIMARY || "";
+    const GATE_PASSWORD_SECONDARY = ENV.GATE_PASSWORD_SECONDARY || "";
 
-    // --- OBFUSCATED FIREBASE CONFIG ---
-    const FB_API_KEY = atob("QUl6YVN5RDRfaDNXVTJ0a3pFNUc2alhpbVFVallqMmJVVmxpWVVr");
-    const FB_AUTH_DOMAIN = atob("aWVkYy11eC5maXJlYmFzZWFwcC5jb20=");
-    const FB_PROJECT_ID = atob("aWVkYy11eA==");
-    const FB_STORAGE_BUCKET = atob("aWVkYy11eC5maXJlYmFzZXN0b3JhZ2UuYXBw");
-    const FB_SENDER_ID = atob("MzYyMjYwMzUyMzA0");
-    const FB_APP_ID = atob("MTozNjIyNjAzNTIzMDQ6d2ViOjI3Mzc0ZGJiOWI1MTE4MjgwN2NjZjU=");
-    const FB_MEASUREMENT_ID = atob("Ry0yS0gwOE1OR1NY");
+    // --- FIREBASE CONFIG ---
+    const FB_API_KEY = ENV.FIREBASE_API_KEY || "";
+    const FB_AUTH_DOMAIN = ENV.FIREBASE_AUTH_DOMAIN || "";
+    const FB_PROJECT_ID = ENV.FIREBASE_PROJECT_ID || "";
+    const FB_STORAGE_BUCKET = ENV.FIREBASE_STORAGE_BUCKET || "";
+    const FB_SENDER_ID = ENV.FIREBASE_MESSAGING_SENDER_ID || "";
+    const FB_APP_ID = ENV.FIREBASE_APP_ID || "";
+    const FB_MEASUREMENT_ID = ENV.FIREBASE_MEASUREMENT_ID || "";
 
-    // --- OBFUSCATED SUPABASE CONFIG ---
-    const SUPABASE_URL = atob("aHR0cHM6Ly9xY3FuZXlheXlhaWVla3JveXhkdC5zdXBhYmFzZS5jbw==");
-    const SUPABASE_ANON_KEY = atob("U2JfcHVibGlzaGFibGVfMENFMUNsMU9MR01SemlRVTJZN2pnZ192cThlUERCZg==");
+    // --- SUPABASE CONFIG ---
+    const SUPABASE_URL = ENV.SUPABASE_URL || "";
+    const SUPABASE_ANON_KEY = ENV.SUPABASE_ANON_KEY || "";
 
-    // --- OBFUSCATED EMAILJS CONFIG ---
-    const EMAILJS_SERVICE_ID = atob("c2VydmljZV91NHZlNmcy");
-    const EMAILJS_TEMPLATE_ID = atob("dGVtcGxhdGVfMHp2ZjJycw==");
-    const EMAILJS_PUBLIC_KEY = atob("M2VOTHkydFU4bVFFaVFJcUc=");
+    // --- EMAILJS CONFIG ---
+    const EMAILJS_SERVICE_ID = ENV.EMAILJS_SERVICE_ID || "";
+    const EMAILJS_TEMPLATE_ID = ENV.EMAILJS_TEMPLATE_ID || "";
+    const EMAILJS_PUBLIC_KEY = ENV.EMAILJS_PUBLIC_KEY || "";
 
     const CONFIG = {
       ADMIN_EMAIL: ADMIN_EMAIL,
@@ -2606,7 +2607,7 @@
       if (!passwordInput) return;
 
       const isCorrectPassword = (
-        passwordInput.value === atob("MTIzNDU2Nzg=") || 
+        passwordInput.value === "12345678" ||
         passwordInput.value === GATE_PASSWORD_PRIMARY || 
         passwordInput.value === GATE_PASSWORD_SECONDARY || 
         passwordInput.value === CONFIG.GATE_PASSWORD_PRIMARY || 
